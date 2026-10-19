@@ -1,8 +1,8 @@
 # AeroAssist QA Agent
 
-> **Being rebuilt.** This repository is becoming **api-qa-agent**: an AI-assisted pipeline, with
-> people at every gate, that turns a team's API description, acceptance criteria and existing test
-> cases into runnable API tests in the team's own framework. The new design:
+> **Being rebuilt.** This repository is becoming **api-qa-agent**. AI drafts, humans approve: it turns
+> your API description, acceptance criteria and existing test cases into runnable API tests in Python
+> or REST Assured. The new design:
 > [high-level](docs/architecture.md) · [low-level](docs/lld.md). Built so far: the reference API it
 > tests against, [`mock_service/`](mock_service/). Below is the first version, which still runs until
 > the new phases replace it.

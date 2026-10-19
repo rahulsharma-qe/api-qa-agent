@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "api-qa-agent"
+version = "0.1.0"
+description = "AI drafts, humans approve: runnable API tests from your API description, acceptance criteria and existing test cases."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",     # the reference API (mock_service)
+    "uvicorn>=0.29",
+    "httpx>=0.27",        # env_check
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+include = ["mock_service*", "env_check*"]
+
+[tool.setuptools.package-data]
+mock_service = ["openapi.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]       # each framework under frameworks/ runs its own tests

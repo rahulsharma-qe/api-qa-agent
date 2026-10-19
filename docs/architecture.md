@@ -1,8 +1,8 @@
 # api-qa-agent: high-level design
 
-An AI-assisted pipeline, with people at every gate, that turns what a team already has about its API (a description of the API, the
-acceptance criteria of a change, and the test cases it already wrote) into runnable API tests in
-the team's own framework, with an AI drafting and people approving. Regression runs need no AI.
+**AI drafts, humans approve.** The utility turns what a team already has about its API (a description
+of the API, the acceptance criteria of a change, and the test cases it already wrote) into runnable API
+tests in the team's own framework, Python or REST Assured. Regression runs need no AI.
 
 Status: **design**. Each phase below is built and checked before the next one starts.
 
