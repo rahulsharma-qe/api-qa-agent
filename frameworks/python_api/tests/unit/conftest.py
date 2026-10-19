@@ -5,8 +5,6 @@ import json
 import httpx
 import pytest
 
-pytest_plugins = ["pytester"]
-
 
 @pytest.fixture
 def fake_http():

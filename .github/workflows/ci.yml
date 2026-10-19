@@ -67,10 +67,8 @@ jobs:
         run: python -m mock_service > mock_service.log 2>&1 &
       - name: Is the environment ready? (exit 3 if not)
         run: python -m env_check --env mock
-      - name: The framework's own tests (no service needed)
-        run: python -m pytest -q tests/unit
-      - name: Every example against the reference API
-        run: python -m pytest -q tests/examples --junitxml=reports/junit.xml
+      - name: The framework's own tests, then every example against the reference API (one command, as in the README)
+        run: python -m pytest -q --junitxml=reports/junit.xml
       - name: Keep the report
         if: always()
         uses: actions/upload-artifact@v4

@@ -23,3 +23,4 @@ include = ["api_test_framework*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-p pytester"      # the plugin's own tests run throwaway pytest sessions
