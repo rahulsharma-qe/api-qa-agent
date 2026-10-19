@@ -1,5 +1,6 @@
 # Runtime for the demo, SUT, and tests (no API key needed for these)
 fastapi>=0.110
+uvicorn>=0.29          # runs the mock service: python -m mock_service
 httpx>=0.27
 python-dateutil>=2.9
 pytest>=8.0

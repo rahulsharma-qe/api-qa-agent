@@ -8,6 +8,7 @@ It is a test double, not a product: data lives in memory and `/test/*` routes re
 """
 
 from mock_service.bookings_app import create_bookings_app
+from mock_service.notifications_app import create_notifications_app
 from mock_service.settings import MockSettings
 
-__all__ = ["MockSettings", "create_bookings_app"]
+__all__ = ["MockSettings", "create_bookings_app", "create_notifications_app"]
