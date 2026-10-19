@@ -1,112 +1,96 @@
-# AeroAssist QA Agent
+# api-qa-agent
 
-> **Being rebuilt.** This repository is becoming **api-qa-agent**. AI drafts, humans approve: it turns
-> your API description, acceptance criteria and existing test cases into runnable API tests in Python
-> or REST Assured. The new design:
-> [high-level](docs/architecture.md) · [low-level](docs/lld.md). Built so far: the reference API it
-> tests against ([`mock_service/`](mock_service/)), the environment check ([`env_check/`](env_check/)) and
-> the Python framework ([`frameworks/python_api/`](frameworks/python_api/)). Below is the first
-> version, which still runs until the new phases replace it.
+[![CI](https://github.com/rahulsharma-qe/api-qa-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/rahulsharma-qe/api-qa-agent/actions/workflows/ci.yml)
 
-An AI-assisted **QA framework** that turns a plain-English requirement into a validated test
-package, then renders it into **five different test stacks** from one framework-agnostic core.
+**AI drafts, humans approve.** api-qa-agent turns what a team already has about its API (an
+OpenAPI description or a curl with a sample response, the acceptance criteria of a change, and the
+test cases it already wrote) into runnable API tests in the team's own framework: pytest today,
+REST Assured next. The AI drafts cases and data; a reviewer approves every one; templates write the
+code. Regression runs need no AI and no API key.
 
-Built around a mock airline-support service (**AeroAssist**), it demonstrates the full loop most
-demos skip: **AI generates the tests, the framework runs them against a real API, and it
-produces actual pass/fail** — not just "the AI wrote a test."
+It is the "AI for quality" side of my work. Its sibling,
+[`ai-quality-lab`](https://github.com/rahulsharma-qe/ai-quality-lab), is the "quality of AI" side:
+testing AI agents themselves.
 
-```
-requirement  ->  [ generate -> AI review -> human/auto approve -> revise -> data -> validate ]
-             ->  framework-agnostic package  ->  { Python | REST Assured | Apache+TestNG | BDD | Playwright }
-```
+## Where it stands
 
-## Why this exists
-
-Real quality orgs run many stacks and can't trust AI-generated artifacts blindly. This project
-shows a way to get AI's speed **with** engineering discipline:
-
-- **One core, many adapters** — build the intelligence once; each team's stack is a thin adapter.
-- **Gates everywhere** — a review gate on cases, a hybrid validator on data, an oracle on every test.
-- **Human-in-the-loop by design** — the AI reviewer is itself an LLM and can over-correct, so a
-  human holds the veto; regression runs automatically, new features pause for approval.
-- **Honest scope** — one adapter is executed live; the rest are idiomatic reference implementations.
-
-## Quickstart (no API key needed)
-
-The repo ships with a committed sample package, so it runs green out of the box.
-
-```bash
-pip install -r requirements.txt
-
-# run the committed samples through the engine against the mock service
-python -m examples.run_demo
-
-# or run the deterministic test suite (this is what CI runs)
-python -m pytest -q
-```
-
-Expected: **12/12 API tests pass** (6 records x 2 endpoints), pytest green.
-
-## Live mode (optional — regenerates cases/data via an LLM)
-
-The LLM layer is **provider-agnostic** (`core/llm.py`): pick a provider with `LLM_PROVIDER`
-(default `anthropic`, `openai` supported) and set the matching key. The framework is not
-locked to one vendor — swapping providers is a small change in one file.
-
-```bash
-cp .env.example .env          # set LLM_PROVIDER and the matching API key
-python -m examples.run_live   # re-generates package.json + all adapter outputs
-```
-
-Secrets are read from the environment only. `.env` is gitignored; nothing is ever committed.
-
-## Repository layout
-
-```
-core/                 the framework-agnostic brain
-  generate_cases.py   requirement -> cases
-  review_gate.py      a 2nd LLM critiques the cases
-  revise_cases.py     apply only human-approved feedback
-  generate_data.py    synthetic, privacy-safe test data
-  validate_data.py    hybrid check: rules (facts) + LLM (judgment)
-  orchestrator.py     one flow, two modes (HITL / auto-CI), bounded retry + flag
-adapters/             pure translators (no LLM, no re-generation)
-  python_api.py       SOLID  - generic, service-agnostic engine (runnable)
-  rest_assured.py     reference - Java fluent DSL
-  apache_testng.py    reference - Apache HttpClient + TestNG (build-your-own style)
-  bdd_gherkin.py      reference - plain-English .feature
-  playwright.py       reference - UI
-examples/
-  sut/app.py          mock AeroAssist service under test (FastAPI, POST + GET)
-  service_spec.py     thin per-service spec + oracles
-  oracles.py          the single source of truth (should_refund / is_well_formed)
-  run_demo.py         deterministic demo (no key)
-  run_live.py         full live generation (needs key)
-  output/             committed sample package + generated artifacts (all 5 stacks)
-tests/test_engine.py  deterministic engine test (CI)
-docs/history/first-version.md  the first version's design decisions + rationale
-```
-
-## The core ideas in one screen
-
-| Idea | Where |
+| | Status |
 |---|---|
-| Orchestrated pipeline, autonomy staged by risk | `core/orchestrator.py` |
-| Review gate — and the reviewer is also an LLM (human holds veto) | `core/review_gate.py` |
-| Hybrid validation: rules for facts, LLM for judgment | `core/validate_data.py` |
-| One core -> many stacks, all sharing one oracle | `adapters/`, `examples/oracles.py` |
-| Service-agnostic engine driven by a thin spec | `adapters/python_api.py`, `examples/service_spec.py` |
-| Oracle is a role, not a database (computed + reference-data) | `examples/service_spec.py` |
+| Reference API to test against ([`mock_service/`](mock_service/)) | **Built**: bookings, tokens, cancel and refund rules, health checks; its OpenAPI description is checked in CI |
+| Environment check ([`env_check/`](env_check/)) | **Built**: a dependency that is down stops the run as an environment problem, never a test failure |
+| Python framework ([`frameworks/python_api/`](frameworks/python_api/)) | **Built**: environments, OAuth, API chaining, data-driven tests, readable failures, JUnit reports |
+| REST Assured framework | **Next** (phase 2) |
+| Case format, importers, generated tests, traceability, mutation score | Phase 3 |
+| User-interface tests | Phase 4, in its own repository (`playwright-qa-agent`) |
+| Jira and wiki | Phase 5 |
+| The AI layer: drafting, review, the model in your own cloud | Phase 6 |
 
-See [`docs/history/first-version.md`](docs/history/first-version.md) for the reasoning behind each.
+Everything that needs no AI comes first, so a team can use the utility end to end with its
+existing test cases before any AI is switched on.
 
-## Scope (named != claimed)
+## How it works
 
-- **Executed live:** the Python API adapter + engine (`pytest`, green against the mock SUT).
-- **Reference implementations:** REST Assured, Apache HttpClient + TestNG, BDD/Gherkin, Playwright —
-  idiomatic and review-ready; they run in their own stack's environment.
+```mermaid
+flowchart LR
+  IN["Your inputs<br/>OpenAPI or curl · acceptance criteria<br/>existing test cases"]
+  DRAFT["AI drafts<br/>reviews existing cases,<br/>fills the gaps, drafts data"]
+  REVIEW["A person approves<br/>every case and data set"]
+  GEN["Code from templates<br/>pytest · REST Assured"]
+  RUN["Run<br/>env_check first,<br/>then the tests"]
+  OUT["Results<br/>by case id, traceable<br/>to the criteria"]
+  IN --> DRAFT --> REVIEW --> GEN --> RUN --> OUT
+  classDef built fill:#1e293b,stroke:#34d399,color:#f1f5f9,stroke-width:2px
+  classDef later fill:#1e293b,stroke:#94a3b8,color:#cbd5e1,stroke-dasharray: 5 5
+  class RUN built
+  class IN,DRAFT,REVIEW,GEN,OUT later
+  linkStyle default stroke:#94a3b8,stroke-width:2px
+```
 
----
+Green border: built. Dashed: designed, coming in the phases above.
 
-*A learning/portfolio project: a mock service, exercised end-to-end, to demonstrate AI-assisted
-quality engineering with real guardrails.*
+## Try it (no API key)
+
+```bash
+pip install -e . -e frameworks/python_api          # the reference API, env_check, the Python framework
+python -m mock_service &                           # bookings on :8000, notifications on :8001
+cd frameworks/python_api
+python -m env_check --env mock                     # is the environment ready?
+pytest                                             # every example, against the reference API
+```
+
+When a test fails, the report shows the expectation that broke and every request and response of
+the test, in order, with tokens masked. See the [framework's README](frameworks/python_api/README.md).
+
+## What's inside
+
+| Folder | What it is |
+|---|---|
+| [`mock_service/`](mock_service/) | The reference API: bookings (create, read, update, delete, list), cancel with a 24-hour refund rule, refund status, tokens, health checks, and a stand-in dependency that can be switched down |
+| [`env_check/`](env_check/) | Before a run: call every service a team depends on; exit 3 when a critical one is down. One tool for every framework |
+| [`frameworks/python_api/`](frameworks/python_api/) | The Python framework (pytest, httpx), installable on its own, with an example for every feature |
+| [`docs/`](docs/) | The design: [high-level](docs/architecture.md) and [low-level](docs/lld.md) |
+| `core/` | The first version's language-model steps (case and data drafting, a review step); reworked into the AI layer in phase 6 |
+| `adapters/`, `examples/` | The first version's engine, its five stack renderers and its sample service; removed in the next clean-up |
+
+## Design choices
+
+- **AI drafts, humans approve.** Nothing the AI writes becomes a test until a person approves it.
+- **Tests are data; templates write the code.** The code always runs, the same case runs in every
+  framework, and a person who doesn't write code can review a case.
+- **Existing cases first.** The AI reviews what the team already has and drafts only what is missing.
+- **Regression needs no AI.** Generated code is committed; it runs on every build without a model.
+- **Safe for regulated organisations.** Only the API's structure is sent to a model, after
+  redaction; the model can run in the organisation's own cloud (AWS Bedrock, Google Vertex, Azure);
+  every call is logged.
+- **An environment problem is not a bug.** env_check stops a run with its own exit code.
+- **Many teams.** Frameworks are versioned libraries; each team works in its own repository and
+  builds only its own stack.
+
+## The first version
+
+This repository started as a smaller pipeline: a language model turned one requirement into test
+cases and data, a second model reviewed them, and the package was rendered into five test stacks,
+one of which ran. Its design is kept in [`docs/history/first-version.md`](docs/history/first-version.md);
+its code is still here until the next clean-up, and in the git history after that.
+
+Released under the [MIT License](LICENSE).
