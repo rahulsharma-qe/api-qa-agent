@@ -1,4 +1,4 @@
-"""Card D — HYBRID validation.
+"""Hybrid validation.
 
 Rules (deterministic, free, 100% reliable) handle facts: format, length, duplicates, range.
 An LLM is used ONLY for the judgment call: does the dataset have genuine variety?

@@ -1,4 +1,4 @@
-"""M11 — requirement -> structured test cases (positive/negative/edge/adversarial)."""
+"""Requirement -> structured test cases (positive/negative/edge/adversarial)."""
 from .llm import get_client, extract_json
 
 SYSTEM = (

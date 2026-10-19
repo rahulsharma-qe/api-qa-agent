@@ -60,7 +60,7 @@ core/                 the framework-agnostic brain
   review_gate.py      a 2nd LLM critiques the cases
   revise_cases.py     apply only human-approved feedback
   generate_data.py    synthetic, privacy-safe test data
-  validate_data.py    Card D: rules (facts) + LLM (judgment)
+  validate_data.py    hybrid check: rules (facts) + LLM (judgment)
   orchestrator.py     one flow, two modes (HITL / auto-CI), bounded retry + flag
 adapters/             pure translators (no LLM, no re-generation)
   python_api.py       SOLID  - generic, service-agnostic engine (runnable)

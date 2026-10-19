@@ -11,7 +11,7 @@ flowchart TD
     RG --> HA{"human / auto approval"}
     HA --> RV["revise_cases — approved feedback only"]
     RV --> GD[generate_data]
-    GD --> VD["validate_data — Card D: rules + LLM"]
+    GD --> VD["validate_data — rules + LLM"]
     VD --> PKG["framework-agnostic package"]
     PKG --> A1["Python API — SOLID (runnable)"]
     PKG --> A2["REST Assured — reference"]
@@ -38,7 +38,7 @@ diffable like the rest of the repo.)*
    the blast radius. The review critic is itself an LLM (it can over-correct or hallucinate),
    so a human holds the veto.
 
-4. **Hybrid data validation (Card D).** Format, length, duplicates, ranges are deterministic —
+4. **Hybrid data validation.** Format, length, duplicates, ranges are deterministic —
    rules handle them (free, 100% reliable). The LLM is reserved for the one judgment call:
    genuine variety. Knowing when *not* to use AI matters as much as knowing when to.
 

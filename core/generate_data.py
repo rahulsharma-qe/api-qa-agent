@@ -1,4 +1,4 @@
-"""M12 — cases -> synthetic passenger records. Realistic, edge-heavy, privacy-safe
+"""Cases -> synthetic passenger records. Realistic, edge-heavy, privacy-safe
 (obviously fake identities, @testdata.example emails). Tagged valid/edge/adversarial."""
 import json
 from .llm import get_client, extract_json
