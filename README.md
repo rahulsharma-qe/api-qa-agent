@@ -4,8 +4,9 @@
 > your API description, acceptance criteria and existing test cases into runnable API tests in Python
 > or REST Assured. The new design:
 > [high-level](docs/architecture.md) · [low-level](docs/lld.md). Built so far: the reference API it
-> tests against, [`mock_service/`](mock_service/). Below is the first version, which still runs until
-> the new phases replace it.
+> tests against ([`mock_service/`](mock_service/)), the environment check ([`env_check/`](env_check/)) and
+> the Python framework ([`frameworks/python_api/`](frameworks/python_api/)). Below is the first
+> version, which still runs until the new phases replace it.
 
 An AI-assisted **QA framework** that turns a plain-English requirement into a validated test
 package, then renders it into **five different test stacks** from one framework-agnostic core.

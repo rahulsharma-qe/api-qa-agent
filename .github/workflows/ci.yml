@@ -45,3 +45,35 @@ jobs:
             sleep 1
           done
           echo "the mock service did not start"; exit 1
+
+  python-framework:
+    # The Python framework end to end: start the reference API, check the environment is ready,
+    # the framework's own tests, then every example against the running API. No API key anywhere.
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    defaults:
+      run:
+        working-directory: frameworks/python_api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install the reference API, env_check and the framework
+        run: pip install -e ../.. -e .
+      - name: Start the reference API
+        run: python -m mock_service > mock_service.log 2>&1 &
+      - name: Is the environment ready? (exit 3 if not)
+        run: python -m env_check --env mock
+      - name: The framework's own tests (no service needed)
+        run: python -m pytest -q tests/unit
+      - name: Every example against the reference API
+        run: python -m pytest -q tests/examples --junitxml=reports/junit.xml
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-framework-junit-py${{ matrix.python-version }}
+          path: frameworks/python_api/reports/

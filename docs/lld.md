@@ -9,7 +9,7 @@ get their sections when they are designed.
 
 ```
 api-qa-agent/
-  README.md  LICENSE  CHANGELOG.md
+  README.md  LICENSE  pyproject.toml     pip install -e .  installs mock_service and env_check
   mock_service/                  the reference API under test (FastAPI)
     __main__.py                  python -m mock_service  -> bookings on :8000, notifications on :8001
     bookings_app.py              create_bookings_app(): routes for auth, bookings, refunds, health
@@ -40,6 +40,7 @@ api-qa-agent/
       tests/examples/            one runnable example per feature, shaped like generated tests
       tests/unit/                the framework's own tests (no network)
   tests/mock_service/            the mock service's own tests
+  tests/env_check/               env_check's own tests (a fake network)
   docs/  architecture.md  lld.md  history/first-version.md
   .github/workflows/ci.yml
 ```
@@ -47,7 +48,8 @@ api-qa-agent/
 **Rules**
 - `frameworks/python_api` never imports `mock_service`: expected values come from the test or
   its data, never from the service's code. A unit test fails the build if such an import appears.
-- `env_check` and the framework read the same `environments.yaml` format.
+- `env_check` and the framework read the same `environments.yaml` format. env_check reads only the
+  service addresses, so it needs nothing from the framework (a Java team uses it too).
 - Every folder has a README with how to run it in three commands or fewer.
 - Tests make their own data and check their own items, never totals: they pass in any order and on
   an environment other teams are using.
@@ -180,7 +182,8 @@ Per check, with defaults: `path: /health-check`, `expect_status: 200`, `timeout_
 | 2 | Setup problem: a file or setting is wrong |
 | 3 | Not ready: a critical service is down. Not a test failure |
 
-`--json` prints the same report as JSON for CI pages. From Python: `check_environment(name,
+`--environments` and `--dependencies` default to `config/environments.yaml` and
+`config/dependencies.yaml`. `--json` prints the same report as JSON for CI pages. From Python: `check_environment(name,
 environments_path, dependencies_path) -> ReadinessReport`.
 
 ## 4. Python framework (phase 1)
@@ -219,6 +222,8 @@ classDiagram
     field_is_type(path, type)
     field_contains(path, text)
     list_length(path, n)
+    list_contains(path, fields)
+    list_excludes(path, fields)
     header_equals(name, value)
     responded_within(ms)
   }
@@ -247,7 +252,7 @@ classDiagram
 | `TokenProvider` | The `Authorization` header | `NoAuth`; `StaticToken` from an environment variable; `ClientCredentials` asks the token endpoint once per run and reuses it |
 | `ApiClient` | One service's HTTP calls | Base URL from the environment; timeout; records every request and response in the scenario context; the token is masked in every log; `without_auth()` gives the same client with no token, for 401 tests |
 | `ApiResponse` | What came back | `value("items[0].pnr")` reads any field by a dotted path; a missing field fails with the path and the body |
-| `Expect` | Checks, chained | Each failure says what was expected, what came back, and the request that produced it |
+| `Expect` | Checks, chained | Each failure says what was expected, what came back, and the request that produced it. `list_contains` and `list_excludes` find the test's own items in a list, so a test never depends on totals |
 | `ScenarioContext` | Values carried between steps, and the steps so far | Fresh for every test |
 
 ### 4.2 pytest plugin
@@ -287,7 +292,8 @@ This is the shape `qa-agent generate` will write in phase 3: no logic, only step
 | `test_booking_lifecycle.py` | Create → read → update → read → delete → read gives 404, the PNR carried between steps |
 | `test_auth_chain.py` | Token → create → cancel → refund status, across three endpoints |
 | `test_cancel_boundaries.py` | Data-driven from `data/cancellation_boundaries.csv`: 23:59, exactly 24:00, 24:01, cancelled before booked, already cancelled |
-| `test_list_and_filters.py` | List with a filter, count, list length |
+| `test_list_and_filters.py` | List with a filter: the test's own items found or absent; limit; a bad filter |
+| `test_other_services.py` | `api_for("notifications")`: another service in the same environment |
 | Environments | README: the same tests with `--env qa1`; a `writes` test skipped on a `read_only` environment |
 | env_check | README: ready, then the notifications stand-in switched down (warned, still ready), then bookings stopped (exit 3) |
 
