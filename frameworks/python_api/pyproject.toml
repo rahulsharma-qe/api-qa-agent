@@ -15,6 +15,9 @@ dependencies = [
     "openpyxl>=3.1",     # test data from Excel
 ]
 
+[project.entry-points.pytest11]
+api_test_framework = "api_test_framework.pytest_plugin"
+
 [tool.setuptools.packages.find]
 include = ["api_test_framework*"]
 
