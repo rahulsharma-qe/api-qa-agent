@@ -3,8 +3,9 @@
 > **Being rebuilt.** This repository is becoming **api-qa-agent**: an AI-assisted pipeline, with
 > people at every gate, that turns a team's API description, acceptance criteria and existing test
 > cases into runnable API tests in the team's own framework. The new design:
-> [high-level](docs/architecture.md) · [low-level](docs/lld.md). Below is the first version, which
-> still runs until the new phases replace it.
+> [high-level](docs/architecture.md) · [low-level](docs/lld.md). Built so far: the reference API it
+> tests against, [`mock_service/`](mock_service/). Below is the first version, which still runs until
+> the new phases replace it.
 
 An AI-assisted **QA framework** that turns a plain-English requirement into a validated test
 package, then renders it into **five different test stacks** from one framework-agnostic core.

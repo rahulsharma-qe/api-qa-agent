@@ -20,3 +20,28 @@ jobs:
       # The quality gate: CI runs the committed samples through the engine against the
       # mock SUT. Live LLM generation (run_live.py) is intentionally NOT in CI — evaluation
       # must be deterministic and key-free.
+
+  mock-service:
+    # The reference API the new frameworks run against: its own tests, the OpenAPI drift test,
+    # then a real start-up of both services and their health checks.
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Mock service tests (including the OpenAPI drift test)
+        run: python -m pytest -q tests/mock_service
+      - name: Start both services and check their health
+        run: |
+          python -m mock_service &
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            curl -sf localhost:8000/health-check && curl -sf localhost:8001/health-check && exit 0
+            sleep 1
+          done
+          echo "the mock service did not start"; exit 1
