@@ -69,10 +69,13 @@
       <artifactId>poi-ooxml</artifactId>
       <version>5.3.0</version>
     </dependency>
+
+    <!-- For this project's own test runs only. Apache POI logs through Log4j; this keeps it quiet instead
+         of warning that no logger is set. A team that uses the framework keeps its own logging. -->
     <dependency>
-      <!-- Apache POI logs through Log4j; this keeps it quiet instead of warning that no logger is set. -->
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-core</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
