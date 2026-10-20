@@ -58,6 +58,13 @@ class BookingUpdate(BaseModel):
         return data
 
 
+class BookingUpdateAnyAmount(BaseModel):
+    """Only for the planted bug 'amount-changeable': an update that accepts a new amount."""
+    passenger_name: str = Field(min_length=1, max_length=100)
+    email: str
+    amount: Optional[float] = None
+
+
 class Booking(BaseModel):
     pnr: str
     passenger_name: str

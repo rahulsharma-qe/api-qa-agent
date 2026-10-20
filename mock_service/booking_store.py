@@ -22,9 +22,10 @@ class StoredBooking:
 
 
 class BookingStore:
-    def __init__(self):
+    def __init__(self, bug: str = ""):
         self._bookings: dict[str, StoredBooking] = {}
         self._lock = threading.Lock()
+        self._bug = bug                          # a planted bug (planted_bugs.py), or ""
 
     def create(self, passenger_name: str, email: str, amount: float, booked_at: Optional[datetime]) -> Booking:
         with self._lock:
@@ -39,30 +40,39 @@ class BookingStore:
     def list(self, status: Optional[str] = None, limit: int = 20) -> list[Booking]:
         with self._lock:
             bookings = [stored.booking for stored in self._bookings.values()]
+        if self._bug == "status-filter-ignored":
+            status = None
         return [b for b in bookings if status is None or b.status == status][:limit]
 
-    def update(self, pnr: str, passenger_name: str, email: str) -> Booking:
+    def update(self, pnr: str, passenger_name: str, email: str, amount: Optional[float] = None) -> Booking:
         with self._lock:
             stored = self._stored(pnr)
-            booking = stored.booking.model_copy(update={"passenger_name": passenger_name, "email": email})
+            changes = {"passenger_name": passenger_name, "email": email}
+            if amount is not None:                   # only with the planted bug 'amount-changeable'
+                changes["amount"] = amount
+            booking = stored.booking.model_copy(update=changes)
             self._bookings[pnr] = replace(stored, booking=booking)
             return booking
 
     def delete(self, pnr: str) -> None:
         with self._lock:
             self._stored(pnr)
-            del self._bookings[pnr]
+            if self._bug != "deleted-still-readable":
+                del self._bookings[pnr]
 
     def cancel(self, pnr: str, cancelled_at: Optional[datetime]) -> RefundDecision:
         with self._lock:
             stored = self._stored(pnr)
-            if stored.booking.status == "cancelled":
+            if stored.booking.status == "cancelled" and self._bug != "second-cancel-allowed":
                 raise ApiError(409, "already_cancelled", f"Booking {pnr} is already cancelled")
             cancelled_at = cancelled_at or _now()
             try:
-                decision = decide_refund(stored.booking.booked_at, cancelled_at, stored.booking.amount)
+                decision = decide_refund(stored.booking.booked_at, cancelled_at, stored.booking.amount,
+                                         exactly_24_hours_counts=self._bug != "refund-boundary")
             except CancelledBeforeBooked as error:
                 raise ApiError(422, "invalid_request", f"cancelled_at: {error}") from error
+            if self._bug == "wrong-refund-amount":
+                decision = replace(decision, amount=decision.amount / 2)
             booking = stored.booking.model_copy(update={"status": "cancelled", "cancelled_at": cancelled_at})
             self._bookings[pnr] = StoredBooking(booking, decision)
             return decision

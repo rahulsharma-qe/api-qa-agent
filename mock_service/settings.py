@@ -12,6 +12,7 @@ class MockSettings:
     client_secret: str = "demo-secret"
     test_mode: bool = True              # turns /test/* routes on
     notifications_down: bool = False    # start the notifications stand-in switched down
+    bug: str = ""                       # one planted bug switched on (planted_bugs.py); none by default
 
     @classmethod
     def from_environment(cls) -> "MockSettings":
@@ -20,6 +21,7 @@ class MockSettings:
             client_secret=os.getenv("MOCK_CLIENT_SECRET", cls.client_secret),
             test_mode=_flag("MOCK_TEST_MODE", default=True),
             notifications_down=_flag("NOTIFICATIONS_DOWN", default=False),
+            bug=os.getenv("MOCK_BUG", ""),
         )
 
 

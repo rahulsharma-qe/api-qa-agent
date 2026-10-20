@@ -11,8 +11,10 @@ from fastapi import Depends, FastAPI, Header, Query, Response
 
 from mock_service.booking_store import BookingStore
 from mock_service.errors import ApiError, add_error_handlers
-from mock_service.models import (Booking, BookingList, BookingStatus, BookingUpdate, CancelRequest, CancelResult,
-                                 ErrorResponse, Health, NewBooking, RefundStatus, TokenRequest, TokenResponse)
+from mock_service.models import (Booking, BookingList, BookingStatus, BookingUpdate, BookingUpdateAnyAmount,
+                                 CancelRequest, CancelResult, ErrorResponse, Health, NewBooking, RefundStatus,
+                                 TokenRequest, TokenResponse)
+from mock_service.planted_bugs import checked
 from mock_service.settings import MockSettings
 
 SERVICE_NAME = "bookings"
@@ -34,11 +36,15 @@ def create_bookings_app(settings: Optional[MockSettings] = None) -> FastAPI:
     app = FastAPI(title="AeroAssist bookings (reference API)", version=SERVICE_VERSION,
                   description="A small bookings API that api-qa-agent's frameworks and examples run against.")
     add_error_handlers(app)
-    store = BookingStore()
+    bug = checked(settings.bug)                  # a planted bug, for qa-agent bugs; none by default
+    store = BookingStore(bug)
+    UpdateBody = BookingUpdateAnyAmount if bug == "amount-changeable" else BookingUpdate
     issued_tokens: set[str] = set()
     app.state.store = store
 
     def require_token(authorization: Optional[str] = Header(default=None)) -> None:
+        if bug == "token-not-checked":
+            return
         scheme, _, token = (authorization or "").partition(" ")
         if scheme.lower() != "bearer" or token not in issued_tokens:
             raise ApiError(401, "unauthorized", "A valid bearer token is required: POST /auth/token first")
@@ -69,8 +75,8 @@ def create_bookings_app(settings: Optional[MockSettings] = None) -> FastAPI:
 
     @app.put("/bookings/{pnr}", response_model=Booking, tags=["bookings"], dependencies=[Depends(require_token)],
              responses=errors(401, 404, 422))
-    def update_booking(pnr: str, request: BookingUpdate) -> Booking:
-        return store.update(pnr, request.passenger_name, request.email)
+    def update_booking(pnr: str, request: UpdateBody) -> Booking:
+        return store.update(pnr, request.passenger_name, request.email, getattr(request, "amount", None))
 
     @app.delete("/bookings/{pnr}", status_code=204, tags=["bookings"], dependencies=[Depends(require_token)],
                 responses=errors(401, 404, 422))

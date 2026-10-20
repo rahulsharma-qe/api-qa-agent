@@ -19,6 +19,7 @@ curl localhost:8000/health-check
 | Notifications down | `POST localhost:8001/test/state {"down": true}`, or start with `NOTIFICATIONS_DOWN=1` |
 | One service only | `python -m mock_service --only bookings` |
 | OpenAPI | [`openapi.json`](openapi.json); after a change, `python -m mock_service --export-openapi mock_service/openapi.json` |
+| A planted bug | `python -m mock_service --bug refund-boundary` (or `MOCK_BUG=...`): one of seven small slips, so `qa-agent bugs` can measure whether tests catch bugs. The list is in [`planted_bugs.py`](planted_bugs.py) |
 
 Settings: `MOCK_CLIENT_ID`, `MOCK_CLIENT_SECRET`, `MOCK_TEST_MODE` (on by default; turns `/test/*`
-on), `NOTIFICATIONS_DOWN`. Full contract: [`docs/lld.md`](../docs/lld.md), section 2.
+on), `NOTIFICATIONS_DOWN`, `MOCK_BUG` (none by default). Full contract: [`docs/lld.md`](../docs/lld.md), section 2.
