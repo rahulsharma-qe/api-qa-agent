@@ -1,0 +1,33 @@
+feature: Refunds
+cases:
+  - id: TC020
+    title: A late cancel shows no refund
+    criteria: [AC-5]
+    priority: P2
+    track: functional
+    source:
+      format: excel-manual
+      file: existing/manual_cases.xlsx
+      sheet: Refunds
+      row: 2
+    steps_text:
+      - 'Before: A booking made two days ago'
+      - Cancel the booking
+      - Open its refund status
+      - 'Expected: The status is no_refund and the amount is 0'
+    review: {status: draft}
+  - id: TC021
+    title: A booking never cancelled has no refund yet
+    criteria: [AC-5]
+    priority: P3
+    track: functional
+    source:
+      format: excel-manual
+      file: existing/manual_cases.xlsx
+      sheet: Refunds
+      row: 3
+    steps_text:
+      - 'Before: An active booking'
+      - Open its refund status
+      - 'Expected: The status is not_cancelled'
+    review: {status: draft}

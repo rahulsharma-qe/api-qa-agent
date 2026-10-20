@@ -10,18 +10,25 @@ cases:
       - request:
           method: POST
           path: /bookings
-          body: {passenger_name: "Asha Rao {{unique}}", email: "asha.{{unique}}@testdata.example",
-                 amount: 250, booked_at: "{{row.booked_at}}"}
+          body:
+            passenger_name: Asha Rao {{unique}}
+            email: asha.{{unique}}@testdata.example
+            amount: 250
+            booked_at: '{{row.booked_at}}'
         expect: {status: 201}
         capture: {pnr: pnr}
       - request:
           method: POST
-          path: "/bookings/{{pnr}}/cancel"
-          body: {cancelled_at: "{{row.cancelled_at}}"}
+          path: /bookings/{{pnr}}/cancel
+          body: {cancelled_at: '{{row.cancelled_at}}'}
         expect:
           status: 200
-          fields: {refund_allowed: "{{row.refund_allowed}}", refund_amount: "{{row.refund_amount}}"}
-    review: {status: draft}
+          fields: {refund_allowed: '{{row.refund_allowed}}', refund_amount: '{{row.refund_amount}}'}
+    review:
+      status: approved
+      by: qa-lead
+      date: '2026-10-21'
+      fingerprint: 9f56fb7f690a
   - id: TC003
     title: A second cancel is refused
     criteria: [AC-4]
@@ -31,15 +38,30 @@ cases:
       - request:
           method: POST
           path: /bookings
-          body: {passenger_name: "Asha Rao {{unique}}", email: "asha.{{unique}}@testdata.example",
-                 amount: 250, booked_at: "2026-01-15T10:00:00Z"}
+          body:
+            passenger_name: Asha Rao {{unique}}
+            email: asha.{{unique}}@testdata.example
+            amount: 250
+            booked_at: '2026-01-15T10:00:00Z'
         expect: {status: 201}
         capture: {pnr: pnr}
-      - request: {method: POST, path: "/bookings/{{pnr}}/cancel", body: {cancelled_at: "2026-01-15T11:00:00Z"}}
+      - request:
+          method: POST
+          path: /bookings/{{pnr}}/cancel
+          body: {cancelled_at: '2026-01-15T11:00:00Z'}
         expect: {status: 200}
-      - request: {method: POST, path: "/bookings/{{pnr}}/cancel", body: {cancelled_at: "2026-01-20T11:00:00Z"}}
-        expect: {status: 409, fields: {error.code: already_cancelled}}
-    review: {status: draft}
+      - request:
+          method: POST
+          path: /bookings/{{pnr}}/cancel
+          body: {cancelled_at: '2026-01-20T11:00:00Z'}
+        expect:
+          status: 409
+          fields: {error.code: already_cancelled}
+    review:
+      status: approved
+      by: qa-lead
+      date: '2026-10-21'
+      fingerprint: 3b55d4e4e3c3
   - id: TC004
     title: An unknown PNR can't be cancelled
     criteria: [AC-4]
@@ -47,8 +69,14 @@ cases:
     track: functional
     steps:
       - request: {method: POST, path: /bookings/NOPE99/cancel}
-        expect: {status: 404, fields: {error.code: booking_not_found}}
-    review: {status: draft}
+        expect:
+          status: 404
+          fields: {error.code: booking_not_found}
+    review:
+      status: approved
+      by: qa-lead
+      date: '2026-10-21'
+      fingerprint: ac43c784da5d
   - id: TC006
     title: After a cancel within 24 hours, the refund status is refunded
     criteria: [AC-5]

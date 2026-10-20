@@ -1,0 +1,51 @@
+feature: Cancellation scenarios
+cases:
+  - id: TC040
+    title: The refund depends on when the booking is cancelled
+    criteria: [AC-2, AC-3]
+    priority: P0
+    track: functional
+    tags: [cancellation]
+    data: data/cancellation-scenarios-tc040.csv
+    source:
+      format: gherkin
+      file: existing/cancel.feature
+      scenario: The refund depends on when the booking is cancelled
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body:
+            passenger_name: Asha Rao {{unique}}
+            email: asha.{{unique}}@testdata.example
+            amount: 250
+            booked_at: '{{row.booked_at}}'
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request:
+          method: POST
+          path: /bookings/{{pnr}}/cancel
+          body: {cancelled_at: '{{row.cancelled_at}}'}
+        expect:
+          status: 200
+          fields: {refund_allowed: '{{row.refund_allowed}}', refund_amount: '{{row.refund_amount}}'}
+    review:
+      status: approved
+      by: qa-lead
+      date: '2026-10-21'
+      fingerprint: 73683198e071
+  - id: TC041
+    title: Cancelling twice tells the passenger it is already cancelled
+    criteria: [AC-4]
+    priority: P2
+    track: functional
+    tags: [cancellation]
+    source:
+      format: gherkin
+      file: existing/cancel.feature
+      scenario: Cancelling twice tells the passenger it is already cancelled
+    steps_text:
+      - Given a booking that has been cancelled
+      - When the passenger cancels it again
+      - Then they are told it is already cancelled, and nothing changes
+    review: {status: draft}

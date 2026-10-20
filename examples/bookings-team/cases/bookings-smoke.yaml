@@ -1,0 +1,57 @@
+feature: Bookings smoke
+cases:
+  - id: TC030
+    title: Create and read a booking
+    criteria: [AC-1]
+    priority: P2
+    track: functional
+    source:
+      format: postman
+      file: existing/bookings.postman_collection.json
+      item: TC030 Create and read a booking
+    notes: 'Not converted, check by hand: step 2: pm.expect(body.passenger_name).to.match(/Meera/);'
+    steps:
+      - name: Create
+        request:
+          method: POST
+          path: /bookings
+          body:
+            passenger_name: Meera {{unique}}
+            email: meera.{{unique}}@testdata.example
+            amount: 120
+        expect:
+          status: 201
+          fields: {status: active}
+        capture: {pnr: pnr}
+      - name: Read
+        request: {method: GET, path: '/bookings/{{pnr}}'}
+        expect:
+          status: 200
+          fields: {amount: 120}
+          contains: {email: '@testdata.example'}
+          within_ms: 2000
+    review:
+      status: approved
+      by: qa-lead
+      date: '2026-10-21'
+      fingerprint: 0892d03c7f40
+  - id: BOOKINGS-SMOKE-01
+    title: Health check
+    criteria: []
+    priority: P2
+    track: functional
+    source:
+      format: postman
+      file: existing/bookings.postman_collection.json
+      item: Health check
+    steps:
+      - name: Health check
+        request: {method: GET, path: /health-check, auth: none}
+        expect:
+          status: 200
+          fields: {status: ok}
+    review:
+      status: rejected
+      by: qa-lead
+      date: '2026-10-21'
+      comment: env_check already calls /health-check before every run; not a test case

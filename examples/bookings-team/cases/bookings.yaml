@@ -10,14 +10,23 @@ cases:
       - request:
           method: POST
           path: /bookings
-          body: {passenger_name: "Asha Rao {{unique}}", email: "asha.{{unique}}@testdata.example", amount: 250}
-        expect: {status: 201, fields: {status: active}}
+          body:
+            passenger_name: Asha Rao {{unique}}
+            email: asha.{{unique}}@testdata.example
+            amount: 250
+        expect:
+          status: 201
+          fields: {status: active}
         capture: {pnr: pnr}
-      - request: {method: GET, path: "/bookings/{{pnr}}"}
+      - request: {method: GET, path: '/bookings/{{pnr}}'}
         expect:
           status: 200
-          fields: {pnr: "{{pnr}}", amount: 250}
-    review: {status: draft}
+          fields: {pnr: '{{pnr}}', amount: 250}
+    review:
+      status: approved
+      by: qa-lead
+      date: '2026-10-21'
+      fingerprint: 40b11c4af3ed
   - id: TC005
     title: A booking without an email is refused
     criteria: [AC-1]
@@ -27,6 +36,10 @@ cases:
       - request:
           method: POST
           path: /bookings
-          body: {passenger_name: "Asha Rao {{unique}}", amount: 250}
+          body: {passenger_name: 'Asha Rao {{unique}}', amount: 250}
         expect: {status: 400}
-    review: {status: draft}
+    review:
+      status: changes_needed
+      by: qa-lead
+      date: '2026-10-21'
+      comment: The API returns 422 for a missing field, not 400

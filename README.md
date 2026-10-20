@@ -22,7 +22,7 @@ testing AI agents themselves.
 | Python framework for QA teams: Allure report, smoke and priority tags, evidence, retry | **Built** (phase 1b) |
 | REST Assured framework with TestNG ([`frameworks/restassured_api/`](frameworks/restassured_api/)) | **Built** (phase 2): the same features in Java, with TestNG groups and suites, Excel-driven data, Allure, evidence, retry |
 | `qa-agent`: the case format, API import (OpenAPI, curl), `check` ([`qa_agent/`](qa_agent/), [example](examples/bookings-team/)) | **Built** (phase 3a, part 1): cases as data, one file per feature; every case checked against the API and the criteria, with the fix |
-| Importers of existing cases (Excel, CSV, Postman, Gherkin), the Excel review sheet | Phase 3a, part 2 |
+| Importers of the team's existing cases (Excel, CSV, Postman, Gherkin), the Excel review sheet | **Built** (phase 3a, part 2): cases from four formats, anything unreadable reported; a person approves each case in Excel, with who and when recorded |
 | Generated tests (pytest, REST Assured), traceability, `qa-agent init` | Phase 3a, part 3 |
 | Drift check, promote, bug-detection rate, two example teams | Phase 3b |
 | Cucumber on REST Assured | Phase 3c |
@@ -81,7 +81,8 @@ cd examples/bookings-team
 qa-agent check                                     # every case, against the API and the criteria
 ```
 
-What `check` finds there, and why, is in the [example's README](examples/bookings-team/README.md).
+The [example's README](examples/bookings-team/README.md) walks through every step: the API, the
+team's existing cases in four formats, what `check` finds, and the review sheet.
 
 ## What's inside
 
@@ -91,7 +92,7 @@ What `check` finds there, and why, is in the [example's README](examples/booking
 | [`env_check/`](env_check/) | Before a run: call every service a team depends on; exit 3 when a critical one is down. One tool for every framework |
 | [`frameworks/python_api/`](frameworks/python_api/) | The Python framework (pytest, httpx), installable on its own, with an example for every feature |
 | [`frameworks/restassured_api/`](frameworks/restassured_api/) | The Java framework (REST Assured, TestNG), a Maven library on its own, with an example for every feature |
-| [`qa_agent/`](qa_agent/) | `qa-agent`, the command line: the case format, importers, `check` |
+| [`qa_agent/`](qa_agent/) | `qa-agent`, the command line: the case format, importers, `check`, the review sheet |
 | [`examples/bookings-team/`](examples/bookings-team/) | A team's project for the reference API: every `qa-agent` feature, with its output |
 | [`docs/`](docs/) | The design: [high-level](docs/architecture.md) and [low-level](docs/lld.md) |
 | `core/` | The first version's language-model steps (case and data drafting, a review step); reworked into the AI layer in phase 6 |

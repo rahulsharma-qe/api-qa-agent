@@ -1,0 +1,107 @@
+feature: Bookings API
+cases:
+  - id: TC010
+    title: The passenger name can be changed
+    criteria: [AC-1]
+    priority: P1
+    track: functional
+    source:
+      format: excel-api
+      file: existing/booking_cases.xlsx
+      sheet: Bookings API
+      row: 2
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body:
+            passenger_name: Ravi Kumar {{unique}}
+            email: ravi.{{unique}}@testdata.example
+            amount: 300
+        expect:
+          status: 201
+          fields: {status: active}
+        capture: {pnr: pnr}
+      - request:
+          method: PUT
+          path: /bookings/{{pnr}}
+          body: {passenger_name: Ravi K, email: 'ravi.{{unique}}@testdata.example'}
+        expect:
+          status: 200
+          fields: {passenger_name: Ravi K}
+      - request: {method: GET, path: '/bookings/{{pnr}}'}
+        expect:
+          status: 200
+          fields: {passenger_name: Ravi K, amount: 300}
+    review:
+      status: approved
+      by: qa-lead
+      date: '2026-10-21'
+      fingerprint: 7333b1f2226b
+  - id: TC011
+    title: A deleted booking can't be read
+    criteria: [AC-1]
+    priority: P2
+    track: functional
+    source:
+      format: excel-api
+      file: existing/booking_cases.xlsx
+      sheet: Bookings API
+      row: 5
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body:
+            passenger_name: Ravi Kumar {{unique}}
+            email: ravi.{{unique}}@testdata.example
+            amount: 300
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request: {method: DELETE, path: '/bookings/{{pnr}}'}
+        expect: {status: 204}
+      - request: {method: GET, path: '/bookings/{{pnr}}'}
+        expect:
+          status: 404
+          fields: {error.code: booking_not_found}
+    review:
+      status: approved
+      by: qa-lead
+      date: '2026-10-21'
+      fingerprint: 1d2c835ef6a9
+  - id: TC012
+    title: The amount can't be changed
+    criteria: [AC-1]
+    priority: P2
+    track: functional
+    source:
+      format: excel-api
+      file: existing/booking_cases.xlsx
+      sheet: Bookings API
+      row: 8
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body:
+            passenger_name: Ravi Kumar {{unique}}
+            email: ravi.{{unique}}@testdata.example
+            amount: 300
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request:
+          method: PUT
+          path: /bookings/{{pnr}}
+          body: {passenger_name: Ravi K, email: 'ravi.{{unique}}@testdata.example', amount: 1}
+        expect:
+          status: 422
+          fields: {error.code: invalid_request}
+      - request: {method: GET, path: '/bookings/{{pnr}}'}
+        expect:
+          status: 200
+          fields: {amount: 300}
+    review:
+      status: approved
+      by: qa-lead
+      date: '2026-10-21'
+      fingerprint: cc93295b77bd
