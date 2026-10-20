@@ -3,6 +3,7 @@
     qa-agent import api api/source/openapi.json      the API description -> api/api.yaml
     qa-agent import cases existing/cases.xlsx        the team's cases (Excel, CSV, Postman, Gherkin)
     qa-agent check                                   the cases, checked with rules
+    qa-agent review export | import                  a person decides on each case, in Excel
 
 Exit codes: 0 done (no errors), 1 errors found, 2 the project or an input can't be read.
 """
@@ -21,6 +22,7 @@ from qa_agent.importers.common import CaseImportError
 from qa_agent.importers.curl import CurlError, read_curl
 from qa_agent.importers.openapi import OpenApiError, read_openapi
 from qa_agent.project import SetupError, TeamProject
+from qa_agent.review_sheet import export_review_sheet, import_review_sheet
 
 DONE, FINDINGS, SETUP_PROBLEM = 0, 1, 2
 
@@ -62,6 +64,15 @@ def _parser() -> argparse.ArgumentParser:
 
     check = commands.add_parser("check", help="check every case with rules; exit 1 on errors")
     check.set_defaults(run=run_check)
+
+    review = commands.add_parser("review", help="the review sheet").add_subparsers(title="review", metavar="<step>")
+    export = review.add_parser("export", help="write review/cases.xlsx: every case still to review")
+    export.add_argument("--all", action="store_true", help="every case, approved ones too")
+    export.add_argument("--sheet", type=Path, default=Path("review/cases.xlsx"))
+    export.set_defaults(run=review_export)
+    apply = review.add_parser("import", help="apply the decisions in review/cases.xlsx; exit 1 if any is refused")
+    apply.add_argument("--sheet", type=Path, default=Path("review/cases.xlsx"))
+    apply.set_defaults(run=review_import)
     return parser
 
 
@@ -98,6 +109,25 @@ def import_existing_cases(args) -> int:
     print(import_cases(project, args.files, args.into, args.overwrite).as_text())
     print("Next: qa-agent check, then qa-agent review export")
     return DONE
+
+
+def review_export(args) -> int:
+    project = TeamProject.load(args.project)
+    sheet = args.sheet if args.sheet.is_absolute() else project.root / args.sheet
+    count = export_review_sheet(project, sheet, args.all)
+    print(f"{project.relative(sheet)}: {plural(count, 'case')} to review. Fill Decision, Reviewer and Comment, "
+          f"save, then: qa-agent review import")
+    return DONE
+
+
+def review_import(args) -> int:
+    project = TeamProject.load(args.project)
+    sheet = args.sheet if args.sheet.is_absolute() else project.root / args.sheet
+    if not sheet.is_file():
+        raise SetupError(f"no review sheet at {project.relative(sheet)}: run qa-agent review export first")
+    result = import_review_sheet(project, sheet)
+    print(result.as_text())
+    return FINDINGS if result.refused else DONE
 
 
 def run_check(args) -> int:

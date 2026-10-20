@@ -116,6 +116,15 @@ def test_criteria_steps_and_review_rules(make_project):
     assert "No api/api.yaml: the rules that need the API are skipped" in text
 
 
+def test_a_rejected_case_is_left_alone(make_project):
+    report, _, _ = findings(make_project({"criteria.yaml": CRITERIA, "cases/b.yaml": """
+        feature: B
+        cases:
+          - {id: TC1, title: t, steps: [{request: {method: GET, path: /x}}], review: {status: rejected}}
+        """}))
+    assert [f for f in report.findings if f.case_id] == []
+
+
 def test_a_broken_file_and_an_id_in_two_files_are_errors(make_project):
     report, _, text = findings(make_project({"cases/a.yaml": CASES, "cases/b.yaml": CASES,
                                              "cases/c.yaml": "feature: C\ncases:\n  - {id: TC9, title: t, priority: P7}\n"}))

@@ -114,7 +114,9 @@ def _duplicate_ids(project: TeamProject, report: CheckReport) -> None:
 
 def _case_findings(case: Case, case_file: CaseFile, project: TeamProject, api: Optional[ApiModel],
                    criteria: dict) -> list[tuple[str, str]]:
-    """(level, message) pairs; each message starts after the case id."""
+    """(level, message) pairs; each message starts after the case id. A rejected case is left alone."""
+    if case.review.status == "rejected":
+        return []
     found: list[tuple[str, str]] = []
     if not case.steps and not case.steps_text:
         found.append((ERROR, ": has no steps. Fix: add steps (or steps_text for steps still in words)"))
