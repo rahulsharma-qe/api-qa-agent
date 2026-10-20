@@ -68,3 +68,42 @@ jobs:
             frameworks/python_api/reports/allure-report/
             frameworks/python_api/reports/evidence/
             frameworks/python_api/reports/junit.xml
+
+  restassured-framework:
+    # The REST Assured framework end to end: start the reference API, check the environment is ready,
+    # then every test (the framework's own, then every example) with Allure, evidence and one retry.
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frameworks/restassured_api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Install and start the reference API, and env_check
+        run: |
+          pip install -e ../..
+          python -m mock_service > mock_service.log 2>&1 &
+      - name: Is the environment ready? (exit 3 if not)
+        run: python -m env_check --env mock
+      - name: Every test, with Allure, evidence and one retry
+        run: ./mvnw -B test -Dretry=1 -Devidence=target/evidence
+      - name: Build the Allure report (one HTML file)
+        if: always()
+        run: npx --yes allure-commandline generate target/allure-results -o target/allure-report --clean --single-file
+      - name: Keep the reports and the evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: restassured-framework-reports
+          path: |
+            frameworks/restassured_api/target/allure-report/
+            frameworks/restassured_api/target/evidence/
+            frameworks/restassured_api/target/surefire-reports/
+
