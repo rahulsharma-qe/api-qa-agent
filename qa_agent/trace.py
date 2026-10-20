@@ -163,9 +163,7 @@ def _written_tests(project: TeamProject, stack: str) -> dict:
         text = path.read_text(encoding="utf-8")
         if not text.startswith(renderer.header_mark):
             continue
-        for name in TEST_NAME[stack].findall(text):
-            if stack == "restassured" and name.endswith("Rows"):
-                continue                                   # a data provider, not a test
+        for name in TEST_NAME[stack].findall(text):        # data providers return Object[][], not void
             found[name] = f"{path.name}::{name}"
     return found
 

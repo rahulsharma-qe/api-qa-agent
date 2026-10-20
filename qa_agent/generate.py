@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from qa_agent.cases import load_case_file
 from qa_agent.project import TeamProject
 from qa_agent.renderers import RENDERERS, RenderError
+from qa_agent.review_sheet import natural_order
 
 SUFFIXES = (".py", ".java")
 
@@ -37,10 +38,9 @@ class GenerateResult:
 def generate(project: TeamProject) -> GenerateResult:
     result = GenerateResult()
     case_files = [load_case_file(path) for path in project.case_files()]
-    for case_file in case_files:
-        for case in case_file.cases:
-            if not case.is_approved:
-                result.not_generated.append(f"{case.id}: {_why_not(case)}")
+    left_out = sorted((case for case_file in case_files for case in case_file.cases if not case.is_approved),
+                      key=lambda case: natural_order(case.id))
+    result.not_generated = [f"{case.id}: {_why_not(case)}" for case in left_out]
     for stack in project.stacks:
         renderer = RENDERERS[stack]
         expected, approved_everywhere, count = {}, [], 0
