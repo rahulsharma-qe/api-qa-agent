@@ -314,14 +314,11 @@ Both on Python 3.11 and 3.12, on every push and pull request. No API key anywher
 | env_check | httpx, pyyaml |
 | api_test_framework | httpx, pyyaml, pytest, openpyxl (Excel data) |
 
-## 7. What happens to the current code
+## 7. The first version's code
 
-| Today | Phase 0 and 1 |
+| First version | Now |
 |---|---|
-| `README.md` | Phase 0: a short note at the top that the repository is being rebuilt, with links to the new design; rewritten when phase 1 ends, after your review |
-| `.github/workflows/ci.yml` | Keeps running the first version's tests until they are removed; the new jobs are added next to it |
-| `docs/architecture.md` (first version's decisions) | Moves to `docs/history/first-version.md`, unchanged; the new design takes its place |
-| `core/` (the language-model pipeline) | Stays until phase 6 reworks it into the AI layer |
-| `adapters/`, `examples/` (first version's engine, reference stacks and mock) | Stay until phase 1 ends, then are removed; the reference stacks are on the later list; git history keeps them |
-| Numbered labels in docstrings and docs | Replaced with plain names in phase 0 |
-| No licence | MIT in phase 0 |
+| `docs/architecture.md` (its design decisions) | In [`docs/history/first-version.md`](history/first-version.md); the new design took its place |
+| `adapters/`, `examples/`, `tests/test_engine.py` (its engine, five stack renderers, sample service and test) | Removed when phase 1 ended; in the git history. The reference stacks are on the later list |
+| `requirements.txt` | Removed: `pip install -e .` installs the reference API and env_check |
+| `core/` (its language-model steps) | Kept until phase 6 reworks it into the AI layer |

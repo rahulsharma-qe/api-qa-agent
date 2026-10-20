@@ -1,7 +1,8 @@
 # First version: architecture and design decisions
 
 *The first version's design, kept for reference. The current design is in
-[../architecture.md](../architecture.md).*
+[../architecture.md](../architecture.md). The code described here (except `core/`) was removed
+when the new design's phase 1 ended, and is in the git history.*
 
 A short tour of *why* this is built the way it is. The code is the *what*; this is the *why*.
 

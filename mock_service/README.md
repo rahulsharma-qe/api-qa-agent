@@ -4,7 +4,7 @@ A small bookings API that `api-qa-agent`'s frameworks, examples and CI run again
 stand-in notifications service for the environment check. Data lives in memory.
 
 ```bash
-pip install -r requirements.txt
+pip install -e .                       # from the repository root
 python -m mock_service                 # bookings on :8000, notifications on :8001
 curl localhost:8000/health-check
 ```

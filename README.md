@@ -70,7 +70,6 @@ the test, in order, with tokens masked. See the [framework's README](frameworks/
 | [`frameworks/python_api/`](frameworks/python_api/) | The Python framework (pytest, httpx), installable on its own, with an example for every feature |
 | [`docs/`](docs/) | The design: [high-level](docs/architecture.md) and [low-level](docs/lld.md) |
 | `core/` | The first version's language-model steps (case and data drafting, a review step); reworked into the AI layer in phase 6 |
-| `adapters/`, `examples/` | The first version's engine, its five stack renderers and its sample service; removed in the next clean-up |
 
 ## Design choices
 
@@ -90,7 +89,7 @@ the test, in order, with tokens masked. See the [framework's README](frameworks/
 
 This repository started as a smaller pipeline: a language model turned one requirement into test
 cases and data, a second model reviewed them, and the package was rendered into five test stacks,
-one of which ran. Its design is kept in [`docs/history/first-version.md`](docs/history/first-version.md);
-its code is still here until the next clean-up, and in the git history after that.
+one of which ran. Its design is kept in [`docs/history/first-version.md`](docs/history/first-version.md),
+and its code in the git history.
 
 Released under the [MIT License](LICENSE).
