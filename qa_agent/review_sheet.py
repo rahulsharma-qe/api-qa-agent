@@ -68,6 +68,7 @@ def export_review_sheet(project: TeamProject, path: Path, every_case: bool = Fal
     report = check_project(project)
     rows = [(case_file, case) for case_file in report.case_files for case in case_file.cases
             if every_case or (not case.is_approved and case.review.status != "rejected")]
+    rows.sort(key=lambda row: _natural(row[1].id))                    # TC001, TC002, ... TC010
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = SHEET
@@ -130,7 +131,7 @@ def import_review_sheet(project: TeamProject, path: Path) -> ReviewImportResult:
 
 def readable_steps(case: Case) -> str:
     if case.needs_steps:
-        return "\n".join(case.steps_text)
+        return "\n".join(line for line in case.steps_text if not _is_expected(line))
     lines = []
     for number, step in enumerate(case.steps, start=1):
         request = step.request
@@ -151,7 +152,9 @@ def readable_steps(case: Case) -> str:
 
 def readable_expectations(case: Case) -> str:
     if case.needs_steps:
-        return "(needs steps)"
+        expected = [re.sub(r"^Expected:\s*", "", line) for line in case.steps_text if _is_expected(line)]
+        return "\n".join(expected + ["(in words: needs steps)"]) if expected else \
+            "(in words: needs steps; no expected result written)"
     lines = []
     for number, step in enumerate(case.steps, start=1):
         expect = step.expect
@@ -168,6 +171,15 @@ def readable_expectations(case: Case) -> str:
             parts.append(f"within {expect['within_ms']} ms")
         lines.append(f"{number}. " + ("; ".join(parts) or "(nothing checked)"))
     return "\n".join(lines)
+
+
+def _is_expected(line: str) -> bool:
+    """'Expected: ...' from a manual sheet, or a Gherkin 'Then ...'."""
+    return line.startswith(("Expected:", "Then "))
+
+
+def _natural(case_id: str) -> list:
+    return [int(part) if part.isdigit() else part for part in re.split(r"(\d+)", case_id)]
 
 
 def _short(text: str, limit: int = 120) -> str:

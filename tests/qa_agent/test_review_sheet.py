@@ -65,8 +65,26 @@ def test_export_lists_cases_to_review_with_readable_locked_steps(make_project):
     assert first["Expected"].value == '1. 201; status = "active"'
     assert first["Steps"].protection.locked and not first["Decision"].protection.locked
     assert rows.protection.sheet and rows.column_dimensions["P"].hidden
+    second = {name: cell.value for name, cell in zip(header, rows[3])}
+    assert (second["ID"], second["Expected"]) == ("TC2", "(in words: needs steps; no expected result written)")
     third = {name: cell.value for name, cell in zip(header, rows[4])}
     assert "criterion AC-9 is not in criteria.yaml" in third["Check findings"]
+
+
+def test_rows_are_in_id_order_and_a_case_in_words_shows_its_expected_result(make_project):
+    root = make_project({"cases/b.yaml": """
+        feature: B
+        cases:
+          - {id: TC10, title: ten, steps_text: [Open it]}
+          - {id: TC9, title: nine, steps_text: [Open it, "Expected: it opens"]}
+          - {id: TC2, title: two, steps_text: [Given x, Then it is refused]}
+        """})
+    sheet = root / "review/cases.xlsx"
+    export_review_sheet(TeamProject.load(root), sheet)
+    rows = list(load_workbook(sheet)["Cases"].iter_rows(min_row=2, values_only=True))
+    assert [row[0] for row in rows] == ["TC2", "TC9", "TC10"]
+    assert (rows[1][8], rows[1][9]) == ("Open it", "it opens\n(in words: needs steps)")
+    assert (rows[0][8], rows[0][9]) == ("Given x", "Then it is refused\n(in words: needs steps)")
 
 
 def test_decisions_are_applied_with_who_and_when_and_edits(make_project):
