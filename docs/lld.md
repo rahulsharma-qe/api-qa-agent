@@ -2,8 +2,9 @@
 
 The high-level design ([architecture.md](architecture.md)) says what the utility is and why. This
 document says how each part is built. It grows phase by phase: this version covers **phase 0**
-(the mock service) and **phase 1** (the Python framework and env_check) in full; later phases
-get their sections when they are designed.
+(the mock service), **phase 1** (the Python framework and env_check), **phase 1b** (the Python
+framework for QA teams) and **phase 2** (the REST Assured framework with TestNG); later phases get
+their sections when they are designed.
 
 ## 1. Repository layout after phase 1
 
@@ -261,9 +262,9 @@ classDiagram
 |---|---|
 | `--env qa2` | Same as `API_ENV=qa2` |
 | Fixtures | `environment`; `api` (client for the default service); `api_for("notifications")`; `context` |
-| Markers | `regression`, `functional`, `writes` (changes data: skipped on a `read_only` environment, with the reason in the report), `case("TC003")` (the case id, written into the JUnit report for traceability) |
+| Markers | `smoke`, `regression`, `functional`, `writes` (changes data: skipped on a `read_only` environment, with the reason in the report), `case("TC003")` (the case id, written into the JUnit report for traceability), `priority("P0")` (P0 to P3; phase 1b) |
 | On failure | The whole chain: every step's request and response, then the expectation that broke |
-| Report | `pytest --junitxml=reports/junit.xml` |
+| Report | `pytest --junitxml=reports/junit.xml` for CI; Allure for people (phase 1b, section 4.5) |
 
 ### 4.3 A test written with it
 
@@ -297,7 +298,74 @@ This is the shape `qa-agent generate` will write in phase 3: no logic, only step
 | Environments | README: the same tests with `--env qa1`; a `writes` test skipped on a `read_only` environment |
 | env_check | README: ready, then the notifications stand-in switched down (warned, still ready), then bookings stopped (exit 3) |
 
-## 5. CI (phases 0 and 1)
+### 4.5 Phase 1b: what QA teams expect
+
+| Feature | How | Notes |
+|---|---|---|
+| Allure report | `allure-pytest`; `pytest --alluredir=reports/allure-results`, then `allure generate` | Every step's request and response is attached (token masked); `case` becomes a label, `priority` the severity (P0 blocker, P1 critical, P2 normal, P3 minor), markers become tags. CI builds the HTML and keeps it |
+| Smoke and priority | `@pytest.mark.smoke`, `@pytest.mark.priority("P0")` | `pytest -m smoke`; priority is also written into the JUnit report |
+| Evidence of every test | `pytest --evidence reports/evidence` | One text file per test, pass or fail: result, then every request and response in order, token masked. For audits and sign-off |
+| One retry, shown separately | `pytest --reruns 1` (`pytest-rerunfailures`) | A test that fails and then passes is listed under "Passed on retry: look at these", marked in the JUnit report and in Allure; never shown as a plain pass. CI runs with one retry; a laptop run has none unless asked |
+
+## 5. REST Assured framework (phase 2)
+
+The same shape as the Python framework, in the layout Java QA teams already know. Tests read the
+same `environments.yaml` and `dependencies.yaml` (env_check runs before Maven, as in Python).
+
+### 5.1 Layout
+
+```
+frameworks/restassured_api/
+  pom.xml  mvnw  mvnw.cmd  .mvn/wrapper/      the Maven wrapper: no Maven install needed
+  config/environments.yaml  config/dependencies.yaml
+  data/cancellation_boundaries.csv  data/cancellation_boundaries.xlsx
+  suites/smoke.xml  suites/regression.xml  suites/functional.xml       testng.xml suites by group
+  src/main/java/apiqa/framework/
+    config/      EnvironmentConfig, EnvironmentLoader (SnakeYAML; -Denv=qa2 or API_ENV)
+    auth/        TokenProvider: NoAuth, StaticToken, ClientCredentials
+    client/      ApiClient (REST Assured, a RequestSpecification per service), ApiResponse (value("items[0].pnr"))
+    expect/      Expect: statusIs, fieldEquals, fieldExists, fieldIsType, fieldContains, listLength,
+                 listContains, listExcludes, headerEquals, respondedWithin
+    context/     ScenarioContext: remember, get, steps
+    data/        TestData: rows from CSV, Excel (Apache POI) or JSON (Jackson); NewPassenger
+    testng/      BaseTest, CaseId (annotation), Priority (annotation), ApiStepsListener, RetryOnce
+  src/test/java/apiqa/examples/      one test class per feature, as in Python
+```
+
+### 5.2 TestNG pieces
+
+| Piece | Responsibility |
+|---|---|
+| `BaseTest` | Before each test: the environment, a fresh `ScenarioContext`, `api()` and `apiFor("notifications")`; skips a test in group `writes` on a `read_only` environment, with the reason |
+| Groups | `smoke`, `regression`, `functional`, `writes`; `mvn test -Dgroups=regression`, or a suite file: `mvn test -Dsurefire.suiteXmlFiles=suites/regression.xml` |
+| `@CaseId("TC003")`, `@Priority("P0")` | Written into the reports by the listener (Allure label and severity; a TestNG attribute) |
+| `ApiStepsListener` | On failure: every step's request and response, in order, into the log and Allure. Every test, pass or fail: an evidence file when `-Devidence=reports/evidence` is set |
+| `RetryOnce` | `-Dretry=1`: a failed test runs once more; a pass on retry is listed separately and labelled in Allure |
+| Data providers | `@DataProvider` reading `TestData.rows("data/cancellation_boundaries.csv")` (or `.xlsx`) |
+
+### 5.3 A test written with it
+
+```java
+public class CancelRefundTest extends BaseTest {
+    @Test(groups = {"regression", "writes"})
+    @CaseId("TC003") @Priority("P1")
+    public void cancelExactlyAt24HoursGetsAFullRefund() {
+        ApiResponse created = api().post("/bookings", NewPassenger.with("amount", 250, "booked_at", "2026-01-15T10:00:00Z"));
+        Expect.that(created).statusIs(201);
+        String pnr = context().remember("pnr", created.value("pnr"));
+
+        ApiResponse cancelled = api().post("/bookings/" + pnr + "/cancel", Map.of("cancelled_at", "2026-01-16T10:00:00Z"));
+        Expect.that(cancelled).statusIs(200).fieldEquals("refund_allowed", true).fieldEquals("refund_amount", 250);
+    }
+}
+```
+
+### 5.4 Versions
+
+Java 17; REST Assured 5.5; TestNG 7.10; Allure TestNG 2.29 (with the AspectJ agent); SnakeYAML 2;
+Apache POI 5; Jackson 2.17; Maven Surefire 3.5. Built and tested in CI with `actions/setup-java`.
+
+## 6. CI
 
 | Job | Steps |
 |---|---|
@@ -306,7 +374,7 @@ This is the shape `qa-agent generate` will write in phase 3: no logic, only step
 
 Both on Python 3.11 and 3.12, on every push and pull request. No API key anywhere.
 
-## 6. Dependencies
+## 7. Dependencies
 
 | Part | Packages |
 |---|---|
@@ -314,7 +382,7 @@ Both on Python 3.11 and 3.12, on every push and pull request. No API key anywher
 | env_check | httpx, pyyaml |
 | api_test_framework | httpx, pyyaml, pytest, openpyxl (Excel data) |
 
-## 7. The first version's code
+## 8. The first version's code
 
 | First version | Now |
 |---|---|

@@ -26,7 +26,7 @@ agent, `playwright-qa-agent`, is a separate repository that depends on it.
    only its own stack; any number of environments and services per team.
 6. **Safe for regulated organisations.** Only the API's structure is sent to a model, after
    redaction; the model can run inside the organisation's own cloud; every call is logged.
-7. **The AI's work is measured.** Mutation score of the generated suite, agreement of the AI
+7. **The AI's work is measured.** The bug-detection rate of the generated suite (seeded bugs caught), agreement of the AI
    reviewer with people, and coverage of the API's endpoints.
 8. **Everything traces.** Each acceptance criterion maps to its approved cases, each case to the
    tests generated from it (one or many), and each test to its latest result.
@@ -49,7 +49,7 @@ flowchart TB
   REV["Reviewer<br/>approves cases and data"]
   CLI["qa-agent<br/>init · draft · data · generate · promote"]
   LLM["Model provider<br/>direct API · AWS Bedrock · Google Vertex · Azure"]
-  REPO["Team repository<br/>inputs · review files · generated tests"]
+  REPO["Team repository<br/>inputs · review sheets · generated tests"]
   CI["Team CI"]
   ENV["env_check<br/>is the environment ready?"]
   FW["Frameworks<br/>Python · REST Assured"]
@@ -89,7 +89,7 @@ flowchart TB
   subgraph TEAM["1 · What a team brings"]
     SPEC["API description<br/>OpenAPI · curl + sample · api.yaml"]
     AC["Acceptance criteria<br/>text or Jira export"]
-    OLD["Existing test cases<br/>CSV · Excel · Gherkin"]
+    OLD["Existing test cases<br/>Excel · CSV · Postman · Gherkin"]
     ENVF["environments.yaml<br/>dependencies.yaml"]
   end
   subgraph AGENT["2 · qa-agent"]
@@ -98,19 +98,19 @@ flowchart TB
     DRAFT["Review and draft cases<br/>draft test data"]
     SAFE["Safety<br/>redaction · audit log"]
     MODEL["Model layer<br/>direct · Bedrock · Vertex · Azure"]
-    REVIEW["Review files<br/>a person approves · edits · rejects"]
+    REVIEW["Review sheet (Excel)<br/>a person approves · edits · rejects"]
     REN["Renderers<br/>one per framework"]
   end
   subgraph RUN["3 · Run, in the team's repository"]
     GEN["Generated tests<br/>committed"]
     EC["env_check<br/>safe health checks"]
     FWP["python_api<br/>pytest + httpx"]
-    FWJ["restassured_api<br/>REST Assured + JUnit 5"]
+    FWJ["restassured_api<br/>REST Assured + TestNG"]
   end
   subgraph OUT["4 · What comes out"]
-    REP["Reports<br/>JUnit XML · run page"]
+    REP["Reports<br/>Allure for people · JUnit XML for CI"]
     TRACE["Traceability matrix<br/>criteria → cases → tests → results"]
-    MEAS["Measures<br/>mutation score · reviewer agreement · coverage"]
+    MEAS["Measures<br/>bug-detection rate · reviewer agreement · coverage"]
   end
   SPEC --> IMP
   AC --> IMP
@@ -141,11 +141,11 @@ flowchart TB
 
 | Component | Responsibility | Knows about |
 |---|---|---|
-| Importers | Read OpenAPI, curl with a sample response, or `api.yaml` into one API model; read existing cases from CSV, Excel or Gherkin into one case format | Input formats only |
+| Importers | Read OpenAPI, curl with a sample response, or `api.yaml` into one API model; read existing cases from Excel, CSV, a Postman collection or Gherkin into one case format | Input formats only |
 | Review and draft | Convert and review existing cases, flag problems, list gaps against the API and the criteria, draft only the missing cases; draft test data | The case format, the model layer |
 | Safety | Remove secrets and personal data before anything is sent; send only the endpoint being tested; log every call | Nothing else; every model call passes through it |
 | Model layer | One interface; the provider is configuration | Provider software only |
-| Review files | A person approves, edits or rejects each case and data set; only approved items move on | The case format |
+| Review sheet | An Excel sheet (one row per case: steps, expected result, approve / edit / reject, comment), the format testers already use; only approved items move on. The case format underneath stays YAML | The case format |
 | Renderers | Turn approved cases into code for one framework, the same way every time | One framework's style each |
 | Frameworks | Libraries a team's tests run on: configuration, client, expectations, chaining, test data, tags | Nothing about qa-agent |
 | env_check | Before a run, call each service's health endpoint; stop with a clear message if a critical one is down | `environments.yaml`, `dependencies.yaml` |
@@ -158,7 +158,7 @@ flowchart TB
 flowchart TB
   A["qa-agent init<br/>a working project in the chosen framework"] --> B["Add inputs<br/>API description · criteria · existing cases"]
   B --> C["qa-agent draft<br/>existing cases reviewed, gaps drafted"]
-  C --> D(["A person reviews the cases<br/>review.yaml"])
+  C --> D(["A person reviews the cases<br/>in an Excel review sheet"])
   D -->|"approved"| E["qa-agent data<br/>test data drafted, rules check it"]
   E --> F(["A person reviews the data"])
   F -->|"approved"| G["qa-agent generate<br/>runnable tests, committed"]
@@ -236,10 +236,10 @@ flowchart TB
     FW2["restassured_api framework<br/>versioned library"]
   end
   subgraph A["Team A repository (Python)"]
-    A1["inputs · review files<br/>generated tests"]
+    A1["inputs · review sheets<br/>generated tests"]
   end
   subgraph B["Team B repository (Java)"]
-    B1["inputs · review files<br/>generated tests"]
+    B1["inputs · review sheets<br/>generated tests"]
   end
   FW1 -->|"pins version 1.2"| A1
   FW2 -->|"pins version 1.1"| B1
@@ -297,16 +297,17 @@ flowchart TB
 | Repeatable | Templates give the same code for the same case; regression has no AI |
 | Scales to many teams | Platform and teams separate; versioned frameworks; one CI line per team |
 | Safe | Section 8 |
-| Honest results | An environment problem (exit 3) is never reported as a product bug; a failed test shows the request, the response and the expectation that broke |
-| Measured | Mutation score, reviewer agreement and endpoint coverage, section 10 |
+| Honest results | An environment problem (exit 3) is never reported as a product bug; a failed test shows the request, the response and the expectation that broke; a test that passes only on retry is reported as such, never as a plain pass |
+| Evidence | Every test's requests and responses, pass or fail, are kept in the Allure report and, on request, in an evidence folder for audits and sign-off |
+| Measured | Bug-detection rate, reviewer agreement and endpoint coverage, section 10 |
 | Traceable | Criteria → cases → tests → results in one matrix; CI fails if an approved case has no test |
 
 ## 10. Measuring the AI's work
 
 | Measure | Question it answers | How |
 |---|---|---|
-| Mutation score | Do the generated tests catch bugs, not just pass? | The mock service can switch on small planted bugs (a boundary moved, a deleted booking still returned); the share the suite catches |
-| Reviewer agreement | Can we trust the AI reviewer's comments? | Its comments against the reviewer's decisions in the review files; tuning and held-back halves, as in the sibling repository |
+| Bug-detection rate (mutation testing) | Do the generated tests catch bugs, not just pass? | The mock service can switch on small planted bugs (a boundary moved, a deleted booking still returned); the share the suite catches |
+| Reviewer agreement | Can we trust the AI reviewer's comments? | Its comments against the reviewer's decisions in the review sheets; tuning and held-back halves, as in the sibling repository |
 | Endpoint coverage | Is every endpoint and response code tested? | Approved cases against the API description (API → cases) |
 | Criteria coverage | Is every acceptance criterion tested? | Each criterion's approved cases (criteria → cases) |
 | Case-to-test mapping | Did every approved case become a test? | One case to one test, or one to many (a data-driven case runs once per data row; the same case in two frameworks); flags a case with no test and a test with no case (cases → tests) |
@@ -319,10 +320,13 @@ flowchart TB
 | Tests are data; templates write the code | Code always runs; one case, every framework; a non-coder can review | Unusual logic needs a custom check (below) |
 | A model may write a small custom check | Covers logic the case format can't express | Each one passes a compile, a run and a person before use |
 | Existing cases first, the AI fills gaps | Keeps the team's work; less for the AI to get wrong; one review | An importer per case format |
-| Review in files, not prompts | A record of who approved what; CI can check it | Slightly slower than clicking through |
+| Review in an Excel sheet | Testers and analysts already work in sheets; a record of who approved what; CI can check it | An importer and exporter for the sheet |
+| Allure for people, JUnit XML for CI | One readable report (steps, requests, responses, history) in both frameworks; CI still reads JUnit | Allure's command-line tool to build the HTML |
+| Retry once, shown separately | Flaky tests don't block a build, and a retry never hides a failure | A second run on failure |
+| TestNG with REST Assured | The stack most QA teams already run: groups, `testng.xml` suites, data providers, listeners | Not the default in developer teams (JUnit 5) |
 | Frameworks as libraries; teams in their own repositories | Teams independent; each builds one stack | Versions to publish and maintain |
 | env_check as a separate tool | One tool for every framework; can become its own service later | Another small tool to keep |
-| Cucumber on top of REST Assured | One Java client, not two | Cucumber waits for REST Assured |
+| Cucumber on top of REST Assured | One Java client, not two; the plain-English feature files analysts read | Cucumber waits for REST Assured (phase 3c) |
 | `setup-python` in CI before a Docker image | Less to build and keep now | A Java team needs Python to run `qa-agent` until the image exists |
 
 ## 12. Phases
@@ -334,17 +338,19 @@ existing cases before any AI is switched on. The AI layer comes last and sits on
 |---|---|---|
 | 0 | Mock bookings service (create, read, update, delete, cancel, token, refund status, health check; `booked_at` and `cancelled_at` so time boundaries can be tested), a stand-in notifications service that can be switched down, the OpenAPI description; repository clean-up | No |
 | 1 | Python framework and env_check, with an example for every feature | No |
-| 2 | REST Assured framework, same shape | No |
-| 3a | Case format, importers (API descriptions, existing cases), review files, renderers, `generate`, `trace`, `init` | No |
-| 3b | Drift check, `promote`, mutation score, two example teams, the reusable workflow, the public-API run, a Docker image for qa-agent | No |
+| 1b | Python framework, for QA teams: Allure report, `smoke` and `priority` tags, evidence of every test, one retry shown separately | No |
+| 2 | REST Assured framework with TestNG: the familiar layout (`BaseTest`, request specifications, listeners, `testng.xml` suites for smoke, regression and functional, Excel data), Allure, evidence, retry, the Maven wrapper; same environments file | No |
+| 3a | Case format, importers (API descriptions; existing cases from Excel, CSV, Postman collections, Gherkin), the Excel review sheet, renderers, `generate`, `trace`, `init` | No |
+| 3b | Drift check, `promote`, bug-detection rate, two example teams, the reusable workflow, the public-API run, a one-command setup (Docker image for qa-agent) | No |
+| 3c | Cucumber on REST Assured: step definitions written once, `.feature` files generated from the same cases | No |
 | 4 | User-interface track, in its own repository `playwright-qa-agent` (TypeScript, Playwright Test), using this repository's core as a package: the team's UI cases imported, reviewed, generated and run through the same flow; rule-based self-healing (each element has ranked locators: test id, then role and name, then text), every heal logged and approved by a person before it is kept; a small bookings web page on the mock service, with a switch that renames elements to show healing | No |
-| 5 | Jira and wiki: read acceptance criteria from a Jira issue or a wiki page; a failing test goes to a triage file, and a person decides before a Jira bug is raised with the request, response and case attached; tested with fakes, confirmed live on a free Atlassian account | No (needs Jira and wiki access) |
+| 5 | Jira and wiki: read acceptance criteria from a Jira issue or a wiki page; a failing test goes to a triage file, and a person decides before a Jira bug is raised with the request, response and case attached; results sent back to TestRail, Zephyr or Xray by case id; tested with fakes, confirmed live on a free Atlassian account | No (needs Jira and wiki access) |
 | 6 | The AI layer: AI review of existing cases, drafting of missing cases and test data (API and UI), a suggested locator when rule-based healing fails, a suggested triage; model providers (direct API, AWS Bedrock, Google Vertex, Azure); safety (redaction, minimum sent, audit log); reviewer agreement | Yes |
 
 ## 13. Limits, and what comes later
 
-- **Later frameworks:** Cucumber (on REST Assured) and Apache HttpClient with TestNG. Playwright is
-  phase 4, in its own repository.
+- **Later frameworks:** Apache HttpClient with TestNG. Cucumber is phase 3c; Playwright is phase 4,
+  in its own repository.
 - **MCP:** in `playwright-qa-agent`, the Playwright MCP server lets the AI layer explore a page to
   draft UI cases and suggest locators; a QA MCP server could offer `qa-agent`'s commands to any AI
   assistant. Both are discussed when the AI layer starts.
