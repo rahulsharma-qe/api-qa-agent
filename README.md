@@ -23,7 +23,7 @@ testing AI agents themselves.
 | REST Assured framework with TestNG ([`frameworks/restassured_api/`](frameworks/restassured_api/)) | **Built** (phase 2): the same features in Java, with TestNG groups and suites, Excel-driven data, Allure, evidence, retry |
 | `qa-agent`: the case format, API import (OpenAPI, curl), `check` ([`qa_agent/`](qa_agent/), [example](examples/bookings-team/)) | **Built** (phase 3a, part 1): cases as data, one file per feature; every case checked against the API and the criteria, with the fix |
 | Importers of the team's existing cases (Excel, CSV, Postman, Gherkin), the Excel review sheet | **Built** (phase 3a, part 2): cases from four formats, anything unreadable reported; a person approves each case in Excel, with who and when recorded |
-| Generated tests (pytest, REST Assured), traceability, `qa-agent init` | Phase 3a, part 3 |
+| Generated tests (pytest, REST Assured), traceability, `qa-agent init` | **Built** (phase 3a, part 3): approved cases become tests in both stacks; the trace shows criteria to cases to tests to results, with coverage; a new team project runs on day one |
 | Drift check, promote, bug-detection rate, two example teams | Phase 3b |
 | Cucumber on REST Assured | Phase 3c |
 | User-interface tests | Phase 4, in its own repository (`playwright-qa-agent`) |
@@ -46,12 +46,13 @@ flowchart LR
   IN --> DRAFT --> REVIEW --> GEN --> RUN --> OUT
   classDef built fill:#1e293b,stroke:#34d399,color:#f1f5f9,stroke-width:2px
   classDef later fill:#1e293b,stroke:#94a3b8,color:#cbd5e1,stroke-dasharray: 5 5
-  class RUN built
-  class IN,DRAFT,REVIEW,GEN,OUT later
+  class IN,REVIEW,GEN,RUN,OUT built
+  class DRAFT later
   linkStyle default stroke:#94a3b8,stroke-width:2px
 ```
 
-Green border: built. Dashed: designed, coming in the phases above.
+Green border: built. Dashed: the AI layer, phase 6. Until then a person writes or imports the cases,
+and everything after them works the same.
 
 ## Try it (no API key)
 
@@ -74,15 +75,17 @@ When a test fails, the report shows the expectation that broke and every request
 the test, in order, with tokens masked. See each framework's README:
 [Python](frameworks/python_api/README.md) and [REST Assured](frameworks/restassured_api/README.md).
 
-And `qa-agent` on a team's project (no service needed):
+And `qa-agent`, from a team's inputs to tests in both stacks and the trace:
 
 ```bash
 cd examples/bookings-team
-qa-agent check                                     # every case, against the API and the criteria
+./run_all.sh --python-only                         # or ./run_all.sh with the Java framework installed
 ```
 
 The [example's README](examples/bookings-team/README.md) walks through every step: the API, the
-team's existing cases in four formats, what `check` finds, and the review sheet.
+team's existing cases in four formats, what `check` finds, the review sheet, the generated tests in
+both stacks, and the trace. A new team starts with `qa-agent init my-team --stack python` (or
+`--stack restassured`): a project that runs on day one.
 
 ## What's inside
 
@@ -92,7 +95,7 @@ team's existing cases in four formats, what `check` finds, and the review sheet.
 | [`env_check/`](env_check/) | Before a run: call every service a team depends on; exit 3 when a critical one is down. One tool for every framework |
 | [`frameworks/python_api/`](frameworks/python_api/) | The Python framework (pytest, httpx), installable on its own, with an example for every feature |
 | [`frameworks/restassured_api/`](frameworks/restassured_api/) | The Java framework (REST Assured, TestNG), a Maven library on its own, with an example for every feature |
-| [`qa_agent/`](qa_agent/) | `qa-agent`, the command line: the case format, importers, `check`, the review sheet |
+| [`qa_agent/`](qa_agent/) | `qa-agent`, the command line: `init`, `import`, `check`, `review`, `generate`, `trace` |
 | [`examples/bookings-team/`](examples/bookings-team/) | A team's project for the reference API: every `qa-agent` feature, with its output |
 | [`docs/`](docs/) | The design: [high-level](docs/architecture.md) and [low-level](docs/lld.md) |
 | `core/` | The first version's language-model steps (case and data drafting, a review step); reworked into the AI layer in phase 6 |
