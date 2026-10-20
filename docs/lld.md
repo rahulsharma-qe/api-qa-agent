@@ -427,7 +427,7 @@ What `qa-agent init` creates, and what every other command reads. The same shape
 
 ```
 bookings-team/
-  qa-agent.yaml                 team: bookings · stacks: [python] · framework version
+  qa-agent.yaml                 team: bookings · service: bookings · stacks: [python] · case_id_prefix: TC
   api/api.yaml                  the API model (imported from OpenAPI or curl, or written by hand)
   api/source/                   what the team brought: openapi.json, *.curl with a sample response
   criteria.yaml                 acceptance criteria: id and text
@@ -521,9 +521,12 @@ sheet and row, item or scenario). An id already in the project is skipped and re
 `--overwrite`. Anything that can't be read is reported, never guessed: a row with no Case ID, a Body
 that isn't JSON, a priority qa-agent doesn't know (set to P2), a Postman script line.
 
-**Case ids.** A sheet's Case ID or ID column; a Gherkin tag `@TC040`; a Postman folder or request
-named `TC030 Create and read`. Otherwise one is made from the feature's name (`BOOKINGS-SMOKE-01`),
-which the reviewer may keep.
+**Case ids.** The team's own ids are kept, never renumbered: TestRail, Jira and old reports know a
+case by them. They come from a sheet's Case ID or ID column, a Gherkin tag `@TC040`, or a Postman
+folder or request named `TC030 Create and read`. A case with no id gets the next free one with the
+project's prefix (`case_id_prefix: TC` in `qa-agent.yaml`; after TC041 comes TC042), worked out after
+every file is read, so the order of the files doesn't matter. Imported again, it keeps that id (it is
+matched by its source).
 
 **Priorities.** P0 to P3, or the words teams use: Blocker and Critical are P0, High and Major P1,
 Medium and Normal P2, Low, Minor and Trivial P3.
@@ -565,8 +568,10 @@ case with `--all`):
 | ID | Case file | Status | Title | Criteria | Priority | Track | Tags | Steps | Expected | Check findings | **Decision** | **Reviewer** | **Date** | **Comment** |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 
-A rejected case is not exported again (unless `--all`). A second sheet, "How to review", says what
-to do in five lines.
+Rows are in id order (TC001, TC002, ... TC010). A rejected case is not exported again (unless
+`--all`). A second sheet, "How to review", says what to do in five lines. A case in words shows its
+steps in Steps and its expected result in words (a manual sheet's Expected Result, a Gherkin
+`Then`) in Expected, marked "needs steps".
 
 - **Steps** and **Expected** are readable text, one line per step (`POST /bookings → 201, remember pnr`),
   greyed and locked: the steps themselves are changed in the case file, so a sheet can never
@@ -653,11 +658,20 @@ write JUnit), and writes `reports/trace.md` (for a pull request) and `reports/tr
 | AC-2 | TC003 | approved | functional | `test_tc003_…` · `CancellationTest.tc003…` | passed |
 | AC-3 | TC007 | draft (needs steps) | functional | none | not run |
 
-Then the coverage lines: criteria with an approved case (4 of 5), operations and response codes in
-`api/api.yaml` with a case (7 of 9 operations, 12 of 20 codes), approved cases with a test (10 of
-10), and lists of what is missing: criteria without cases, approved cases without tests, tests
-without a case. `--check` exits 1 when an approved case has no test (the CI check of section 5 in
-the high-level design).
+Then the coverage lines, and lists of what is missing. Only approved cases count; a case in words
+or a draft is listed, not counted. Coverage is measured and reported; qa-agent doesn't decide what
+to test (drafting cases for the gaps is the AI layer's job, phase 6).
+
+| Coverage | Rule |
+|---|---|
+| Criteria | Each criterion in `criteria.yaml` has at least one approved case |
+| Operations | Each operation in `api/api.yaml` has at least one approved case. An operation not meant to be tested is marked `not_tested: <reason>` there (`/test/reset`; a health check env_check already calls) and listed with its reason, not counted |
+| Response codes | Each documented code of each operation is expected by at least one approved step. 401 counts once per service (one call without a token is enough); 422 counts only for operations that take input |
+| Cases to tests | Each approved case has at least one test; a test with no case is listed |
+
+Coverage is reported, not enforced. `--check` exits 1 only when an approved case has no test (the CI
+check of section 5 in the high-level design). A coverage threshold (`--min-coverage 80`) can come in
+phase 3b if teams want one.
 
 ### 9.9 `qa-agent init`
 
