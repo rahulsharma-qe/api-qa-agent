@@ -68,7 +68,7 @@ def export_review_sheet(project: TeamProject, path: Path, every_case: bool = Fal
     report = check_project(project)
     rows = [(case_file, case) for case_file in report.case_files for case in case_file.cases
             if every_case or (not case.is_approved and case.review.status != "rejected")]
-    rows.sort(key=lambda row: _natural(row[1].id))                    # TC001, TC002, ... TC010
+    rows.sort(key=lambda row: natural_order(row[1].id))                    # TC001, TC002, ... TC010
     workbook = Workbook()
     sheet = workbook.active
     sheet.title = SHEET
@@ -178,7 +178,8 @@ def _is_expected(line: str) -> bool:
     return line.startswith(("Expected:", "Then "))
 
 
-def _natural(case_id: str) -> list:
+def natural_order(case_id: str) -> list:
+    """TC2 before TC10."""
     return [int(part) if part.isdigit() else part for part in re.split(r"(\d+)", case_id)]
 
 

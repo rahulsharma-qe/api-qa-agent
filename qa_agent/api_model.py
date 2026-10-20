@@ -6,8 +6,11 @@
           - {method: POST, path: /bookings, summary: Create a booking,
              body_required: [passenger_name, amount], responses: [201, 401, 422]}
           - {method: POST, path: "/bookings/{pnr}/cancel", responses: [200, 404, 409]}
+          - {method: POST, path: /test/reset, responses: [204], not_tested: a test-only route}
 
 Importers (OpenAPI, curl) write it; people may edit it; every other command reads only this.
+`not_tested: <reason>` (written by a person) takes an operation out of the coverage, with the reason;
+importing again keeps it.
 """
 
 import re
@@ -28,6 +31,7 @@ class Operation:
     summary: str = ""
     body_required: list = field(default_factory=list)
     responses: list = field(default_factory=list)
+    not_tested: str = ""                  # the reason it is left out of the coverage, when it is
 
     @property
     def key(self) -> tuple[str, str]:
@@ -41,6 +45,8 @@ class Operation:
         if self.body_required:
             data["body_required"] = self.body_required
         data["responses"] = sorted(self.responses)
+        if self.not_tested:
+            data["not_tested"] = self.not_tested
         return data
 
 
@@ -84,6 +90,7 @@ class ApiModel:
             known.responses = sorted(set(known.responses) | set(operation.responses))
             known.body_required = known.body_required or operation.body_required
             known.summary = known.summary or operation.summary
+            known.not_tested = known.not_tested or operation.not_tested
             return False
         self.services[service].append(operation)
         return True
@@ -116,7 +123,8 @@ def load_api_model(path: Path) -> ApiModel:
             model.add(str(service), Operation(
                 method=str(raw["method"]).upper(), path=str(raw["path"]), summary=str(raw.get("summary") or ""),
                 body_required=[str(name) for name in raw.get("body_required") or []],
-                responses=[int(code) for code in raw.get("responses") or []]))
+                responses=[int(code) for code in raw.get("responses") or []],
+                not_tested=str(raw.get("not_tested") or "")))
     return model
 
 

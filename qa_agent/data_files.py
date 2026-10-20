@@ -9,6 +9,28 @@ class DataFileError(Exception):
     """A data file is missing or can't be read."""
 
 
+def rows(path: Path) -> list[dict]:
+    """Every row of a CSV, Excel or JSON data file, as text keyed by column (for trace, not for tests)."""
+    if not path.is_file():
+        raise DataFileError(f"{path}: no such data file")
+    suffix = path.suffix.lower()
+    try:
+        if suffix == ".csv":
+            with path.open(newline="", encoding="utf-8") as handle:
+                return list(csv.DictReader(handle))
+        if suffix == ".xlsx":
+            from openpyxl import load_workbook
+            table = list(load_workbook(path, read_only=True, data_only=True).active.iter_rows(values_only=True))
+            header = [str(cell).strip() for cell in table[0]] if table else []
+            return [dict(zip(header, row)) for row in table[1:]]
+        if suffix == ".json":
+            found = json.loads(path.read_text(encoding="utf-8"))
+            return found if isinstance(found, list) else []
+    except (OSError, ValueError) as error:
+        raise DataFileError(f"{path}: can't be read ({error})") from error
+    raise DataFileError(f"{path}: use a .csv, .xlsx or .json data file")
+
+
 def column_names(path: Path) -> list[str]:
     """The columns of a CSV, Excel or JSON (a list of objects) data file."""
     if not path.is_file():
