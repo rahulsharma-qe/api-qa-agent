@@ -18,9 +18,24 @@
     <testng.version>7.10.2</testng.version>
     <allure.version>2.29.0</allure.version>
     <jackson.version>2.17.2</jackson.version>
+    <log4j.version>2.24.1</log4j.version>
     <!-- mvn test -Dgroups=regression    or a suite:  mvn test -Dsurefire.suiteXmlFiles=suites/regression.xml -->
     <groups></groups>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- One Log4j version for every Log4j jar: Apache POI brings an older log4j-api, and a log4j-core
+           newer than its log4j-api fails at start-up (NoClassDefFoundError in ThreadContextDataInjector). -->
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-bom</artifactId>
+        <version>${log4j.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <!-- The framework itself (src/main) uses all of these, so a team gets them with one dependency. -->
@@ -58,7 +73,6 @@
       <!-- Apache POI logs through Log4j; this keeps it quiet instead of warning that no logger is set. -->
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-core</artifactId>
-      <version>2.24.1</version>
     </dependency>
   </dependencies>
 
