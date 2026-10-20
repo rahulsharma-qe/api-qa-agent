@@ -16,3 +16,6 @@ venv/
 
 # test reports
 reports/
+
+# Java build output
+target/

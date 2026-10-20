@@ -1,0 +1,8 @@
+# What these tests need before they run:  python -m env_check --env mock
+team: bookings-examples-java
+attempts: 5               # a service just started may need a few seconds
+wait_seconds: 1
+checks:
+  - service: bookings
+  - service: notifications
+    critical: false        # down -> listed, tests still run
