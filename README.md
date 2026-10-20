@@ -4,9 +4,9 @@
 
 **AI drafts, humans approve.** api-qa-agent turns what a team already has about its API (an
 OpenAPI description or a curl with a sample response, the acceptance criteria of a change, and the
-test cases it already wrote) into runnable API tests in the team's own framework: pytest today,
-REST Assured with TestNG next. The AI drafts cases and data; a reviewer approves every one; templates write the
-code. Regression runs need no AI and no API key.
+test cases it already wrote) into runnable API tests in the team's own framework: Python with
+pytest, or Java with REST Assured and TestNG. The AI drafts cases and data; a reviewer approves every
+one; templates write the code. Regression runs need no AI and no API key.
 
 It is the "AI for quality" side of my work. Its sibling,
 [`ai-quality-lab`](https://github.com/rahulsharma-qe/ai-quality-lab), is the "quality of AI" side:
@@ -20,7 +20,7 @@ testing AI agents themselves.
 | Environment check ([`env_check/`](env_check/)) | **Built**: a dependency that is down stops the run as an environment problem, never a test failure |
 | Python framework ([`frameworks/python_api/`](frameworks/python_api/)) | **Built**: environments, OAuth, API chaining, data-driven tests, readable failures, JUnit reports |
 | Python framework for QA teams: Allure report, smoke and priority tags, evidence, retry | **Built** (phase 1b) |
-| REST Assured framework with TestNG | **Next** (phase 2) |
+| REST Assured framework with TestNG ([`frameworks/restassured_api/`](frameworks/restassured_api/)) | **Built** (phase 2): the same features in Java, with TestNG groups and suites, Excel-driven data, Allure, evidence, retry |
 | Case format, importers (Excel, Postman, OpenAPI, curl), the Excel review sheet, generated tests, traceability, bug-detection rate | Phase 3 |
 | Cucumber on REST Assured | Phase 3c |
 | User-interface tests | Phase 4, in its own repository (`playwright-qa-agent`) |
@@ -60,8 +60,16 @@ python -m env_check --env mock                     # is the environment ready?
 pytest                                             # every example, against the reference API
 ```
 
+The same examples in Java (Java 17; Maven comes with the wrapper):
+
+```bash
+cd frameworks/restassured_api
+./mvnw test                                        # with the reference API running, as above
+```
+
 When a test fails, the report shows the expectation that broke and every request and response of
-the test, in order, with tokens masked. See the [framework's README](frameworks/python_api/README.md).
+the test, in order, with tokens masked. See each framework's README:
+[Python](frameworks/python_api/README.md) and [REST Assured](frameworks/restassured_api/README.md).
 
 ## What's inside
 
@@ -70,6 +78,7 @@ the test, in order, with tokens masked. See the [framework's README](frameworks/
 | [`mock_service/`](mock_service/) | The reference API: bookings (create, read, update, delete, list), cancel with a 24-hour refund rule, refund status, tokens, health checks, and a stand-in dependency that can be switched down |
 | [`env_check/`](env_check/) | Before a run: call every service a team depends on; exit 3 when a critical one is down. One tool for every framework |
 | [`frameworks/python_api/`](frameworks/python_api/) | The Python framework (pytest, httpx), installable on its own, with an example for every feature |
+| [`frameworks/restassured_api/`](frameworks/restassured_api/) | The Java framework (REST Assured, TestNG), a Maven library on its own, with an example for every feature |
 | [`docs/`](docs/) | The design: [high-level](docs/architecture.md) and [low-level](docs/lld.md) |
 | `core/` | The first version's language-model steps (case and data drafting, a review step); reworked into the AI layer in phase 6 |
 
