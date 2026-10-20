@@ -1,0 +1,77 @@
+"""The case format: loading, every shape problem reported at once, saving, the fingerprint."""
+
+from pathlib import Path
+
+import pytest
+
+from qa_agent.cases import CaseFormatError, load_case_file, parse_case_file, save_case_file
+
+GOOD = {"feature": "Cancellation", "cases": [{
+    "id": "TC1", "title": "Cancel", "criteria": ["AC-2"], "priority": "P1",
+    "steps": [{"request": {"method": "post", "path": "/bookings", "body": {"amount": 250}},
+               "expect": {"status": 201}, "capture": {"pnr": "pnr"}},
+              {"request": {"method": "POST", "path": "/bookings/{{pnr}}/cancel"},
+               "expect": {"status": 200, "fields": {"refund_amount": 250}}}]}]}
+
+
+def test_a_case_file_loads_into_cases_and_steps():
+    case_file = parse_case_file(GOOD, Path("cases/cancellation.yaml"))
+    case = case_file.cases[0]
+    assert case_file.feature == "Cancellation"
+    assert (case.id, case.priority, case.track, case.review.status) == ("TC1", "P1", "functional", "draft")
+    assert case.steps[0].request.method == "POST"                # upper-cased
+    assert case.steps[0].capture == {"pnr": "pnr"}
+    assert case.steps[1].expect["fields"] == {"refund_amount": 250}
+
+
+def test_every_problem_is_reported_at_once():
+    bad = {"feature": "x", "cases": [
+        {"id": "TC1", "title": "t", "priority": "P9", "steps": [
+            {"request": {"method": "FETCH", "path": "bookings"}, "expect": {"status": "ok", "colour": 1},
+             "capture": {"unique": "x"}}]},
+        {"id": "TC1", "title": "again"},
+        {"title": "no id"}]}
+    with pytest.raises(CaseFormatError) as raised:
+        parse_case_file(bad, Path("cases/x.yaml"))
+    problems = "\n".join(raised.value.problems)
+    for expected in ("priority 'P9'", "method 'FETCH'", "path 'bookings' must start with /",
+                     "expect 'status' should be a status code", "unknown key 'colour'",
+                     "capture name 'unique'", "the id is used twice", "case 3: needs an 'id'"):
+        assert expected in problems
+
+
+def test_a_data_driven_status_may_come_from_the_data():
+    data = {"feature": "x", "cases": [{"id": "TC1", "title": "t", "data": "data/rows.csv", "steps": [
+        {"request": {"method": "GET", "path": "/x"}, "expect": {"status": "{{row.expected_status}}"}}]}]}
+    assert parse_case_file(data, Path("x.yaml")).cases[0].steps[0].expect["status"] == "{{row.expected_status}}"
+
+
+def test_saving_and_loading_gives_the_same_cases(tmp_path):
+    case_file = parse_case_file(GOOD, tmp_path / "cancellation.yaml")
+    save_case_file(case_file)
+    again = load_case_file(tmp_path / "cancellation.yaml")
+    assert again.to_dict() == case_file.to_dict()
+    assert "{{pnr}}" in (tmp_path / "cancellation.yaml").read_text()
+
+
+def test_the_fingerprint_changes_with_the_steps_not_with_the_title():
+    case = parse_case_file(GOOD, Path("x.yaml")).cases[0]
+    original = case.fingerprint()
+    case.title, case.priority = "A new title", "P0"
+    assert case.fingerprint() == original
+    case.steps[1].expect["fields"]["refund_amount"] = 0
+    assert case.fingerprint() != original
+
+
+def test_an_approved_case_edited_afterwards_is_no_longer_approved():
+    case = parse_case_file(GOOD, Path("x.yaml")).cases[0]
+    case.review.status, case.review.fingerprint = "approved", case.fingerprint()
+    assert case.is_approved and not case.changed_after_approval
+    case.steps[0].request.body = {"amount": 1}
+    assert not case.is_approved and case.changed_after_approval
+
+
+def test_a_case_in_words_only_needs_steps():
+    data = {"feature": "x", "cases": [{"id": "TC1", "title": "t", "steps_text": "Make a booking. Cancel it."}]}
+    case = parse_case_file(data, Path("x.yaml")).cases[0]
+    assert case.needs_steps and case.steps_text == ["Make a booking. Cancel it."]
