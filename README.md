@@ -21,7 +21,10 @@ testing AI agents themselves.
 | Python framework ([`frameworks/python_api/`](frameworks/python_api/)) | **Built**: environments, OAuth, API chaining, data-driven tests, readable failures, JUnit reports |
 | Python framework for QA teams: Allure report, smoke and priority tags, evidence, retry | **Built** (phase 1b) |
 | REST Assured framework with TestNG ([`frameworks/restassured_api/`](frameworks/restassured_api/)) | **Built** (phase 2): the same features in Java, with TestNG groups and suites, Excel-driven data, Allure, evidence, retry |
-| Case format, importers (Excel, Postman, OpenAPI, curl), the Excel review sheet, generated tests, traceability, bug-detection rate | Phase 3 |
+| `qa-agent`: the case format, API import (OpenAPI, curl), `check` ([`qa_agent/`](qa_agent/), [example](examples/bookings-team/)) | **Built** (phase 3a, part 1): cases as data, one file per feature; every case checked against the API and the criteria, with the fix |
+| Importers of existing cases (Excel, CSV, Postman, Gherkin), the Excel review sheet | Phase 3a, part 2 |
+| Generated tests (pytest, REST Assured), traceability, `qa-agent init` | Phase 3a, part 3 |
+| Drift check, promote, bug-detection rate, two example teams | Phase 3b |
 | Cucumber on REST Assured | Phase 3c |
 | User-interface tests | Phase 4, in its own repository (`playwright-qa-agent`) |
 | Jira and wiki; results back to TestRail, Zephyr or Xray | Phase 5 |
@@ -53,7 +56,7 @@ Green border: built. Dashed: designed, coming in the phases above.
 ## Try it (no API key)
 
 ```bash
-pip install -e . -e frameworks/python_api          # the reference API, env_check, the Python framework
+pip install -e . -e frameworks/python_api          # the reference API, env_check, qa-agent, the Python framework
 python -m mock_service &                           # bookings on :8000, notifications on :8001
 cd frameworks/python_api
 python -m env_check --env mock                     # is the environment ready?
@@ -71,6 +74,15 @@ When a test fails, the report shows the expectation that broke and every request
 the test, in order, with tokens masked. See each framework's README:
 [Python](frameworks/python_api/README.md) and [REST Assured](frameworks/restassured_api/README.md).
 
+And `qa-agent` on a team's project (no service needed):
+
+```bash
+cd examples/bookings-team
+qa-agent check                                     # every case, against the API and the criteria
+```
+
+What `check` finds there, and why, is in the [example's README](examples/bookings-team/README.md).
+
 ## What's inside
 
 | Folder | What it is |
@@ -79,6 +91,8 @@ the test, in order, with tokens masked. See each framework's README:
 | [`env_check/`](env_check/) | Before a run: call every service a team depends on; exit 3 when a critical one is down. One tool for every framework |
 | [`frameworks/python_api/`](frameworks/python_api/) | The Python framework (pytest, httpx), installable on its own, with an example for every feature |
 | [`frameworks/restassured_api/`](frameworks/restassured_api/) | The Java framework (REST Assured, TestNG), a Maven library on its own, with an example for every feature |
+| [`qa_agent/`](qa_agent/) | `qa-agent`, the command line: the case format, importers, `check` |
+| [`examples/bookings-team/`](examples/bookings-team/) | A team's project for the reference API: every `qa-agent` feature, with its output |
 | [`docs/`](docs/) | The design: [high-level](docs/architecture.md) and [low-level](docs/lld.md) |
 | `core/` | The first version's language-model steps (case and data drafting, a review step); reworked into the AI layer in phase 6 |
 

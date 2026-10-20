@@ -1,0 +1,8 @@
+curl -X POST https://qa1.example.com/bookings/AB12CD/cancel \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.example-token" \
+  -H "Content-Type: application/json" \
+  -d '{"cancelled_at": "2026-10-21T10:00:00Z"}'
+
+### response
+HTTP/1.1 200 OK
+{"pnr": "AB12CD", "refund_allowed": true, "refund_amount": 250, "reason": "cancelled within 24 hours of booking"}

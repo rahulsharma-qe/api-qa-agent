@@ -7,8 +7,8 @@ on:
 
 jobs:
   platform:
-    # The reference API and env_check: their tests (including the OpenAPI drift test), then a real
-    # start-up of both services and their health checks.
+    # The reference API, env_check and qa-agent: their tests (including the OpenAPI drift test), qa-agent
+    # on the example project, then a real start-up of both services and their health checks.
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -18,10 +18,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install the reference API and env_check
+      - name: Install the reference API, env_check and qa-agent
         run: pip install -e ".[dev]"
       - name: Their tests (no service needed)
         run: python -m pytest -q
+      - name: qa-agent checks the example project's cases (exit 1 on errors)
+        working-directory: examples/bookings-team
+        run: qa-agent check
       - name: Start both services and check their health
         run: |
           python -m mock_service &

@@ -1,0 +1,4 @@
+case,booked_at,cancelled_at,refund_allowed,refund_amount
+23 hours 59 minutes,2026-01-15T10:00:00Z,2026-01-16T09:59:00Z,true,250
+exactly 24 hours,2026-01-15T10:00:00Z,2026-01-16T10:00:00Z,true,250
+24 hours 1 minute,2026-01-15T10:00:00Z,2026-01-16T10:01:00Z,false,0

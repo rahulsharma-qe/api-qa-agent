@@ -1,0 +1,14 @@
+# The acceptance criteria of the bookings and cancellation feature. Cases link to them by id.
+criteria:
+  - id: AC-1
+    text: A booking can be made and read back by its PNR.
+  - id: AC-2
+    text: A booking cancelled within 24 hours of being made, 24 hours exactly included, gets a full refund.
+  - id: AC-3
+    text: A booking cancelled more than 24 hours after it was made gets no refund.
+  - id: AC-4
+    text: A booking can't be cancelled twice, and an unknown PNR can't be cancelled.
+  - id: AC-5
+    text: The refund status of a cancelled booking can be read.
+  - id: AC-6
+    text: Bookings can be listed by status.

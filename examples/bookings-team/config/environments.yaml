@@ -1,0 +1,26 @@
+# Where each service lives, per environment. Pick one with  pytest --env qa1  (or API_ENV=qa1).
+# Secrets are never written here: an *_env setting names the environment variable that holds them.
+environments:
+  mock:                                   # the reference API: python -m mock_service
+    default_service: bookings
+    services:
+      bookings: "http://localhost:8000"
+      notifications: "http://localhost:8001"
+    auth: {type: client_credentials, service: bookings, token_path: /auth/token,
+           client_id: demo-client, client_secret: demo-secret}       # plain values: mock only
+    timeout_seconds: 10
+
+  qa1:                                    # a shared test environment: same tests, other hosts
+    default_service: bookings
+    services:
+      bookings: "https://qa1.example.com/bookings"
+      notifications: "https://qa1.example.com/notifications"
+    auth: {type: client_credentials, service: bookings, token_path: /auth/token,
+           client_id_env: QA1_CLIENT_ID, client_secret_env: QA1_CLIENT_SECRET}
+
+  staging:                                # tests that change data are skipped here
+    default_service: bookings
+    services:
+      bookings: "https://staging.example.com/bookings"
+    auth: {type: static_token, token_env: STAGING_TOKEN}
+    read_only: true

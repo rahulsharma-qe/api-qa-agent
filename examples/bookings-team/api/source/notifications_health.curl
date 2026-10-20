@@ -1,0 +1,5 @@
+curl http://localhost:8001/health-check
+
+### response
+200
+{"status": "ok", "service": "notifications"}
