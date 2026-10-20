@@ -7,6 +7,8 @@
     qa-agent review export | import                  a person decides on each case, in Excel
     qa-agent generate                                approved cases -> tests, for every stack
     qa-agent trace --results reports/junit.xml       criteria -> cases -> tests -> results, and coverage
+    qa-agent promote --runs r1 r2 r3 [--apply]       stable functional cases -> regression; a person applies it
+    qa-agent track TC010 functional --by --reason    a person moves a case between tracks, on the record
 
 Exit codes: 0 done (no errors), 1 errors found, 2 the project or an input can't be read.
 """
@@ -23,6 +25,7 @@ from qa_agent.cases import CaseFormatError
 from qa_agent.checks import check_project, plural
 from qa_agent.generate import generate
 from qa_agent.init_project import init_project
+from qa_agent.promote import move_track, promote
 from qa_agent.trace import build_trace
 from qa_agent.importers.common import CaseImportError
 from qa_agent.importers.curl import CurlError, read_curl
@@ -102,6 +105,20 @@ def _parser() -> argparse.ArgumentParser:
     trace.add_argument("--min-coverage", type=float, metavar="PERCENT",
                        help="exit 1 when criteria or operations coverage is below it (off unless given)")
     trace.set_defaults(run=run_trace)
+
+    stable = commands.add_parser("promote", help="list functional cases stable enough for regression; --apply "
+                                                 "moves them")
+    stable.add_argument("--runs", nargs="+", type=Path, required=True,
+                        help="three or more runs, each a JUnit file or folder: reports/run1.xml reports/run2.xml ...")
+    stable.add_argument("--apply", action="store_true", help="set track: regression on the ready cases")
+    stable.set_defaults(run=run_promote)
+
+    move = commands.add_parser("track", help="move a case to another track, with who and why")
+    move.add_argument("case_id")
+    move.add_argument("track", choices=["functional", "regression"])
+    move.add_argument("--by", required=True, help="who decided")
+    move.add_argument("--reason", required=True, help="why, in a few words")
+    move.set_defaults(run=run_track)
     return parser
 
 
@@ -188,6 +205,21 @@ def run_trace(args) -> int:
     print(f"\nWritten: {project.relative(out / 'trace.md')}, {project.relative(out / 'trace.xlsx')}")
     failed = (args.check and report.missing_tests) or report.below_floor
     return FINDINGS if failed else DONE
+
+
+def run_promote(args) -> int:
+    project = TeamProject.load(args.project)
+    runs = [path if path.is_absolute() else project.root / path for path in args.runs]
+    missing = [project.relative(path) for path in runs if not path.exists()]
+    if missing:
+        raise SetupError(f"no such runs: {', '.join(missing)}")
+    print(promote(project, runs, args.apply).as_text(len(runs)))
+    return DONE
+
+
+def run_track(args) -> int:
+    print(move_track(TeamProject.load(args.project), args.case_id, args.track, args.by, args.reason))
+    return DONE
 
 
 def run_check(args) -> int:
