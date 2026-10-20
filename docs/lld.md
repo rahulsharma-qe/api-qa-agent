@@ -862,11 +862,17 @@ bugs: [refund-boundary, wrong-refund-amount, second-cancel-allowed, deleted-stil
        amount-changeable, token-not-checked, status-filter-ignored]
 ```
 
-For each bug: start the API, wait for env_check, run the stack's tests, stop the API. A bug is
-caught when at least one test fails. The report (console and `reports/bug-detection.md`) gives the
-rate and, for each missed bug, the gap behind it, which is the same gap the trace shows: a missed
-`token-not-checked` means no case calls without a token. A clean run with no bug comes first: if
-it fails, the rate is not measured (a failing suite catches every "bug").
+`bugs.yaml` also names `start_without_bugs` (`python -m mock_service`) and the `environment`
+env_check uses (default `mock`); the bugs may be a list or a mapping of name to what it changes.
+
+For each bug: start the API (its output in `reports/bugs/<bug>.api.log`), wait until env_check says
+ready, run the stack's tests, stop the API and wait for it to exit. A bug is caught when at least one
+test fails; the report (console and `reports/bug-detection.md`) names the cases whose tests failed.
+A missed bug points at the same gap the trace shows: a missed `token-not-checked` means no case
+calls without a token. A clean run with no bug comes first: if it fails, the rate is not measured (a
+failing suite "catches" every bug). If the API is already up, `bugs` refuses (it starts the API
+itself, once per bug); that check is one env_check try, not the usual retries. It measures and
+exits 0; it is not a gate. On the example it takes about 20 seconds for the Python stack.
 
 ### 10.4 Two teams, and the reusable workflow
 

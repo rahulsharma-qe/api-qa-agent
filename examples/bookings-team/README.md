@@ -273,3 +273,29 @@ qa-agent track TC010 functional --by qa-lead --reason "refund rule changing in t
 
 (If the case's steps change instead, its fingerprint no longer matches and it goes back to review by
 itself; the reviewer can set Track there.)
+
+## 9. Do the tests catch bugs?
+
+The reference API can switch on one planted bug at a time (`python -m mock_service --bug
+refund-boundary`). `bugs.yaml` says how to start it with each; `qa-agent bugs` runs the tests once
+with no bug (they must pass), then once per bug:
+
+```bash
+qa-agent bugs --stack python          # with the reference API stopped: it starts it once per bug
+```
+
+```
+qa-agent bugs: python · 5 of 7 planted bugs caught (71%)
+
+  caught  refund-boundary          by TC002
+  caught  wrong-refund-amount      by TC002, TC040
+  caught  second-cancel-allowed    by TC003
+  caught  deleted-still-readable   by TC011
+  caught  amount-changeable        by TC012
+  missed  token-not-checked        a call with no token is let through: no test noticed
+  missed  status-filter-ignored    listing by status returns every booking: no test noticed
+```
+
+The two missed bugs are the trace's gaps seen from the other side: no case calls without a token
+(the untested 401), and no case lists bookings (`GET /bookings`, AC-6). Passing tests alone would
+not have said so.

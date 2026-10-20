@@ -1,0 +1,12 @@
+# How to start the API under test with each planted bug, one at a time: qa-agent bugs --stack python
+start: python -m mock_service --bug {bug}
+start_without_bugs: python -m mock_service
+environment: mock
+bugs:
+  refund-boundary: a cancel at exactly 24 hours gets no refund (< instead of <=)
+  wrong-refund-amount: the refund is half the amount
+  second-cancel-allowed: cancelling twice succeeds
+  deleted-still-readable: a deleted booking still reads back
+  amount-changeable: the amount can be changed after booking
+  token-not-checked: a call with no token is let through
+  status-filter-ignored: listing by status returns every booking

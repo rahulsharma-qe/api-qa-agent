@@ -23,7 +23,8 @@ testing AI agents themselves.
 | `qa-agent`: cases from the team's API and existing cases ([`qa_agent/`](qa_agent/), [example](examples/bookings-team/)) | **Built**: API import (OpenAPI, curl); existing cases from Excel, CSV, Postman and Gherkin; `check` with the fix for every finding; review in an Excel sheet, with who and when |
 | `qa-agent`: tests, trace, new projects | **Built**: approved cases become pytest and REST Assured tests; the trace from criteria to results, with coverage; `init` makes a project that runs on day one |
 | `qa-agent`: every day | **Built**: the drift check (`generate --check`), a coverage floor (`trace --min-coverage`), `promote` stable cases to regression, `track` to move one back, on the record |
-| Bug-detection rate (planted bugs), two teams on one reusable CI workflow, a run on Swagger Petstore, a Docker image | **Next** |
+| Bug-detection rate | **Built**: the reference API can switch on one of seven planted bugs; `qa-agent bugs` runs the tests once per bug and says which bugs they catch, and by which cases |
+| Two teams on one reusable CI workflow, a run on Swagger Petstore, a Docker image | **Next** |
 | Cucumber on REST Assured | Later |
 | User-interface tests, in their own repository (`playwright-qa-agent`) | Later |
 | Jira and wiki; results back to TestRail, Zephyr or Xray | Later |

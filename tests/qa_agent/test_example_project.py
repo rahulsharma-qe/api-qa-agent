@@ -100,3 +100,10 @@ def test_the_review_left_the_cases_the_readme_describes():
     approved = sorted(case_id for case_id, status in statuses.items() if status == "approved")
     assert approved == ["TC001", "TC002", "TC003", "TC004", "TC010", "TC011", "TC012", "TC030", "TC040"]
     assert statuses["TC005"] == "changes_needed" and statuses["TC042"] == "rejected"
+
+
+def test_the_examples_bugs_file_lists_every_planted_bug():
+    from mock_service.planted_bugs import BUGS
+    from qa_agent.yaml_files import read_yaml
+    variants = read_yaml(EXAMPLE / "bugs.yaml")
+    assert list(variants["bugs"]) == list(BUGS)
