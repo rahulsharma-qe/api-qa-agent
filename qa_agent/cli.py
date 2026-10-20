@@ -1,5 +1,6 @@
 """qa-agent: the command line.
 
+    qa-agent init my-team --stack python             a working project, on day one (or --stack restassured)
     qa-agent import api api/source/openapi.json      the API description -> api/api.yaml
     qa-agent import cases existing/cases.xlsx        the team's cases (Excel, CSV, Postman, Gherkin)
     qa-agent check                                   the cases, checked with rules
@@ -21,6 +22,7 @@ from qa_agent.case_import import import_cases
 from qa_agent.cases import CaseFormatError
 from qa_agent.checks import check_project, plural
 from qa_agent.generate import generate
+from qa_agent.init_project import init_project
 from qa_agent.trace import build_trace
 from qa_agent.importers.common import CaseImportError
 from qa_agent.importers.curl import CurlError, read_curl
@@ -50,6 +52,13 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="version", version=f"qa-agent {__version__}")
     parser.add_argument("--project", type=Path, default=Path("."), help="the team's project folder (default: here)")
     commands = parser.add_subparsers(title="commands", metavar="<command>")
+
+    init = commands.add_parser("init", help="a new team project that runs on day one")
+    init.add_argument("folder", type=Path, help="a new or empty folder")
+    init.add_argument("--stack", required=True, choices=["python", "restassured"])
+    init.add_argument("--team", default="", help="the team's name (default: the folder's name)")
+    init.add_argument("--service", default="bookings", help="the main service's name (default: bookings)")
+    init.set_defaults(run=run_init)
 
     importing = commands.add_parser("import", help="read what the team already has").add_subparsers(
         title="what to import", metavar="<what>")
@@ -90,6 +99,12 @@ def _parser() -> argparse.ArgumentParser:
     trace.add_argument("--check", action="store_true", help="exit 1 when an approved case has no test")
     trace.set_defaults(run=run_trace)
     return parser
+
+
+def run_init(args) -> int:
+    result = init_project(args.folder, args.stack, args.team, args.service)
+    print(result.as_text(args.stack))
+    return DONE
 
 
 def import_api(args) -> int:

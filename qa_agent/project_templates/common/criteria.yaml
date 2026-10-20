@@ -1,0 +1,5 @@
+# The acceptance criteria of the change under test. Cases link to them by id; qa-agent trace shows
+# which criteria have approved cases. Replace this one with your own.
+criteria:
+  - id: AC-1
+    text: A booking can be made and read back by its PNR.

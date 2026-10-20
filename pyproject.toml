@@ -30,7 +30,7 @@ include = ["mock_service*", "env_check*", "qa_agent*"]
 
 [tool.setuptools.package-data]
 mock_service = ["openapi.json"]
-qa_agent = ["renderers/templates/*"]
+qa_agent = ["renderers/templates/*", "project_templates/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]       # each framework under frameworks/ runs its own tests

@@ -1,0 +1,30 @@
+# The team's API tests on every change: environment ready, generated tests up to date, tests, trace.
+name: API tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install qa-agent and env_check, and the framework
+        run: |
+          pip install "api-qa-agent @ git+https://github.com/rahulsharma-qe/api-qa-agent.git"
+          pip install -r requirements.txt
+      - name: Start the reference API (your own environment replaces this step)
+        run: python -m mock_service &
+      - name: Is the environment ready? (exit 3 if not)
+        run: python -m env_check --env mock
+      - name: The generated tests match the approved cases
+        run: qa-agent generate && git diff --exit-code tests/generated
+      - name: Tests
+        run: pytest --junitxml=reports/junit.xml
+      - name: Trace (fails if an approved case has no test)
+        if: always()
+        run: qa-agent trace --results reports/junit.xml --check

@@ -42,12 +42,19 @@ NUMBERED = re.compile(r"(?:^|\s)(\d+)[.)]\s+")
 
 
 def read_sheet_cases(path: Path, source_name: str) -> ImportResult:
-    """source_name: the file as the project sees it (existing/booking_cases.xlsx), kept in each case."""
+    """source_name: the file as the project sees it (existing/booking_cases.xlsx), kept in each case.
+    A sheet in neither layout (a how-to sheet) is skipped and noted; a file with no case sheet at all
+    is refused."""
     result = ImportResult()
-    for sheet_name, rows in _tables(path):
+    tables = _tables(path)
+    for sheet_name, rows in tables:
         if not rows:
             continue
         columns = _columns(rows[0])
+        if len(tables) > 1 and not ({"method", "path"} <= set(columns) or "steps" in columns):
+            result.notes.append(f"{path.name}, sheet '{sheet_name}': not a case sheet (no Method and Path, "
+                                f"no Steps); skipped")
+            continue
         kind = "excel" if path.suffix.lower() == ".xlsx" else "csv"
         where = f"{path.name}" + (f", sheet '{sheet_name}'" if kind == "excel" else "")
         if "method" in columns and "path" in columns:
@@ -59,6 +66,8 @@ def read_sheet_cases(path: Path, source_name: str) -> ImportResult:
                                   f"layout). Found: {', '.join(str(cell) for cell in rows[0] if cell)}")
         feature.feature = sheet_name if kind == "excel" else path.stem.replace("_", " ")
         result.features.append(feature)
+    if not result.features and any(rows for _, rows in tables):
+        raise CaseImportError(f"{path.name}: no sheet has Method and Path (API layout) or Steps (manual layout)")
     return result
 
 

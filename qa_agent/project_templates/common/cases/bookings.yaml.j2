@@ -1,0 +1,20 @@
+feature: Bookings
+cases:
+  - id: TC001
+    title: A new booking can be read back by its PNR
+    criteria: [AC-1]
+    priority: P1
+    track: functional
+    tags: [smoke]
+    notes: The starter case qa-agent init wrote, so the project runs on day one. Replace it with your own.
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body: {passenger_name: "Asha Rao {{ '{{unique}}' }}", email: "asha.{{ '{{unique}}' }}@testdata.example", amount: 250}
+        expect: {status: 201, fields: {status: active}}
+        capture: {pnr: pnr}
+      - request: {method: GET, path: "/bookings/{{ '{{pnr}}' }}"}
+        expect:
+          status: 200
+          fields: {pnr: "{{ '{{pnr}}' }}", amount: 250}

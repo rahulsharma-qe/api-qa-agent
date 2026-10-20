@@ -1,0 +1,17 @@
+# Where each service lives, per environment. Pick one with --env (or API_ENV); the default is mock.
+# Secrets are never written here: an *_env setting names the environment variable that holds them.
+environments:
+  mock:                                   # the reference API: python -m mock_service
+    default_service: {{ service }}
+    services:
+      {{ service }}: "http://localhost:8000"
+    auth: {type: client_credentials, service: {{ service }}, token_path: /auth/token,
+           client_id: demo-client, client_secret: demo-secret}       # plain values: the mock only
+    timeout_seconds: 10
+
+  qa1:                                    # your shared test environment: same tests, other hosts
+    default_service: {{ service }}
+    services:
+      {{ service }}: "https://qa1.example.com/{{ service }}"
+    auth: {type: client_credentials, service: {{ service }}, token_path: /auth/token,
+           client_id_env: QA1_CLIENT_ID, client_secret_env: QA1_CLIENT_SECRET}
