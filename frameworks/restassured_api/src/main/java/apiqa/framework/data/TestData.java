@@ -5,7 +5,9 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,8 +32,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public final class TestData {
     private static final ObjectMapper JSON = new ObjectMapper();
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private TestData() {
+    }
+
+    /**
+     * Six characters, new on every call (7f3a9c): for names and emails no other test is using, so tests
+     * don't collide on an environment other teams share.
+     */
+    public static String uniqueId() {
+        byte[] bytes = new byte[3];
+        RANDOM.nextBytes(bytes);
+        return HexFormat.of().formatHex(bytes);
     }
 
     public static List<Map<String, Object>> rows(String path) {

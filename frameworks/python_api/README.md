@@ -55,6 +55,7 @@ Tokens are masked (`***`) wherever a request is shown.
 | Lists: your items, never totals | `list_contains(...)`, `list_excludes(...)` | [`test_list_and_filters.py`](tests/examples/test_list_and_filters.py) |
 | Another service, same environment | `api_for("notifications")` | [`test_other_services.py`](tests/examples/test_other_services.py) |
 | Reading a field anywhere | `response.value("items[0].pnr")` | all of them |
+| Data no other test is using | `unique_id()` (six characters, `7f3a9c`); `new_passenger()` uses it | `new_passenger()` in most examples; every test qa-agent generates |
 
 **Expect:** `status_is` · `field_equals` · `field_exists` · `field_is_type` (string, number, integer,
 boolean, list, object, null) · `field_contains` · `list_length` · `list_contains` · `list_excludes` ·

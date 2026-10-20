@@ -2,7 +2,7 @@ import json
 
 from openpyxl import Workbook
 
-from api_test_framework import load_rows, new_passenger
+from api_test_framework import load_rows, new_passenger, unique_id
 
 
 def test_csv_cells_become_numbers_booleans_and_none(tmp_path):
@@ -29,3 +29,9 @@ def test_excel_first_row_is_the_header(tmp_path):
 def test_new_passengers_never_clash_and_use_a_test_domain():
     first, second = new_passenger(), new_passenger()
     assert first != second and first["email"].endswith("@testdata.example")
+
+
+def test_a_unique_id_is_six_characters_and_new_each_time():
+    first = unique_id()
+    assert len(first) == 6 and all(c in "0123456789abcdef" for c in first)
+    assert unique_id() != first

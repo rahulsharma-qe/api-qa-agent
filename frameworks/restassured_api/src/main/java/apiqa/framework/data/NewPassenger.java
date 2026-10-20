@@ -1,22 +1,16 @@
 package apiqa.framework.data;
 
-import java.security.SecureRandom;
-import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 /** A passenger no other test is using: a unique name and a test-only email address. */
 public final class NewPassenger {
     public static final String TEST_EMAIL_DOMAIN = "testdata.example";
-    private static final SecureRandom RANDOM = new SecureRandom();
-
     private NewPassenger() {
     }
 
     public static Map<String, Object> create() {
-        byte[] bytes = new byte[3];
-        RANDOM.nextBytes(bytes);
-        String tag = HexFormat.of().formatHex(bytes);
+        String tag = TestData.uniqueId();
         Map<String, Object> passenger = new LinkedHashMap<>();
         passenger.put("passenger_name", "Test Passenger " + tag);
         passenger.put("email", "passenger-" + tag + "@" + TEST_EMAIL_DOMAIN);

@@ -93,6 +93,13 @@ public class FrameworkUnitTest {
     }
 
     @Test
+    public void uniqueIdsAreSixCharactersAndNew() {
+        String first = TestData.uniqueId();
+        assertTrue(first.matches("[0-9a-f]{6}"), first);
+        assertNotEquals(TestData.uniqueId(), first);
+    }
+
+    @Test
     public void newPassengersNeverClash() {
         Map<String, Object> first = NewPassenger.create();
         assertNotEquals(first, NewPassenger.create());

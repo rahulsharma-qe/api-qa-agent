@@ -35,9 +35,15 @@ def load_rows(path) -> list[dict]:
     raise ValueError(f"{path}: use .json, .csv or .xlsx")
 
 
+def unique_id() -> str:
+    """Six characters, new on every call (7f3a9c): for names and emails no other test is using, so tests
+    don't collide on an environment other teams share."""
+    return secrets.token_hex(3)
+
+
 def new_passenger() -> dict:
     """A passenger no other test is using: a unique name and a test-only email address."""
-    tag = secrets.token_hex(3)
+    tag = unique_id()
     return {"passenger_name": f"Test Passenger {tag}", "email": f"passenger-{tag}@{TEST_EMAIL_DOMAIN}"}
 
 

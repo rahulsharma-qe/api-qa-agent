@@ -41,6 +41,7 @@ request and response, then every step of the test in order. Tokens are masked (`
 | Data-driven from Excel | `@DataProvider` + `TestData.rows("data/....xlsx")` (also CSV and JSON) | [`CancelBoundariesTest`](src/test/java/apiqa/examples/CancelBoundariesTest.java) |
 | Lists: your items, never totals | `listContains(...)`, `listExcludes(...)` | [`ListAndFiltersTest`](src/test/java/apiqa/examples/ListAndFiltersTest.java) |
 | Another service, same environment | `apiFor("notifications")` | [`OtherServicesTest`](src/test/java/apiqa/examples/OtherServicesTest.java) |
+| Data no other test is using | `TestData.uniqueId()` (six characters, `7f3a9c`); `NewPassenger` uses it | `NewPassenger` in most examples; every test qa-agent generates |
 
 **Expect:** `statusIs` · `fieldEquals` · `fieldExists` · `fieldIsType` (string, number, integer,
 boolean, list, object, null) · `fieldContains` · `listLength` · `listContains` · `listExcludes` ·
