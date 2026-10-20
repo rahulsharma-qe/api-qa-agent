@@ -3,8 +3,9 @@
 The high-level design ([architecture.md](architecture.md)) says what the utility is and why. This
 document says how each part is built. It grows phase by phase: this version covers **phase 0**
 (the mock service), **phase 1** (the Python framework and env_check), **phase 1b** (the Python
-framework for QA teams) and **phase 2** (the REST Assured framework with TestNG); later phases get
-their sections when they are designed.
+framework for QA teams), **phase 2** (the REST Assured framework with TestNG) and **phase 3a**
+(cases, importers, the review sheet, generated tests, trace and init); later phases get their
+sections when they are designed.
 
 ## 1. Repository layout after phase 2
 
@@ -385,6 +386,7 @@ The two Python jobs run on Python 3.11 and 3.12, on every push and pull request.
 | env_check | httpx, pyyaml |
 | api_test_framework | httpx, pyyaml, pytest, openpyxl (Excel data), allure-pytest, pytest-rerunfailures |
 | restassured-api-framework | rest-assured, testng, allure-testng, jackson-databind, snakeyaml, poi-ooxml (Excel data); log4j-core for its own test runs only |
+| qa_agent | pyyaml, openpyxl (Excel data files and sheets); jinja2 with the renderers (9.7) |
 
 ## 8. The first version's code
 
@@ -394,3 +396,326 @@ The two Python jobs run on Python 3.11 and 3.12, on every push and pull request.
 | `adapters/`, `examples/`, `tests/test_engine.py` (its engine, five stack renderers, sample service and test) | Removed when phase 1 ended; in the git history. The reference stacks are on the later list |
 | `requirements.txt` | Removed: `pip install -e .` installs the reference API and env_check |
 | `core/` (its language-model steps) | Kept until phase 6 reworks it into the AI layer |
+
+## 9. Phase 3a: cases, importers, the review sheet, generated tests, trace, init
+
+No model and no API key anywhere in this phase. At its end a team can bring its API description,
+its acceptance criteria and its existing cases, approve the cases in an Excel sheet, and get
+runnable tests in pytest or REST Assured, traced back to the criteria.
+
+```mermaid
+flowchart TB
+  API["API description<br/>OpenAPI · curl + sample · api.yaml"] -->|"qa-agent import api"| AM["api/api.yaml<br/>one API model"]
+  OLD["Existing cases<br/>Excel · CSV · Postman · Gherkin"] -->|"qa-agent import cases"| C["cases/*.yaml<br/>status: draft"]
+  AM --> CHK["qa-agent check<br/>rules only"]
+  C --> CHK
+  CHK -->|"qa-agent review export"| S(["review/cases.xlsx<br/>a person decides"])
+  S -->|"qa-agent review import"| A["cases/*.yaml<br/>approved, fingerprinted"]
+  A -->|"qa-agent generate"| G["Generated tests<br/>pytest · REST Assured"]
+  G --> R["pytest · mvn test<br/>JUnit XML"]
+  R -->|"qa-agent trace"| T["Trace<br/>criteria → cases → tests → results"]
+  classDef box fill:#1e293b,stroke:#94a3b8,color:#f1f5f9
+  classDef person fill:#0b2540,stroke:#60a5fa,color:#dbeafe
+  class API,AM,OLD,C,CHK,A,G,R,T box
+  class S person
+  linkStyle default stroke:#94a3b8,stroke-width:2px
+```
+
+### 9.1 A team's project
+
+What `qa-agent init` creates, and what every other command reads. The same shape for every team.
+
+```
+bookings-team/
+  qa-agent.yaml                 team: bookings · stacks: [python] · framework version
+  api/api.yaml                  the API model (imported from OpenAPI or curl, or written by hand)
+  api/source/                   what the team brought: openapi.json, *.curl with a sample response
+  criteria.yaml                 acceptance criteria: id and text
+  existing/                     the team's own cases, as they are: Excel, CSV, Postman, .feature
+  cases/cancellation.yaml       the cases of one feature, in one file: the source of truth
+  data/                         data files for data-driven cases
+  review/cases.xlsx             the review sheet
+  config/environments.yaml  config/dependencies.yaml
+  tests/generated/              Python stack: generated, never edited by hand
+  src/test/java/generated/      REST Assured stack: generated, never edited by hand
+  reports/                      trace.md, trace.xlsx (not committed)
+```
+
+### 9.2 The case format
+
+```yaml
+# cases/cancellation.yaml
+feature: Cancellation and refund
+cases:
+  - id: TC003
+    title: Cancel exactly at 24 hours gets a full refund
+    criteria: [AC-2]
+    priority: P1                     # P0 to P3
+    track: functional                # functional or regression (promote, phase 3b)
+    tags: [smoke]                    # optional; become markers or TestNG groups
+    data: data/cancellation_boundaries.csv   # optional: one run per row, values as {{row.column}}
+    source: {format: excel-api, file: existing/booking_cases.xlsx, row: 7}
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body: {passenger_name: "Asha Rao {{unique}}", email: "asha.{{unique}}@testdata.example",
+                 amount: 250, booked_at: "2026-10-20T10:00:00Z"}
+        expect: {status: 201}
+        capture: {pnr: pnr}          # name: path in the response
+      - request: {method: POST, path: "/bookings/{{pnr}}/cancel", body: {cancelled_at: "2026-10-21T10:00:00Z"}}
+        expect:
+          status: 200
+          fields: {refund_allowed: true, refund_amount: 250}
+    review: {status: approved, by: qa-lead, date: 2026-10-21, comment: "", fingerprint: 9c1e…}
+  - id: TC004
+    ...
+```
+
+| Part | Allowed |
+|---|---|
+| `request` | `method`, `path`, `query`, `headers`, `body`; `service` (default: the main service); `auth: none` for a call without a token |
+| `expect` | `status`, `fields` (equals), `exists`, `types`, `contains`, `list_length`, `list_contains`, `list_excludes`, `headers`, `within_ms`: exactly what both frameworks' `Expect` offers, so every case renders in both |
+| Values | `{{name}}` captured earlier in the case; `{{row.column}}` from the data file (in a request or an expectation; a data-driven `status` may be `"{{row.expected_status}}"`); `{{unique}}` six characters (`7f3a9c`), new in each test, so tests don't collide on a shared environment |
+| `steps_text` | Steps in plain words, for a case imported from a manual sheet or Gherkin (9.4). Such a case is kept and traced but cannot be generated until it has `steps` |
+| `review` | Written only by `review import`. `status`: `draft`, `approved`, `changes_needed` or `rejected` |
+
+- **One file per feature or resource** (`cases/cancellation.yaml`), holding a list of cases, as
+  Gherkin, Karate and Postman do. Each case keeps its own id, review and fingerprint, so approval
+  stays per case.
+- **The fingerprint** is a hash of the case's id, steps, data and expectations. A case edited after
+  approval no longer matches its fingerprint: `check` reports it, and `generate` treats it as a
+  draft until it is approved again. Nothing unapproved becomes code.
+- A step with no expectation is an error: a test must check something.
+- qa-agent rewrites case files (on import and review) in one layout, so remarks go in `notes`,
+  not in YAML comments, which would be lost.
+
+### 9.3 The API model and its importers
+
+One small file, `api/api.yaml`, whatever the team started from. People can read and edit it, and
+every other command reads only this.
+
+```yaml
+services:
+  bookings:
+    operations:
+      - {method: POST, path: /bookings, summary: Create a booking,
+         body_required: [passenger_name, email, amount, booked_at], responses: [201, 422]}
+      - {method: POST, path: "/bookings/{pnr}/cancel", responses: [200, 404, 409, 422]}
+```
+
+| `qa-agent import api <file>` | Reads |
+|---|---|
+| OpenAPI 3 (`.json`, `.yaml`) | Paths, methods, summaries, required body fields (following `$ref`), documented response codes |
+| curl (`.curl` or `.txt`: the command, then a sample response after a line `### response`) | Method, path (host removed), the sample response's status. A path part that looks like a value (`AB12CD`, `1042`, a UUID) becomes a parameter, `{id}`, and is reported. Headers are not kept, so a token in the curl never reaches the repository. A curl doesn't say which body fields are required, so it adds none |
+| `api.yaml` | Nothing to convert: the team writes it by hand |
+
+Several sources merge into one model; an operation found twice is kept once.
+
+### 9.4 Importers of existing cases
+
+`qa-agent import cases existing/<file>` adds the cases to `cases/<name>.yaml`, named after the
+sheet, the Postman folder or the feature file (or `--into cases/cancellation.yaml`), each with
+`review.status: draft`
+and its `source`. An id that already exists is skipped and reported, unless `--overwrite`.
+
+| Format | What becomes of it |
+|---|---|
+| **Excel or CSV, API layout** (one row per step: Case ID, Title, Criteria, Priority, Tags, Step, Method, Path, Body, Expected Status, Expected Fields, Capture) | A full case, ready to generate. Body is JSON; Expected Fields and Capture are `name=value; name=value`. The layout is in `qa-agent init`'s project as a blank sheet |
+| **Excel or CSV, manual layout** (ID, Title, Preconditions, Steps, Expected Result, Priority) | A case with `steps_text`: kept, traced to its criteria, flagged "needs steps". A person writes the steps; in phase 6 the AI drafts them |
+| **Postman collection (v2.1)** | One folder is one case (its requests are the steps, in order); a request outside a folder is a case. `{{baseUrl}}` dropped from the path; `pm.response.to.have.status(…)`, `pm.expect(json.x).to.eql(…)` and `pm.environment.set("x", json.y)` become `status`, `fields` and `capture`. Any other script line is kept in the case's notes and flagged "check by hand" |
+| **Gherkin (`.feature`)** | One scenario is one case; tags `@P1`, `@smoke`, `@AC-2` become priority, tags and criteria. Steps in the fixed phrasing below become `steps`; any other step is `steps_text`. A Scenario Outline's Examples become the case's data |
+
+The fixed Gherkin phrasing, the same one phase 3c generates (so a feature file can go both ways):
+`When I POST "/bookings" with` (a doc string body) · `Then the status is 201` ·
+`And "refund_amount" is 250` · `And I remember "pnr" as "pnr"`.
+
+### 9.5 `qa-agent check`: rules only
+
+| Rule | Level |
+|---|---|
+| The case file doesn't match the format; two cases share an id | Error |
+| A step has no expectation | Error |
+| `{{name}}` used before it is captured; `{{row.x}}` with no data file, or no column `x` | Error |
+| The method and path are not in `api/api.yaml` | Error |
+| The expected status is not one the API documents for that operation | Warning |
+| A required body field (from the API model) is missing | Warning (a negative test may leave it out on purpose) |
+| A criterion id not in `criteria.yaml`; a case with no criterion | Error · Warning |
+| Changed after approval (fingerprint) | Warning: "review again" |
+| Only `steps_text` | Info: "needs steps" |
+| No `api/api.yaml` | Info: the rules that need the API are skipped, and say so |
+
+Each finding names the case, the step and the fix. Exit 0 with no errors, 1 with errors, 2 when the
+project can't be read. The findings also go into the review sheet.
+
+### 9.6 The review sheet
+
+`qa-agent review export` writes `review/cases.xlsx`, one row per case not yet approved (or every
+case with `--all`):
+
+| ID | Title | Criteria | Priority | Track | Tags | Steps | Expected | Check findings | **Decision** | **Reviewer** | **Comment** |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+
+- **Steps** and **Expected** are readable text, one line per step (`POST /bookings → 201, remember pnr`),
+  greyed and locked: the steps themselves are changed in the case file, so a sheet can never
+  produce a case that doesn't parse.
+- The reviewer may change Title, Criteria, Priority, Track and Tags, and fills **Decision**
+  (a drop-down: Approve, Changes needed, Reject), **Reviewer** and **Comment**.
+- A hidden column holds each case's fingerprint at export. `qa-agent review import` applies a row
+  only if the case is unchanged since export; otherwise it reports "the case changed after this
+  sheet was made: export again".
+- Approve writes `review: {status: approved, by, on, fingerprint}`. Changes needed and Reject keep
+  the comment, so the author sees why.
+- Committed in the team's repository: the record of who approved what, and when.
+
+### 9.7 Renderers and `qa-agent generate`
+
+One renderer per framework, each a Jinja2 template plus a small Python class
+(`render(case) -> files`). Only approved cases with a matching fingerprint are rendered. The output
+folder belongs to the tool: a file whose case is no longer approved is removed. Same case, same
+code, every time (sorted keys, no dates in the files).
+
+Generated from `cases/cancellation.yaml` (one test file per case file, one test per case), Python
+(`tests/generated/test_cancellation.py`):
+
+```python
+# Generated by qa-agent from cases/cancellation.yaml. Do not edit: change the cases, then run qa-agent generate.
+import pytest
+from api_test_framework import Expect, unique_id
+
+
+@pytest.mark.functional
+@pytest.mark.writes
+@pytest.mark.case("TC003")
+@pytest.mark.priority("P1")
+def test_tc003_cancel_exactly_at_24_hours_gets_a_full_refund(api, context):
+    unique = unique_id()
+    response = api.post("/bookings", json={"passenger_name": f"Asha Rao {unique}", ...})
+    Expect(response).status_is(201)
+    context.remember("pnr", response.value("pnr"))
+
+    response = api.post(f"/bookings/{context.get('pnr')}/cancel", json={"cancelled_at": "2026-10-21T10:00:00Z"})
+    Expect(response).status_is(200).field_equals("refund_allowed", True).field_equals("refund_amount", 250)
+```
+
+REST Assured:
+
+```java
+// Generated by qa-agent from cases/cancellation.yaml. Do not edit: change the cases, then run qa-agent generate.
+package generated;
+
+public class CancellationTest extends BaseTest {
+    @Test(groups = {"functional", "writes"})
+    @CaseId("TC003") @Priority("P1")
+    public void tc003CancelExactlyAt24HoursGetsAFullRefund() {
+        String unique = TestData.uniqueId();
+        ApiResponse response = api().post("/bookings", Map.of("passenger_name", "Asha Rao " + unique, ...));
+        Expect.that(response).statusIs(201);
+        context().remember("pnr", response.value("pnr"));
+        ...
+    }
+}
+```
+
+- `writes` is added when any step is not a GET, so a read-only environment skips it by itself.
+- A data-driven case becomes one parametrised test (pytest) or one test with a `@DataProvider`
+  (TestNG): one case, one test, one run per row.
+- The test's name starts with the case id, which is how `trace` finds it.
+- Both frameworks gain one small helper, `unique_id()`, with its own unit test and example.
+
+### 9.8 `qa-agent trace`
+
+```
+qa-agent trace --results reports/junit.xml target/surefire-reports/*.xml
+```
+
+Reads `criteria.yaml`, the cases, the generated tests and the JUnit XML results (both frameworks
+write JUnit), and writes `reports/trace.md` (for a pull request) and `reports/trace.xlsx` (for people):
+
+| Criterion | Case | Review | Track | Tests | Latest result |
+|---|---|---|---|---|---|
+| AC-2 | TC003 | approved | functional | `test_tc003_…` · `CancellationTest.tc003…` | passed |
+| AC-3 | TC007 | draft (needs steps) | functional | none | not run |
+
+Then the coverage lines: criteria with an approved case (4 of 5), operations and response codes in
+`api/api.yaml` with a case (7 of 9 operations, 12 of 20 codes), approved cases with a test (10 of
+10), and lists of what is missing: criteria without cases, approved cases without tests, tests
+without a case. `--check` exits 1 when an approved case has no test (the CI check of section 5 in
+the high-level design).
+
+### 9.9 `qa-agent init`
+
+```
+qa-agent init bookings-team --stack python        # or --stack restassured
+```
+
+Creates the project of 9.1, already working: environments pointing at the reference API, one
+criterion, one approved case (create a booking, read it back), its generated test, a blank
+API-layout sheet, a README with the next three commands, and a CI file that runs env_check and
+the tests. Python: `requirements.txt` installs the framework from this repository
+(`git+https://…#subdirectory=frameworks/python_api`). REST Assured: a `pom.xml` that depends on
+`restassured-api-framework`; until the frameworks are published (later list), it is installed once
+with `./mvnw install` in `frameworks/restassured_api`.
+
+### 9.10 The code
+
+```
+qa_agent/
+  __main__.py  cli.py          qa-agent <command>; argparse, one function per command
+  project.py                   TeamProject: reads qa-agent.yaml, knows every path
+  cases.py                     Case, Step, Request, Expectation, Review; load, save, fingerprint
+  api_model.py                 ApiModel, Operation; load, save, find(method, path)
+  importers/
+    openapi.py  curl.py        -> ApiModel
+    sheet_cases.py             Excel and CSV, API and manual layouts -> cases
+    postman.py  gherkin.py     -> cases
+  checks.py                    the rules of 9.5 -> findings
+  review_sheet.py              export, import (openpyxl)
+  renderers/
+    python_pytest.py   python_pytest/test_case.py.j2
+    restassured_testng.py   restassured_testng/TestCase.java.j2
+  generate.py                  approved cases -> renderer -> files; removes stale files
+  trace.py                     cases + tests + JUnit results -> matrix, coverage, report
+  init_project.py  project_templates/python/  project_templates/restassured/
+tests/qa_agent/                one test file per module; no network
+examples/bookings-team/        a team's project, committed: every feature, both stacks
+```
+
+New dependencies (installed with `pip install -e .`): `jinja2` (templates) and `openpyxl`
+(sheets). Gherkin and Postman are read with plain Python; no other new package.
+
+### 9.11 The working example: `examples/bookings-team/`
+
+A committed team project for the reference API, with `stacks: [python, restassured]` so the same
+cases render in both:
+
+| Shows | Files |
+|---|---|
+| API import from OpenAPI and from curl | `api/source/openapi.json`, `api/source/cancel_booking.curl` → `api/api.yaml` |
+| Criteria | `criteria.yaml`: six criteria of the bookings and cancellation feature, one (AC-6) deliberately without a case |
+| Every importer | `existing/booking_cases.xlsx` (API layout), `existing/manual_cases.xlsx`, `existing/bookings.postman_collection.json`, `existing/cancel.feature` |
+| Check findings | One imported case with an undocumented status, one that needs steps |
+| Review | `review/cases.xlsx` filled in: approvals, one Changes needed, one Reject |
+| Generated tests | `tests/generated/` and `src/test/java/generated/`, from the approved cases |
+| Trace | The README shows the trace, with the gaps it finds |
+
+A script, `examples/bookings-team/run_all.sh`, rebuilds the example from its inputs in a temporary
+folder (import, check, review import with the filled sheet, generate), compares the result with
+what is committed, then runs both stacks' tests against the reference API and the trace. CI runs it.
+
+### 9.12 CI
+
+A new job, `qa-agent`: its unit tests; `./mvnw install` of the REST Assured framework; then
+`run_all.sh`. Then, from an empty folder, `qa-agent init --stack python` and
+`--stack restassured`, and each new project's tests pass against the reference API: the day-one
+promise, checked on every build.
+
+### 9.13 Build order
+
+Three pushes, each checked in Colab first:
+
+| Push | What | Commits |
+|---|---|---|
+| 3a-1 | Case format, API model and its importers, `check` | format and loading · API importers · `check` · tests and examples |
+| 3a-2 | Importers of existing cases, the review sheet | Excel and CSV · Postman · Gherkin · review sheet |
+| 3a-3 | Renderers, `generate`, `trace`, `init`, the example project, CI, docs | renderers and `unique_id` · `generate` · `trace` · `init` · example and CI · README and design |

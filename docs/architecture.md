@@ -47,7 +47,7 @@ agent, `playwright-qa-agent`, is a separate repository that depends on it.
 flowchart TB
   QA["Team QA engineer<br/>brings the API, criteria, existing cases"]
   REV["Reviewer<br/>approves cases and data"]
-  CLI["qa-agent<br/>init · draft · data · generate · promote"]
+  CLI["qa-agent<br/>init · import · check · review · generate · trace<br/>draft · data (the AI layer) · promote"]
   LLM["Model provider<br/>direct API · AWS Bedrock · Google Vertex · Azure"]
   REPO["Team repository<br/>inputs · review sheets · generated tests"]
   CI["Team CI"]
@@ -175,8 +175,9 @@ flowchart TB
 
 - A team without existing cases skips nothing: the import step is simply empty and the AI drafts
   the whole set.
-- Before the AI layer (phase 6), `draft` imports and checks the team's existing cases with rules
-  only, and a person writes or edits cases in the review file; everything after it works the same.
+- Before the AI layer (phase 6), `qa-agent import` brings in the team's existing cases and
+  `qa-agent check` checks them with rules only; a person writes or edits cases, and approves them in
+  the review sheet; everything after it works the same. `draft` and `data` arrive with the AI layer.
 - A rejected case or data set goes back with the reviewer's note; nothing unapproved becomes code.
 - A test case is data (steps, request, expected result, values captured for the next step), so a
   person who does not write code can review it:
@@ -272,7 +273,7 @@ flowchart TB
 
 | Place | What runs there | Model access needed |
 |---|---|---|
-| A tester's machine | `init`, `generate`, `promote`, the tests, `env_check` | No |
+| A tester's machine | `init`, `import`, `check`, `review`, `generate`, `trace`, `promote`, the tests, `env_check` | No |
 | A tester's machine | `draft`, `data` | Yes, through the organisation's chosen provider |
 | CI, on every change | `env_check`, drift check, regression tests, reports | No |
 | CI, on demand | Functional tests; the run against a public API (Swagger Petstore) as proof on someone else's API | No |
