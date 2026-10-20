@@ -78,17 +78,30 @@ pytest --env staging -m writes -rs   # read-only: every test that changes data i
 
 A missing environment, file or variable stops the run with `SETUP PROBLEM` (exit 2), never a test failure.
 
-## Markers and reports
+## Markers
 
 | Marker | Meaning |
 |---|---|
+| `smoke` | the few checks that say the service is up and usable: `pytest -m smoke` |
 | `regression` | runs on every build: `pytest -m regression` |
 | `functional` | new behaviour, run on demand until promoted |
-| `writes` | changes data: skipped on a `read_only` environment |
-| `case("TC003")` | the test case it came from; written into the JUnit report as `case_id` |
+| `writes` | changes data: skipped on a `read_only` environment, with the reason |
+| `case("TC003")` | the test case it came from: a JUnit property and an Allure label |
+| `priority("P0")` | P0 (highest) to P3: a JUnit property, and the severity in Allure (P0 blocker, P1 critical, P2 normal, P3 minor) |
 
-`pytest --junitxml=reports/junit.xml`: a data-driven test shows its case id once per row, which is
-how one case maps to many test runs.
+## Reports, evidence and retries
+
+```bash
+pytest --alluredir reports/allure-results --evidence reports/evidence --reruns 1 --junitxml reports/junit.xml
+npx allure-commandline generate reports/allure-results -o reports/allure-report --single-file   # needs Java
+```
+
+| What | For whom |
+|---|---|
+| **Allure report** | People: every test with its steps; each request and response attached (token masked); case id, priority and markers as labels; the environment and hosts the run used |
+| **Evidence folder** | Audits and sign-off: one text file per test, pass, fail or skipped, with every request and response |
+| **JUnit XML** | CI: `case_id`, `priority` and `passed_on_retry` as properties. A data-driven test shows its case id once per row: one case, many runs |
+| **Retry** (`--reruns 1`) | A failure is run once more. A test that passes only on retry is listed under *Passed on retry: look at these*, flagged in JUnit and Allure, never counted as a plain pass |
 
 The framework never imports the service it tests (a unit test checks this): expected values come
 from the test or its data. Its own tests: `pytest tests/unit` (no service needed).

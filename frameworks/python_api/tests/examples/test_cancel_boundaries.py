@@ -12,6 +12,7 @@ ROWS = load_rows(Path(__file__).resolve().parents[2] / "data" / "cancellation_bo
 @pytest.mark.regression
 @pytest.mark.writes
 @pytest.mark.case("EX-REFUND-01")
+@pytest.mark.priority("P0")
 @pytest.mark.parametrize("row", ROWS, ids=[row["case"] for row in ROWS])
 def test_refund_at_the_24_hour_boundary(api, context, row):
     created = api.post("/bookings", json={**new_passenger(), "amount": 250, "booked_at": row["booked_at"]})
@@ -26,6 +27,7 @@ def test_refund_at_the_24_hour_boundary(api, context, row):
 @pytest.mark.regression
 @pytest.mark.writes
 @pytest.mark.case("EX-REFUND-02")
+@pytest.mark.priority("P1")
 def test_a_second_cancel_is_refused_and_changes_nothing(api, context):
     pnr = context.remember("pnr", api.post("/bookings", json={**new_passenger(), "amount": 250,
                                                                "booked_at": "2026-01-15T10:00:00Z"}).value("pnr"))

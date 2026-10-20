@@ -52,11 +52,19 @@ jobs:
         run: python -m mock_service > mock_service.log 2>&1 &
       - name: Is the environment ready? (exit 3 if not)
         run: python -m env_check --env mock
-      - name: The framework's own tests, then every example against the reference API (one command, as in the README)
-        run: python -m pytest -q --junitxml=reports/junit.xml
-      - name: Keep the report
+      - name: The framework's own tests, then every example (one command, as in the README)
+        run: python -m pytest -q
+      - name: The examples as a QA team runs them (Allure, evidence, one retry, JUnit)
+        run: python -m pytest -q tests/examples --reruns 1 --alluredir reports/allure-results --evidence reports/evidence --junitxml reports/junit.xml
+      - name: Build the Allure report (one HTML file)
+        if: always()
+        run: npx --yes allure-commandline generate reports/allure-results -o reports/allure-report --clean --single-file
+      - name: Keep the reports and the evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: python-framework-junit-py${{ matrix.python-version }}
-          path: frameworks/python_api/reports/
+          name: python-framework-reports-py${{ matrix.python-version }}
+          path: |
+            frameworks/python_api/reports/allure-report/
+            frameworks/python_api/reports/evidence/
+            frameworks/python_api/reports/junit.xml

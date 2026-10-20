@@ -369,8 +369,8 @@ Apache POI 5; Jackson 2.17; Maven Surefire 3.5. Built and tested in CI with `act
 
 | Job | Steps |
 |---|---|
-| `mock-service` | Install; the mock's own tests; the OpenAPI drift test |
-| `python-framework` | Install the mock and the framework; start both services in the background; `python -m env_check --env mock`; unit tests; examples with a JUnit report; keep the report |
+| `platform` | Install the reference API and env_check; their tests, including the OpenAPI drift test; start both services and check their health |
+| `python-framework` | Install the mock and the framework; start both services in the background; `python -m env_check --env mock`; every test with plain `pytest`; then the examples with Allure, evidence, one retry and JUnit; build the single-file Allure report; keep the reports and the evidence |
 
 Both on Python 3.11 and 3.12, on every push and pull request. No API key anywhere.
 
@@ -380,7 +380,7 @@ Both on Python 3.11 and 3.12, on every push and pull request. No API key anywher
 |---|---|
 | mock_service | fastapi, uvicorn, pydantic |
 | env_check | httpx, pyyaml |
-| api_test_framework | httpx, pyyaml, pytest, openpyxl (Excel data) |
+| api_test_framework | httpx, pyyaml, pytest, openpyxl (Excel data), allure-pytest, pytest-rerunfailures |
 
 ## 8. The first version's code
 

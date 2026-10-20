@@ -8,6 +8,7 @@ from api_test_framework import Expect, new_passenger
 @pytest.mark.functional
 @pytest.mark.writes
 @pytest.mark.case("EX-LIST-01")
+@pytest.mark.priority("P2")
 def test_the_status_filter(api, context):
     active = api.post("/bookings", json={**new_passenger(), "amount": 10}).value("pnr")
     cancelled = api.post("/bookings", json={**new_passenger(), "amount": 20, "booked_at": "2026-01-15T10:00:00Z"}).value("pnr")
@@ -20,6 +21,7 @@ def test_the_status_filter(api, context):
 
 @pytest.mark.functional
 @pytest.mark.case("EX-LIST-02")
+@pytest.mark.priority("P3")
 def test_limit_and_a_bad_filter(api):
     Expect(api.get("/bookings", params={"limit": 1})).status_is(200).field_is_type("count", "integer")
     Expect(api.get("/bookings", params={"status": "unknown"})).status_is(422).field_equals("error.code", "invalid_request")

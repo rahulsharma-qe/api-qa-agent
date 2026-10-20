@@ -8,6 +8,7 @@ from api_test_framework import Expect, new_passenger
 @pytest.mark.regression
 @pytest.mark.writes
 @pytest.mark.case("EX-CRUD-01")
+@pytest.mark.priority("P1")
 def test_a_booking_from_creation_to_deletion(api, context):
     passenger = new_passenger()
     created = api.post("/bookings", json={**passenger, "amount": 250})
@@ -28,6 +29,7 @@ def test_a_booking_from_creation_to_deletion(api, context):
 @pytest.mark.regression
 @pytest.mark.writes
 @pytest.mark.case("EX-CRUD-02")
+@pytest.mark.priority("P2")
 def test_the_amount_cannot_be_changed(api, context):
     pnr = context.remember("pnr", api.post("/bookings", json={**new_passenger(), "amount": 250}).value("pnr"))
     refused = api.put(f"/bookings/{pnr}", json={**new_passenger(), "amount": 1})

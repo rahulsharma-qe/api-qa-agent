@@ -7,7 +7,9 @@ from api_test_framework import Expect, new_passenger
 
 @pytest.mark.regression
 @pytest.mark.writes
+@pytest.mark.smoke
 @pytest.mark.case("EX-GET-01")
+@pytest.mark.priority("P0")
 def test_get_returns_the_booking_that_was_made(api, context):
     created = api.post("/bookings", json={**new_passenger(), "amount": 120})
     Expect(created).status_is(201)
@@ -20,11 +22,13 @@ def test_get_returns_the_booking_that_was_made(api, context):
 
 @pytest.mark.regression
 @pytest.mark.case("EX-GET-02")
+@pytest.mark.priority("P1")
 def test_an_unknown_pnr_is_404(api):
     Expect(api.get("/bookings/NOPE00")).status_is(404).field_equals("error.code", "booking_not_found")
 
 
 @pytest.mark.regression
 @pytest.mark.case("EX-GET-03")
+@pytest.mark.priority("P1")
 def test_without_a_token_the_answer_is_401(api):
     Expect(api.without_auth().get("/bookings/NOPE00")).status_is(401).field_equals("error.code", "unauthorized")

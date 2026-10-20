@@ -19,8 +19,8 @@ testing AI agents themselves.
 | Reference API to test against ([`mock_service/`](mock_service/)) | **Built**: bookings, tokens, cancel and refund rules, health checks; its OpenAPI description is checked in CI |
 | Environment check ([`env_check/`](env_check/)) | **Built**: a dependency that is down stops the run as an environment problem, never a test failure |
 | Python framework ([`frameworks/python_api/`](frameworks/python_api/)) | **Built**: environments, OAuth, API chaining, data-driven tests, readable failures, JUnit reports |
-| Python framework for QA teams: Allure report, smoke and priority tags, evidence, retry | **Next** (phase 1b) |
-| REST Assured framework with TestNG | Phase 2 |
+| Python framework for QA teams: Allure report, smoke and priority tags, evidence, retry | **Built** (phase 1b) |
+| REST Assured framework with TestNG | **Next** (phase 2) |
 | Case format, importers (Excel, Postman, OpenAPI, curl), the Excel review sheet, generated tests, traceability, bug-detection rate | Phase 3 |
 | Cucumber on REST Assured | Phase 3c |
 | User-interface tests | Phase 4, in its own repository (`playwright-qa-agent`) |
