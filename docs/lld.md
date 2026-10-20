@@ -6,7 +6,7 @@ document says how each part is built. It grows phase by phase: this version cove
 framework for QA teams) and **phase 2** (the REST Assured framework with TestNG); later phases get
 their sections when they are designed.
 
-## 1. Repository layout after phase 1
+## 1. Repository layout after phase 2
 
 ```
 api-qa-agent/
@@ -40,6 +40,7 @@ api-qa-agent/
       data/cancellation_boundaries.csv
       tests/examples/            one runnable example per feature, shaped like generated tests
       tests/unit/                the framework's own tests (no network)
+    restassured_api/             the same framework in Java (REST Assured, TestNG): section 5
   tests/mock_service/            the mock service's own tests
   tests/env_check/               env_check's own tests (a fake network)
   docs/  architecture.md  lld.md  history/first-version.md
@@ -362,8 +363,9 @@ public class CancelRefundTest extends BaseTest {
 
 ### 5.4 Versions
 
-Java 17; REST Assured 5.5; TestNG 7.10; Allure TestNG 2.29 (with the AspectJ agent); SnakeYAML 2;
-Apache POI 5; Jackson 2.17; Maven Surefire 3.5. Built and tested in CI with `actions/setup-java`.
+Java 17; REST Assured 5.5; TestNG 7.10; Allure TestNG 2.29; SnakeYAML 2; Apache POI 5;
+Jackson 2.17; Log4j 2.24 (for this project's own test runs; one version for every Log4j jar);
+Maven Surefire 3.5. Built and tested in CI with `actions/setup-java`.
 
 ## 6. CI
 
@@ -371,8 +373,9 @@ Apache POI 5; Jackson 2.17; Maven Surefire 3.5. Built and tested in CI with `act
 |---|---|
 | `platform` | Install the reference API and env_check; their tests, including the OpenAPI drift test; start both services and check their health |
 | `python-framework` | Install the mock and the framework; start both services in the background; `python -m env_check --env mock`; every test with plain `pytest`; then the examples with Allure, evidence, one retry and JUnit; build the single-file Allure report; keep the reports and the evidence |
+| `restassured-framework` | Java 17 with the Maven cache; start the reference API; `python -m env_check --env mock`; `./mvnw test` with evidence and one retry (the framework's own tests, then every example); build the single-file Allure report; keep the reports and the evidence |
 
-Both on Python 3.11 and 3.12, on every push and pull request. No API key anywhere.
+The two Python jobs run on Python 3.11 and 3.12, on every push and pull request. No API key anywhere.
 
 ## 7. Dependencies
 
@@ -381,6 +384,7 @@ Both on Python 3.11 and 3.12, on every push and pull request. No API key anywher
 | mock_service | fastapi, uvicorn, pydantic |
 | env_check | httpx, pyyaml |
 | api_test_framework | httpx, pyyaml, pytest, openpyxl (Excel data), allure-pytest, pytest-rerunfailures |
+| restassured-api-framework | rest-assured, testng, allure-testng, jackson-databind, snakeyaml, poi-ooxml (Excel data); log4j-core for its own test runs only |
 
 ## 8. The first version's code
 
