@@ -1,8 +1,13 @@
 # bookings-team: a team's project, for the reference API
 
 This folder has exactly the shape of a team's own repository. It shows every `qa-agent` feature
-against the reference API (`python -m mock_service`), with what each command printed. Generated
-tests and the trace come next.
+against the reference API (`python -m mock_service`), with what each command printed: from the API
+and the team's existing cases to tests in both stacks and the trace.
+
+```bash
+./run_all.sh                  # every step from the inputs, both stacks' tests, the trace (what CI runs)
+./run_all.sh --python-only    # the same, without Java
+```
 
 | File | What it is |
 |---|---|
@@ -16,6 +21,9 @@ tests and the trace come next.
 | `data/` | Data files: one row per run of a data-driven case (one came from the Gherkin outline's Examples) |
 | `review/cases.xlsx` | The review sheet, filled in by the reviewer |
 | `config/` | Environments and dependencies, read by env_check and the frameworks |
+| `tests/generated/`, `src/test/java/generated/` | The tests `qa-agent generate` wrote from the approved cases, in pytest and in REST Assured |
+| `pytest.ini`, `pom.xml`, `mvnw` | How each stack runs here, as `qa-agent init` makes them |
+| `run_all.sh` | Every step, from the inputs to the trace |
 
 ## 1. The API
 
@@ -133,3 +141,100 @@ applied  TC042: rejected by qa-lead, 2026-10-21
 Each approved case now carries `review: {status: approved, by, date, fingerprint}`. If anyone edits
 its steps later, check says "changed after it was approved", and it won't become a test until it is
 reviewed again.
+
+## 5. Generate
+
+```bash
+qa-agent generate
+```
+
+```
+wrote      tests/generated/conftest.py
+wrote      tests/generated/test_bookings.py
+...
+wrote      src/test/java/generated/CancellationTest.java
+not generated: TC005: changes needed
+not generated: TC006: needs steps
+...
+not generated: TC042: rejected
+python: 9 tests · restassured: 9 tests
+```
+
+Only approved, unchanged cases become tests: one test file per case file, one test per case, in
+each stack (`stacks: [python, restassured]`). The same case reads like this in each:
+
+```python
+@pytest.mark.functional
+@pytest.mark.negative
+@pytest.mark.writes
+@pytest.mark.case("TC003")
+@pytest.mark.priority("P1")
+def test_tc003_a_second_cancel_is_refused(api, context):
+    """A second cancel is refused. Criteria: AC-4."""
+    unique = unique_id()
+    # 1. POST /bookings
+    response = api.post("/bookings", json={
+        "passenger_name": f"Asha Rao {unique}",
+        ...
+    })
+    Expect(response).status_is(201)
+    context.remember("pnr", response.value("pnr"))
+    ...
+    # 3. POST /bookings/{{pnr}}/cancel
+    response = api.post(f"/bookings/{context.get('pnr')}/cancel", json={"cancelled_at": "2026-01-20T11:00:00Z"})
+    Expect(response).status_is(409).field_equals("error.code", "already_cancelled")
+```
+
+```java
+    /** A second cancel is refused. Criteria: AC-4. */
+    @Test(groups = {"functional", "negative", "writes"})
+    @CaseId("TC003") @Priority("P1")
+    public void tc003ASecondCancelIsRefused() {
+        String unique = TestData.uniqueId();
+        ApiResponse response;
+        ...
+        // 3. POST /bookings/{{pnr}}/cancel
+        response = api().post("/bookings/" + context().get("pnr") + "/cancel", Map.of("cancelled_at", "2026-01-20T11:00:00Z"));
+        Expect.that(response).statusIs(409).fieldEquals("error.code", "already_cancelled");
+    }
+```
+
+`writes` is added because the case changes data, so a read-only environment skips it. The team's
+tags (`negative`) become pytest markers (registered in `tests/generated/conftest.py`) and TestNG
+groups: `pytest -m negative`, `./mvnw test -Dgroups=negative`.
+
+## 6. Run
+
+```bash
+python -m mock_service &                   # the reference API
+python -m env_check --env mock             # READY (exit 0)
+python -m pytest --junitxml=reports/junit.xml      # 12 passed: TC002 runs once per data row, TC040 too
+./mvnw test                                # the same tests in Java
+```
+
+## 7. Trace
+
+```bash
+qa-agent trace --results reports/junit.xml target/surefire-reports
+```
+
+```
+qa-agent trace: bookings
+
+Criteria        4 of 6   missing: AC-5 (not approved: TC006, TC020, TC021), AC-6 (no case)
+Operations      5 of 8   missing: POST /auth/token, GET /bookings, GET /bookings/{pnr}/refund
+Response codes  9 of 19   missing: POST /auth/token 200, POST /auth/token 422, GET /bookings 200, POST /bookings 422, PUT /bookings/{pnr} 404, DELETE /bookings/{pnr} 404, POST /bookings/{pnr}/cancel 422, GET /bookings/{pnr}/refund 200, GET /bookings/{pnr}/refund 404, 401 (bookings, any operation)
+Cases to tests  9 of 9
+Not tested      on purpose: GET /health-check: env_check calls it before every run; POST /test/reset: a test-only route; it resets the data; GET /health-check (notifications): env_check calls it before every run
+Results         python 12 passed · restassured 12 passed
+```
+
+It also writes `reports/trace.md` (for a pull request) and `reports/trace.xlsx`: every criterion,
+its cases with their review status, each case's tests in both stacks, and the latest result per
+stack.
+
+What it says about this example, honestly: the cases cover the booking and cancellation flows well,
+and the gaps are plain. AC-5 has cases only in words, AC-6 has none, nothing calls the token or
+refund-status endpoints, no case sends a request without a token (401), and several error codes (a
+422 on create and cancel, a 404 on update, delete and refund status) are never expected. These are the gaps a team (or, in phase 6, the AI layer) writes cases for next.
+`/test/reset` and the health checks are left out on purpose, with the reason, in `api/api.yaml`.

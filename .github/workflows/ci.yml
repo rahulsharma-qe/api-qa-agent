@@ -110,3 +110,44 @@ jobs:
             frameworks/restassured_api/target/evidence/
             frameworks/restassured_api/target/surefire-reports/
 
+
+  qa-agent:
+    # qa-agent end to end on the example team project: rebuilt from its inputs and compared, both
+    # stacks' generated tests run against the reference API, and the trace. Then the day-one promise:
+    # a new project from qa-agent init runs, in each stack.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Install qa-agent, the reference API and the Python framework
+        run: pip install -e . -e frameworks/python_api
+      - name: Install the REST Assured framework (the generated Java tests use it)
+        working-directory: frameworks/restassured_api
+        run: ./mvnw -q -B install -DskipTests
+      - name: Every step on the example, both stacks, and the trace
+        run: examples/bookings-team/run_all.sh
+      - name: A new project from qa-agent init runs, in each stack
+        run: |
+          qa-agent init "$RUNNER_TEMP/python-team" --stack python
+          qa-agent init "$RUNNER_TEMP/java-team" --stack restassured
+          python -m mock_service > "$RUNNER_TEMP/mock_service.log" 2>&1 &
+          cd "$RUNNER_TEMP/python-team"
+          python -m env_check --env mock
+          python -m pytest -q
+          cd "$RUNNER_TEMP/java-team"
+          ./mvnw -q -B test
+      - name: Keep the trace
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-agent-trace
+          path: |
+            examples/bookings-team/reports/trace.md
+            examples/bookings-team/reports/trace.xlsx

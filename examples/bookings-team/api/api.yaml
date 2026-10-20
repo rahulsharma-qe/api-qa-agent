@@ -40,12 +40,15 @@ services:
         path: /health-check
         summary: Health Check
         responses: [200]
+        not_tested: env_check calls it before every run
       - method: POST
         path: /test/reset
         summary: Reset
         responses: [204]
+        not_tested: a test-only route; it resets the data
   notifications:
     operations:
       - method: GET
         path: /health-check
         responses: [200]
+        not_tested: env_check calls it before every run
