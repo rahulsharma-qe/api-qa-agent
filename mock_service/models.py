@@ -97,5 +97,15 @@ class Health(BaseModel):
     service: str
 
 
+class ErrorDetail(BaseModel):
+    code: str
+    message: str
+
+
+class ErrorResponse(BaseModel):
+    """The one error shape (mock_service/errors.py), so the OpenAPI description shows it."""
+    error: ErrorDetail
+
+
 class NotificationsState(BaseModel):
     down: bool

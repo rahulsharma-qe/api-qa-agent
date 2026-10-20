@@ -12,11 +12,21 @@ from fastapi import Depends, FastAPI, Header, Query, Response
 from mock_service.booking_store import BookingStore
 from mock_service.errors import ApiError, add_error_handlers
 from mock_service.models import (Booking, BookingList, BookingStatus, BookingUpdate, CancelRequest, CancelResult,
-                                 Health, NewBooking, RefundStatus, TokenRequest, TokenResponse)
+                                 ErrorResponse, Health, NewBooking, RefundStatus, TokenRequest, TokenResponse)
 from mock_service.settings import MockSettings
 
 SERVICE_NAME = "bookings"
 SERVICE_VERSION = "1.0.0"
+
+ERROR_MEANINGS = {401: "No valid token (or, for /auth/token, wrong credentials)",
+                  404: "No booking with this PNR",
+                  409: "The booking is already cancelled",
+                  422: "The request is invalid; the message says which field and why"}
+
+
+def errors(*statuses: int) -> dict:
+    """The error responses a route can return, so the OpenAPI description lists every status code."""
+    return {status: {"model": ErrorResponse, "description": ERROR_MEANINGS[status]} for status in statuses}
 
 
 def create_bookings_app(settings: Optional[MockSettings] = None) -> FastAPI:
@@ -33,7 +43,7 @@ def create_bookings_app(settings: Optional[MockSettings] = None) -> FastAPI:
         if scheme.lower() != "bearer" or token not in issued_tokens:
             raise ApiError(401, "unauthorized", "A valid bearer token is required: POST /auth/token first")
 
-    @app.post("/auth/token", response_model=TokenResponse, tags=["auth"])
+    @app.post("/auth/token", response_model=TokenResponse, tags=["auth"], responses=errors(401, 422))
     def issue_token(request: TokenRequest) -> TokenResponse:
         if (request.client_id, request.client_secret) != (settings.client_id, settings.client_secret):
             raise ApiError(401, "invalid_credentials", "Unknown client_id or wrong client_secret")
@@ -42,37 +52,41 @@ def create_bookings_app(settings: Optional[MockSettings] = None) -> FastAPI:
         return TokenResponse(access_token=token)
 
     @app.post("/bookings", response_model=Booking, status_code=201, tags=["bookings"],
-              dependencies=[Depends(require_token)])
+              dependencies=[Depends(require_token)], responses=errors(401, 422))
     def create_booking(request: NewBooking) -> Booking:
         return store.create(request.passenger_name, request.email, request.amount, request.booked_at)
 
-    @app.get("/bookings", response_model=BookingList, tags=["bookings"], dependencies=[Depends(require_token)])
+    @app.get("/bookings", response_model=BookingList, tags=["bookings"], dependencies=[Depends(require_token)],
+             responses=errors(401, 422))
     def list_bookings(status: Optional[BookingStatus] = None, limit: int = Query(default=20, ge=1, le=100)) -> BookingList:
         items = store.list(status, limit)
         return BookingList(items=items, count=len(items))
 
-    @app.get("/bookings/{pnr}", response_model=Booking, tags=["bookings"], dependencies=[Depends(require_token)])
+    @app.get("/bookings/{pnr}", response_model=Booking, tags=["bookings"], dependencies=[Depends(require_token)],
+             responses=errors(401, 404, 422))
     def get_booking(pnr: str) -> Booking:
         return store.get(pnr)
 
-    @app.put("/bookings/{pnr}", response_model=Booking, tags=["bookings"], dependencies=[Depends(require_token)])
+    @app.put("/bookings/{pnr}", response_model=Booking, tags=["bookings"], dependencies=[Depends(require_token)],
+             responses=errors(401, 404, 422))
     def update_booking(pnr: str, request: BookingUpdate) -> Booking:
         return store.update(pnr, request.passenger_name, request.email)
 
-    @app.delete("/bookings/{pnr}", status_code=204, tags=["bookings"], dependencies=[Depends(require_token)])
+    @app.delete("/bookings/{pnr}", status_code=204, tags=["bookings"], dependencies=[Depends(require_token)],
+                responses=errors(401, 404, 422))
     def delete_booking(pnr: str) -> Response:
         store.delete(pnr)
         return Response(status_code=204)
 
     @app.post("/bookings/{pnr}/cancel", response_model=CancelResult, tags=["refunds"],
-              dependencies=[Depends(require_token)])
+              dependencies=[Depends(require_token)], responses=errors(401, 404, 409, 422))
     def cancel_booking(pnr: str, request: Optional[CancelRequest] = None) -> CancelResult:
         decision = store.cancel(pnr, request.cancelled_at if request else None)
         return CancelResult(pnr=pnr, refund_allowed=decision.allowed, refund_amount=decision.amount,
                             reason=decision.reason)
 
     @app.get("/bookings/{pnr}/refund", response_model=RefundStatus, tags=["refunds"],
-             dependencies=[Depends(require_token)])
+             dependencies=[Depends(require_token)], responses=errors(401, 404, 422))
     def refund_status(pnr: str) -> RefundStatus:
         return store.refund_status(pnr)
 
