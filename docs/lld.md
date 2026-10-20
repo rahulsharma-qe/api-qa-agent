@@ -515,16 +515,25 @@ Several sources merge into one model; an operation found twice is kept once.
 ### 9.4 Importers of existing cases
 
 `qa-agent import cases existing/<file>` adds the cases to `cases/<name>.yaml`, named after the
-sheet, the Postman folder or the feature file (or `--into cases/cancellation.yaml`), each with
-`review.status: draft`
-and its `source`. An id that already exists is skipped and reported, unless `--overwrite`.
+Excel sheet (each sheet is a feature), the CSV file, the Postman collection or the Gherkin feature
+(or `--into cases/cancellation.yaml`), each with `review.status: draft` and its `source` (file,
+sheet and row, item or scenario). An id already in the project is skipped and reported, unless
+`--overwrite`. Anything that can't be read is reported, never guessed: a row with no Case ID, a Body
+that isn't JSON, a priority qa-agent doesn't know (set to P2), a Postman script line.
+
+**Case ids.** A sheet's Case ID or ID column; a Gherkin tag `@TC040`; a Postman folder or request
+named `TC030 Create and read`. Otherwise one is made from the feature's name (`BOOKINGS-SMOKE-01`),
+which the reviewer may keep.
+
+**Priorities.** P0 to P3, or the words teams use: Blocker and Critical are P0, High and Major P1,
+Medium and Normal P2, Low, Minor and Trivial P3.
 
 | Format | What becomes of it |
 |---|---|
 | **Excel or CSV, API layout** (one row per step: Case ID, Title, Criteria, Priority, Tags, Step, Method, Path, Body, Expected Status, Expected Fields, Capture) | A full case, ready to generate. Body is JSON; Expected Fields and Capture are `name=value; name=value`. The layout is in `qa-agent init`'s project as a blank sheet |
-| **Excel or CSV, manual layout** (ID, Title, Preconditions, Steps, Expected Result, Priority) | A case with `steps_text`: kept, traced to its criteria, flagged "needs steps". A person writes the steps; in phase 6 the AI drafts them |
-| **Postman collection (v2.1)** | One folder is one case (its requests are the steps, in order); a request outside a folder is a case. `{{baseUrl}}` dropped from the path; `pm.response.to.have.status(…)`, `pm.expect(json.x).to.eql(…)` and `pm.environment.set("x", json.y)` become `status`, `fields` and `capture`. Any other script line is kept in the case's notes and flagged "check by hand" |
-| **Gherkin (`.feature`)** | One scenario is one case; tags `@P1`, `@smoke`, `@AC-2` become priority, tags and criteria. Steps in the fixed phrasing below become `steps`; any other step is `steps_text`. A Scenario Outline's Examples become the case's data |
+| **Excel or CSV, manual layout** (ID, Title, Preconditions, Steps, Expected Result, Priority, Criteria) | A case with `steps_text` (`Before: …`, each step, `Expected: …`; numbered steps in one cell are split): kept, traced to its criteria, flagged "needs steps". A person writes the steps; in phase 6 the AI drafts them |
+| **Postman collection (v2.1 or v2.0)** | One folder of requests is one case (its requests are the steps, in order); a request outside a folder is a case. The host (`{{baseUrl}}`) is dropped from the path, `:pnr` becomes `{{pnr}}`, Postman's dynamic values (`{{$guid}}`, `{{$randomInt}}`) become `{{unique}}`; Authorization and Cookie headers are never kept. `pm.response.to.have.status(…)`, `pm.expect(json.x).to.eql(…)`, `.to.include(…)`, `pm.expect(pm.response.responseTime).to.be.below(…)` and `pm.environment.set("x", json.y)` become `status`, `fields`, `contains`, `within_ms` and `capture`. Any other script line is kept in the case's notes, shown in the review sheet, and reported |
+| **Gherkin (`.feature`)** | One scenario is one case, with the Background's steps first; tags `@TC040`, `@P1`, `@AC-2` become the id, priority and criteria, other tags (the feature's too) stay tags. A scenario whose every step is in the fixed phrasing below becomes `steps`; any other scenario is kept whole as `steps_text` (half a scenario as steps would run without its preconditions). A Scenario Outline's Examples become a data file, `data/<feature>-<id>.csv`, and `<column>` becomes `{{row.column}}` |
 
 The fixed Gherkin phrasing, the same one phase 3c generates (so a feature file can go both ways):
 `When I POST "/bookings" with` (a doc string body) · `Then the status is 201` ·
@@ -545,7 +554,7 @@ The fixed Gherkin phrasing, the same one phase 3c generates (so a feature file c
 | Only `steps_text` | Info: "needs steps" |
 | No `api/api.yaml` | Info: the rules that need the API are skipped, and say so |
 
-Each finding names the case, the step and the fix. Exit 0 with no errors, 1 with errors, 2 when the
+A rejected case is left alone. Each finding names the case, the step and the fix. Exit 0 with no errors, 1 with errors, 2 when the
 project can't be read. The findings also go into the review sheet.
 
 ### 9.6 The review sheet
@@ -553,19 +562,26 @@ project can't be read. The findings also go into the review sheet.
 `qa-agent review export` writes `review/cases.xlsx`, one row per case not yet approved (or every
 case with `--all`):
 
-| ID | Title | Criteria | Priority | Track | Tags | Steps | Expected | Check findings | **Decision** | **Reviewer** | **Comment** |
-|---|---|---|---|---|---|---|---|---|---|---|---|
+| ID | Case file | Status | Title | Criteria | Priority | Track | Tags | Steps | Expected | Check findings | **Decision** | **Reviewer** | **Date** | **Comment** |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+
+A rejected case is not exported again (unless `--all`). A second sheet, "How to review", says what
+to do in five lines.
 
 - **Steps** and **Expected** are readable text, one line per step (`POST /bookings → 201, remember pnr`),
   greyed and locked: the steps themselves are changed in the case file, so a sheet can never
   produce a case that doesn't parse.
-- The reviewer may change Title, Criteria, Priority, Track and Tags, and fills **Decision**
-  (a drop-down: Approve, Changes needed, Reject), **Reviewer** and **Comment**.
+- The reviewer may change Title, Criteria, Priority, Track and Tags (Priority and Track are
+  drop-downs), and fills **Decision** (a drop-down: Approve, Changes needed, Reject), **Reviewer**,
+  **Date** (today when left empty) and **Comment**. Check findings and a Postman case's unread
+  script lines are in the sheet, so the reviewer sees them.
 - A hidden column holds each case's fingerprint at export. `qa-agent review import` applies a row
   only if the case is unchanged since export; otherwise it reports "the case changed after this
   sheet was made: export again".
-- Approve writes `review: {status: approved, by, on, fingerprint}`. Changes needed and Reject keep
-  the comment, so the author sees why.
+- A decision needs a Reviewer; Changes needed and Reject need a Comment, so the author sees why.
+- Approve writes `review: {status: approved, by, date, fingerprint}`. A case with steps only in
+  words, or with check errors (after the reviewer's edits), can't be approved: the row is refused
+  with the reason. `review import` exits 1 when any row is refused.
 - Committed in the team's repository: the record of who approved what, and when.
 
 ### 9.7 Renderers and `qa-agent generate`
