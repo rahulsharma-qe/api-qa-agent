@@ -25,6 +25,14 @@
       <version>${framework.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <!-- A library inside REST Assured's stack logs through SLF4J; this keeps it quiet instead of warning
+           that no logger is set. Your own logging replaces it. -->
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-nop</artifactId>
+      <version>1.7.36</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
