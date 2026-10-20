@@ -1,6 +1,7 @@
 """qa-agent: the command line.
 
     qa-agent import api api/source/openapi.json      the API description -> api/api.yaml
+    qa-agent import cases existing/cases.xlsx        the team's cases (Excel, CSV, Postman, Gherkin)
     qa-agent check                                   the cases, checked with rules
 
 Exit codes: 0 done (no errors), 1 errors found, 2 the project or an input can't be read.
@@ -13,7 +14,10 @@ from typing import Optional
 
 from qa_agent import __version__
 from qa_agent.api_model import ApiModel, ApiModelError, load_api_model, save_api_model
+from qa_agent.case_import import import_cases
+from qa_agent.cases import CaseFormatError
 from qa_agent.checks import check_project, plural
+from qa_agent.importers.common import CaseImportError
 from qa_agent.importers.curl import CurlError, read_curl
 from qa_agent.importers.openapi import OpenApiError, read_openapi
 from qa_agent.project import SetupError, TeamProject
@@ -29,7 +33,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         return SETUP_PROBLEM
     try:
         return args.run(args)
-    except (SetupError, ApiModelError, OpenApiError, CurlError) as error:
+    except (SetupError, ApiModelError, OpenApiError, CurlError, CaseImportError, CaseFormatError) as error:
         print(f"qa-agent: {error}", file=sys.stderr)
         return SETUP_PROBLEM
 
@@ -48,6 +52,13 @@ def _parser() -> argparse.ArgumentParser:
     api.add_argument("files", nargs="+", type=Path, help="openapi.json, openapi.yaml, or .curl files")
     api.add_argument("--service", help="the service these operations belong to (default: the project's service)")
     api.set_defaults(run=import_api)
+
+    cases = importing.add_parser("cases", help="the team's existing cases: Excel or CSV, a Postman collection, "
+                                               "Gherkin -> cases/<feature>.yaml, as drafts")
+    cases.add_argument("files", nargs="+", type=Path, help=".xlsx, .csv, .json (Postman) or .feature files")
+    cases.add_argument("--into", type=Path, help="one case file for everything imported (default: one per feature)")
+    cases.add_argument("--overwrite", action="store_true", help="replace cases (and data files) already there")
+    cases.set_defaults(run=import_existing_cases)
 
     check = commands.add_parser("check", help="check every case with rules; exit 1 on errors")
     check.set_defaults(run=run_check)
@@ -76,6 +87,16 @@ def import_api(args) -> int:
             print(f"  {note}")
     save_api_model(model, project.api_model_path)
     print(f"api/api.yaml: {plural(model.count(), 'operation')} ({model.count() - before} added)")
+    return DONE
+
+
+def import_existing_cases(args) -> int:
+    project = TeamProject.load(args.project)
+    missing = [str(path) for path in args.files if not path.is_file()]
+    if missing:
+        raise SetupError(f"no such file: {', '.join(missing)}")
+    print(import_cases(project, args.files, args.into, args.overwrite).as_text())
+    print("Next: qa-agent check, then qa-agent review export")
     return DONE
 
 
