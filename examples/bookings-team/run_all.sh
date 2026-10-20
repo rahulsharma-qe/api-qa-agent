@@ -8,8 +8,9 @@
 #
 # 1. In a scratch copy: import the API and the team's existing cases again, apply the filled review
 #    sheet, generate; everything must come out exactly as committed.
-# 2. Start the reference API (unless it is already up), check the environment, run the tests.
+# 2. The drift check; start the reference API (unless it is already up); the environment; the tests.
 # 3. Trace: criteria -> cases -> tests -> results, with coverage; fail if an approved case has no test.
+# 4. Promote: the Python tests twice more, then the cases stable enough for regression (listed only).
 set -euo pipefail
 cd "$(dirname "$0")"
 example="$(pwd)"
@@ -35,8 +36,9 @@ for folder in api cases data tests/generated src/test/java/generated; do
 done
 echo "Same as committed."
 
-echo "== 2. The reference API, the environment, the tests"
+echo "== 2. The drift check, the reference API, the environment, the tests"
 cd "$example"
+qa-agent generate --check
 mkdir -p reports
 if ! python -m env_check --env mock > /dev/null 2>&1; then
   python -m mock_service > reports/mock_service.log 2>&1 &
@@ -56,3 +58,10 @@ fi
 
 echo "== 3. Trace"
 qa-agent trace --results "${results[@]}" --check
+
+echo "== 4. Promote (listed only: a person applies it with --apply)"
+cp reports/junit.xml reports/run1.xml
+for run in 2 3; do
+  python -m pytest -q --junitxml="reports/run$run.xml" > /dev/null
+done
+qa-agent promote --runs reports/run1.xml reports/run2.xml reports/run3.xml

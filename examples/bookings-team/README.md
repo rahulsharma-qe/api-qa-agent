@@ -199,6 +199,9 @@ def test_tc003_a_second_cancel_is_refused(api, context):
     }
 ```
 
+`qa-agent generate --check` is the drift check CI runs: it writes nothing, and fails if a generated
+test was edited by hand or a case was approved without generating.
+
 `writes` is added because the case changes data, so a read-only environment skips it. The team's
 tags (`negative`) become pytest markers (registered in `tests/generated/conftest.py`) and TestNG
 groups: `pytest -m negative`, `./mvnw test -Dgroups=negative`.
@@ -236,5 +239,37 @@ stack.
 What it says about this example, honestly: the cases cover the booking and cancellation flows well,
 and the gaps are plain. AC-5 has cases only in words, AC-6 has none, nothing calls the token or
 refund-status endpoints, no case sends a request without a token (401), and several error codes (a
-422 on create and cancel, a 404 on update, delete and refund status) are never expected. These are the gaps a team (or, in phase 6, the AI layer) writes cases for next.
+422 on create and cancel, a 404 on update, delete and refund status) are never expected. These are the gaps a team (or, later, the AI layer) writes cases for next.
 `/test/reset` and the health checks are left out on purpose, with the reason, in `api/api.yaml`.
+
+`qa-agent trace --min-coverage 80` also fails the run when criteria or operations coverage is below
+80% (here both are below it: 67% and 62%). It is off unless a team sets it.
+
+## 8. Promote
+
+New cases start as `functional`. A case joins `regression` once it is stable: passed in three runs,
+every data row, in every stack with results.
+
+```bash
+qa-agent promote --runs reports/run1.xml reports/run2.xml reports/run3.xml
+```
+
+```
+From 3 runs, with results for: python
+No results for restassured: promotion here rests on python only
+ready for regression: TC001
+...
+ready for regression: TC040
+Nothing changed. To move them: the same command with --apply.
+```
+
+It only lists; a person moves them with `--apply`, and each moved case gets a dated line in its
+notes. The tool never moves a case back: a regression case that fails is listed as "look at this".
+When a change makes a regression case wrong, a person moves it, on the record:
+
+```bash
+qa-agent track TC010 functional --by qa-lead --reason "refund rule changing in the next release"
+```
+
+(If the case's steps change instead, its fingerprint no longer matches and it goes back to review by
+itself; the reviewer can set Track there.)

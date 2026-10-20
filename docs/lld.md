@@ -3,9 +3,10 @@
 The high-level design ([architecture.md](architecture.md)) says what the utility is and why. This
 document says how each part is built. It grows phase by phase: this version covers **phase 0**
 (the mock service), **phase 1** (the Python framework and env_check), **phase 1b** (the Python
-framework for QA teams), **phase 2** (the REST Assured framework with TestNG) and **phase 3a**
-(cases, importers, the review sheet, generated tests, trace and init); later phases get their
-sections when they are designed.
+framework for QA teams), **phase 2** (the REST Assured framework with TestNG), **phase 3a**
+(cases, importers, the review sheet, generated tests, trace and init) and **phase 3b** (drift check,
+promote, bug-detection rate, teams, Petstore, Docker); later phases get their sections when they are
+designed.
 
 ## 1. Repository layout after phase 2
 
@@ -780,3 +781,160 @@ Three pushes, each checked in Colab first:
 | 3a-1 | Case format, API model and its importers, `check` | format and loading · API importers · `check` · tests and examples |
 | 3a-2 | Importers of existing cases, the review sheet | Excel and CSV · Postman · Gherkin · review sheet |
 | 3a-3 | Renderers, `generate`, `trace`, `init`, the example project, CI, docs | renderers and `unique_id` · `generate` · `trace` · `init` · example and CI · README and design |
+
+## 10. Phase 3b: drift check, promote, bug-detection rate, teams, Petstore, Docker
+
+Still no model and no API key. Phase 3a gave a team the whole path, from its inputs to tests and a
+trace. Phase 3b makes that path safe to run every day, measures whether the tests catch bugs, and
+shows the utility on many teams and on an API this repository didn't write.
+
+| Part | The question it answers | When it runs |
+|---|---|---|
+| Drift check (`generate --check`) | Do the committed tests still match the approved cases? | Every build |
+| `trace --min-coverage` | Is coverage above the team's floor? | Every build, if the team sets one |
+| Promote | Which functional cases are stable enough for regression? | When the team chooses; a person applies it |
+| Bug-detection rate (`qa-agent bugs`) | Do the tests catch bugs, or only pass? | When the team chooses; in CI for the example |
+| The reusable workflow and two teams | Does it scale to many teams and both stacks with one line of CI each? | Every build |
+| Swagger Petstore | Does it work on an API this repository didn't write? | Every build (its Docker image); the public server on demand |
+| Docker image | Can a team start without installing Python packages? | Built in CI |
+
+### 10.1 Drift check: `qa-agent generate --check`
+
+Writes nothing. Renders every approved case in memory and compares with the files on disk; exits 1
+and lists each file that is out of date, missing or left over ("run qa-agent generate and commit").
+It catches a test edited by hand and a case approved without generating. The workflow `init` writes
+runs it, and so does `run_all.sh`.
+
+### 10.2 Promote: `qa-agent promote`
+
+The second track. A functional case joins regression when it is stable: it passed in every run given,
+in every stack, and at least three runs were given.
+
+```
+pytest --junitxml=reports/run1.xml     (three runs: run1, run2, run3)
+qa-agent promote --runs reports/run1.xml reports/run2.xml reports/run3.xml
+qa-agent promote --runs ... --apply
+```
+
+| Case | Becomes |
+|---|---|
+| Functional, approved, passed in every run and every stack | Listed as ready; `--apply` sets `track: regression` in its case file |
+| Failed or skipped in any run, or not run in a stack | Listed with the reason; stays functional |
+| Already regression and failed in a run | Listed: "look at this" (never demoted by the tool) |
+
+- Without `--apply` it only lists: a person decides. The track is not in the fingerprint, so the
+  approval stands; `generate` then writes the `regression` marker or group.
+- **A person can always move a case back.** When tomorrow's change alters what a regression case
+  should do, two ways, both recorded:
+  - its steps or expected results change in the case file: the fingerprint no longer matches, so it
+    goes back to review by itself, and the reviewer sets Track to functional in the review sheet;
+  - only the track changes (the feature is being reworked, the steps stay):
+    `qa-agent track TC010 functional --by qa-lead --reason "refund rule changing in the next release"`
+    writes the track and adds who, when and why to the case's notes.
+- Each argument to `--runs` is one run (a JUnit file, or a folder of them, as Surefire writes).
+
+### 10.3 Bug-detection rate: do the tests catch bugs?
+
+The reference API can switch on small planted bugs, one at a time:
+`python -m mock_service --bug refund-boundary`. Each is the kind of slip a developer makes.
+
+| Bug | What changes |
+|---|---|
+| `refund-boundary` | A cancel at exactly 24 hours gets no refund (`<` instead of `<=`) |
+| `wrong-refund-amount` | The refund is half the amount |
+| `second-cancel-allowed` | Cancelling twice succeeds |
+| `deleted-still-readable` | A deleted booking still reads back |
+| `amount-changeable` | The amount can be changed after booking |
+| `token-not-checked` | A call with no token is let through |
+| `status-filter-ignored` | Listing by status returns every booking |
+
+`qa-agent bugs` runs the team's tests once per bug, against the API started with that bug, and
+reports which bugs the tests caught:
+
+```
+qa-agent bugs --variants bugs.yaml --stack python
+```
+
+```yaml
+# bugs.yaml: how to start the API with each planted bug (any team can write its own)
+start: python -m mock_service --bug {bug}
+bugs: [refund-boundary, wrong-refund-amount, second-cancel-allowed, deleted-still-readable,
+       amount-changeable, token-not-checked, status-filter-ignored]
+```
+
+For each bug: start the API, wait for env_check, run the stack's tests, stop the API. A bug is
+caught when at least one test fails. The report (console and `reports/bug-detection.md`) gives the
+rate and, for each missed bug, the gap behind it, which is the same gap the trace shows: a missed
+`token-not-checked` means no case calls without a token. A clean run with no bug comes first: if
+it fails, the rate is not measured (a failing suite catches every "bug").
+
+### 10.4 Two teams, and the reusable workflow
+
+`teams/` holds two small team projects, each made with `qa-agent init` and exactly the shape of a
+standalone team repository:
+
+| Team | Stack | Its cases |
+|---|---|---|
+| `teams/bookings-python/` | pytest | create, read, update, delete a booking |
+| `teams/refunds-java/` | REST Assured | cancel, the 24-hour refund rule, refund status |
+
+`.github/workflows/qa-agent-team.yml` is a reusable workflow (`on: workflow_call`). A team joins CI
+with one job:
+
+```yaml
+jobs:
+  api-tests:
+    uses: rahulsharma-qe/api-qa-agent/.github/workflows/qa-agent-team.yml@main
+    with:
+      stack: python                 # or restassured
+      environment: mock             # an environment in config/environments.yaml
+      start-reference-api: true     # only for the reference API
+```
+
+It runs env_check, `generate --check`, the tests, `trace --check` (and `--min-coverage` when given),
+and keeps the reports. In this repository, `teams.yml` calls it once per team; the workflow `init`
+writes becomes this one call. Each team builds only its own stack.
+
+### 10.5 Swagger Petstore: someone else's API
+
+`examples/petstore-team/`: a team project for Swagger Petstore (its OpenAPI 3 description, cases in
+an Excel sheet in the API layout, reviewed, generated in both stacks, traced).
+
+| Where it runs | How | When |
+|---|---|---|
+| CI | The official Docker image (`swaggerapi/petstore3:unstable`, port 8080, base path `/api/v3`) as a service container: our own copy, clean data, the same every time | Every build |
+| The public server | `petstore3.swagger.io`: shared with everyone, data changes, sometimes down | On demand only (`workflow_dispatch`), and in the Colab check |
+
+The cases make their own data (a pet with a unique name, then read, update, delete it), so they
+don't depend on anyone else's. What Petstore actually returns is checked against the public server
+in Colab before the cases are written: no expected result is guessed.
+
+### 10.6 Docker image: qa-agent in one command
+
+A `Dockerfile` (Python 3.12 slim) with qa-agent, env_check, the reference API and the Python
+framework:
+
+```
+docker run --rm -v "$PWD":/project ghcr.io/rahulsharma-qe/qa-agent check
+```
+
+CI builds the image and runs `qa-agent check` on the example inside it. Publishing it to the GitHub
+Container Registry is a separate step, done when you choose (it needs the repository's package
+setting). Java teams still bring their own JDK and Maven wrapper.
+
+### 10.7 Smaller items
+
+- `qa-agent trace --min-coverage 80`: exit 1 when criteria or operations coverage is below it (response
+  codes are reported, not gated). Off unless a team sets it: a floor stops coverage falling quietly
+  (new endpoints with no cases), at the risk of cases written only to reach the number.
+- The team `pom.xml` gets `slf4j-nop` 1.7.36 (test scope), so Java runs don't print the SLF4J warning.
+
+### 10.8 Build order
+
+| Push | What |
+|---|---|
+| 3b-1 | Drift check, promote, `--min-coverage`, the SLF4J fix |
+| 3b-2 | Planted bugs in the reference API, `qa-agent bugs`, the example's rate |
+| 3b-3 | The reusable workflow, the two teams |
+| 3b-4 | Petstore |
+| 3b-5 | The Docker image |

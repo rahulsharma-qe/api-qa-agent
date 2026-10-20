@@ -16,19 +16,18 @@ testing AI agents themselves.
 
 | | Status |
 |---|---|
-| Reference API to test against ([`mock_service/`](mock_service/)) | **Built**: bookings, tokens, cancel and refund rules, health checks; its OpenAPI description is checked in CI |
+| Reference API to test against ([`mock_service/`](mock_service/)) | **Built**: bookings, tokens, cancel and refund rules, health checks; its OpenAPI description lists every status code and is checked in CI |
 | Environment check ([`env_check/`](env_check/)) | **Built**: a dependency that is down stops the run as an environment problem, never a test failure |
-| Python framework ([`frameworks/python_api/`](frameworks/python_api/)) | **Built**: environments, OAuth, API chaining, data-driven tests, readable failures, JUnit reports |
-| Python framework for QA teams: Allure report, smoke and priority tags, evidence, retry | **Built** (phase 1b) |
-| REST Assured framework with TestNG ([`frameworks/restassured_api/`](frameworks/restassured_api/)) | **Built** (phase 2): the same features in Java, with TestNG groups and suites, Excel-driven data, Allure, evidence, retry |
-| `qa-agent`: the case format, API import (OpenAPI, curl), `check` ([`qa_agent/`](qa_agent/), [example](examples/bookings-team/)) | **Built** (phase 3a, part 1): cases as data, one file per feature; every case checked against the API and the criteria, with the fix |
-| Importers of the team's existing cases (Excel, CSV, Postman, Gherkin), the Excel review sheet | **Built** (phase 3a, part 2): cases from four formats, anything unreadable reported; a person approves each case in Excel, with who and when recorded |
-| Generated tests (pytest, REST Assured), traceability, `qa-agent init` | **Built** (phase 3a, part 3): approved cases become tests in both stacks; the trace shows criteria to cases to tests to results, with coverage; a new team project runs on day one |
-| Drift check, promote, bug-detection rate, two example teams | Phase 3b |
-| Cucumber on REST Assured | Phase 3c |
-| User-interface tests | Phase 4, in its own repository (`playwright-qa-agent`) |
-| Jira and wiki; results back to TestRail, Zephyr or Xray | Phase 5 |
-| The AI layer: drafting, review, the model in your own cloud | Phase 6 |
+| Python framework ([`frameworks/python_api/`](frameworks/python_api/)) | **Built**: environments, OAuth, API chaining, data-driven tests, readable failures; Allure report, smoke and priority tags, evidence, one retry shown separately |
+| REST Assured framework with TestNG ([`frameworks/restassured_api/`](frameworks/restassured_api/)) | **Built**: the same features in Java, with TestNG groups and suites, Excel-driven data, Allure, evidence, retry |
+| `qa-agent`: cases from the team's API and existing cases ([`qa_agent/`](qa_agent/), [example](examples/bookings-team/)) | **Built**: API import (OpenAPI, curl); existing cases from Excel, CSV, Postman and Gherkin; `check` with the fix for every finding; review in an Excel sheet, with who and when |
+| `qa-agent`: tests, trace, new projects | **Built**: approved cases become pytest and REST Assured tests; the trace from criteria to results, with coverage; `init` makes a project that runs on day one |
+| `qa-agent`: every day | **Built**: the drift check (`generate --check`), a coverage floor (`trace --min-coverage`), `promote` stable cases to regression, `track` to move one back, on the record |
+| Bug-detection rate (planted bugs), two teams on one reusable CI workflow, a run on Swagger Petstore, a Docker image | **Next** |
+| Cucumber on REST Assured | Later |
+| User-interface tests, in their own repository (`playwright-qa-agent`) | Later |
+| Jira and wiki; results back to TestRail, Zephyr or Xray | Later |
+| The AI layer: drafting, review, the model in your own cloud | Later |
 
 Everything that needs no AI comes first, so a team can use the utility end to end with its
 existing test cases before any AI is switched on.
@@ -51,8 +50,8 @@ flowchart LR
   linkStyle default stroke:#94a3b8,stroke-width:2px
 ```
 
-Green border: built. Dashed: the AI layer, phase 6. Until then a person writes or imports the cases,
-and everything after them works the same.
+Green border: built. Dashed: the AI layer, coming later. Until then a person writes or imports the
+cases, and everything after them works the same.
 
 ## Try it (no API key)
 
@@ -98,7 +97,7 @@ both stacks, and the trace. A new team starts with `qa-agent init my-team --stac
 | [`qa_agent/`](qa_agent/) | `qa-agent`, the command line: `init`, `import`, `check`, `review`, `generate`, `trace` |
 | [`examples/bookings-team/`](examples/bookings-team/) | A team's project for the reference API: every `qa-agent` feature, with its output |
 | [`docs/`](docs/) | The design: [high-level](docs/architecture.md) and [low-level](docs/lld.md) |
-| `core/` | The first version's language-model steps (case and data drafting, a review step); reworked into the AI layer in phase 6 |
+| `core/` | The first version's language-model steps (case and data drafting, a review step); reworked into the AI layer later |
 
 ## Design choices
 
