@@ -13,6 +13,8 @@ dependencies = [
     "pyyaml>=6.0",
     "pytest>=8",
     "openpyxl>=3.1",     # test data from Excel
+    "allure-pytest>=2.13",          # the Allure report
+    "pytest-rerunfailures>=14",     # one retry on failure, shown separately
 ]
 
 [project.entry-points.pytest11]

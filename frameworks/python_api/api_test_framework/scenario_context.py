@@ -5,7 +5,7 @@
 """
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Callable, Optional
 
 from api_test_framework.api_response import ApiResponse, describe
 
@@ -17,9 +17,10 @@ class Step:
 
 
 class ScenarioContext:
-    def __init__(self):
+    def __init__(self, on_step: Optional[Callable[["Step"], None]] = None):
         self._values: dict = {}
         self.steps: list = []
+        self._on_step = on_step       # e.g. attach each step to a report as it happens
 
     def remember(self, name: str, value: Any) -> Any:
         self._values[name] = value
@@ -39,7 +40,10 @@ class ScenarioContext:
         return dict(self._values)
 
     def record(self, response: ApiResponse) -> None:
-        self.steps.append(Step(len(self.steps) + 1, response))
+        step = Step(len(self.steps) + 1, response)
+        self.steps.append(step)
+        if self._on_step is not None:
+            self._on_step(step)
 
     def history(self) -> str:
         """Every step's request and response, in order: the chain that led to a failure."""
