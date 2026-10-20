@@ -74,3 +74,20 @@ def test_the_command_exits_1_when_a_case_cant_be_written(make_project, capsys):
     assert main(["--project", str(project.root), "generate"]) == 1
     out = capsys.readouterr().out
     assert "problem: restassured: TC1 step 1: a null value" in out and "python: 1 tests · restassured: 0 tests" in out
+
+
+def test_the_drift_check_writes_nothing_and_names_what_is_out_of_date(make_project, capsys):
+    project = approved_project(make_project)
+    assert main(["--project", str(project.root), "generate", "--check"]) == 1      # nothing generated yet
+    assert "tests/generated/test_bookings.py (missing)" in capsys.readouterr().out
+    assert not (project.root / "tests/generated").exists()
+    generate(project)
+    assert main(["--project", str(project.root), "generate", "--check"]) == 0
+    java = project.root / "src/test/java/generated/BookingsTest.java"
+    java.write_text(java.read_text().replace("statusIs(200)", "statusIs(201)"))
+    path = project.cases_dir / "bookings.yaml"
+    path.write_text(path.read_text().replace("AB12CD", "ZZ99ZZ"))          # TC1 no longer approved
+    assert main(["--project", str(project.root), "generate", "--check"]) == 1
+    out = capsys.readouterr().out
+    assert "test_bookings.py (left over: its cases are no longer approved)" in out
+    assert "BookingsTest.java (left over" in out

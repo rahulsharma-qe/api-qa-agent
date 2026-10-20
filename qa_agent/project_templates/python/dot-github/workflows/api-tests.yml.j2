@@ -22,7 +22,7 @@ jobs:
       - name: Is the environment ready? (exit 3 if not)
         run: python -m env_check --env mock
       - name: The generated tests match the approved cases
-        run: qa-agent generate && git diff --exit-code tests/generated
+        run: qa-agent generate --check
       - name: Tests
         run: pytest --junitxml=reports/junit.xml
       - name: Trace (fails if an approved case has no test)

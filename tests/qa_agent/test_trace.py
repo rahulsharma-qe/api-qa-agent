@@ -119,3 +119,10 @@ def test_results_that_dont_exist_are_a_setup_problem(make_project, capsys):
     project = project_with_tests(make_project)
     assert main(["--project", str(project.root), "trace", "--results", "reports/nothing.xml"]) == 2
     assert "no such results: reports/nothing.xml" in capsys.readouterr().err
+
+
+def test_a_coverage_floor_fails_only_when_given_and_missed(make_project, capsys):
+    project = project_with_tests(make_project)
+    assert main(["--project", str(project.root), "trace", "--min-coverage", "60"]) == 0   # 67% and 67%
+    assert main(["--project", str(project.root), "trace", "--min-coverage", "70"]) == 1
+    assert "Criteria 67% (floor 70%), Operations 67% (floor 70%)" in capsys.readouterr().out

@@ -3,6 +3,9 @@
 Only a case that is approved and unchanged since (its fingerprint matches) becomes code. The output
 folders belong to qa-agent: a generated file whose cases are no longer approved is removed; a file
 qa-agent didn't write is left alone, and reported. Same cases, same files, every time.
+
+`qa-agent generate --check` (the drift check) writes nothing: it lists each file that is out of date,
+missing or left over, and exits 1 if there is any.
 """
 
 from dataclasses import dataclass, field
@@ -24,8 +27,20 @@ class GenerateResult:
     tests: dict = field(default_factory=dict)         # stack -> number of tests
     not_generated: list = field(default_factory=list) # "TC005: changes needed"
     problems: list = field(default_factory=list)      # cases a framework can't express
+    out_of_date: list = field(default_factory=list)   # --check: files that differ, are missing or left over
+    checked: bool = False
+
+    @property
+    def drifted(self) -> bool:
+        return bool(self.out_of_date)
 
     def as_text(self) -> str:
+        if self.checked:
+            lines = [f"out of date  {item}" for item in self.out_of_date]
+            lines += [f"problem: {item}" for item in self.problems]
+            lines.append("The generated tests match the approved cases." if not self.out_of_date else
+                         "The generated tests don't match the approved cases: run qa-agent generate, and commit.")
+            return "\n".join(lines)
         lines = [f"wrote      {path}" for path in self.written] + [f"unchanged  {path}" for path in self.unchanged]
         lines += [f"removed    {path}" for path in self.removed]
         lines += [f"left alone {path} (not written by qa-agent)" for path in self.left_alone]
@@ -35,8 +50,8 @@ class GenerateResult:
         return "\n".join(lines)
 
 
-def generate(project: TeamProject) -> GenerateResult:
-    result = GenerateResult()
+def generate(project: TeamProject, check: bool = False) -> GenerateResult:
+    result = GenerateResult(checked=check)
     case_files = [load_case_file(path) for path in project.case_files()]
     left_out = sorted((case for case_file in case_files for case in case_file.cases if not case.is_approved),
                       key=lambda case: natural_order(case.id))
@@ -61,7 +76,7 @@ def generate(project: TeamProject) -> GenerateResult:
         if approved_everywhere:
             for generated in renderer.support_files(approved_everywhere):
                 expected[generated.path] = generated.text
-        _write(project, renderer, expected, result)
+        (_compare if check else _write)(project, renderer, expected, result)
         result.tests[stack] = count
     return result
 
@@ -87,6 +102,21 @@ def _write(project: TeamProject, renderer, expected: dict, result: GenerateResul
             result.removed.append(relative)
         else:
             result.left_alone.append(relative)
+
+
+def _compare(project: TeamProject, renderer, expected: dict, result: GenerateResult) -> None:
+    for relative, text in sorted(expected.items()):
+        path = project.root / relative
+        if not path.is_file():
+            result.out_of_date.append(f"{relative} (missing)")
+        elif path.read_text(encoding="utf-8") != text:
+            result.out_of_date.append(f"{relative} (differs from the cases: edited by hand, or not generated again)")
+    folder = project.root / renderer.output_dir
+    for path in sorted(folder.iterdir()) if folder.is_dir() else []:
+        relative = project.relative(path)
+        if path.is_file() and path.suffix in SUFFIXES and relative not in expected \
+                and path.read_text(encoding="utf-8").startswith(renderer.header_mark):
+            result.out_of_date.append(f"{relative} (left over: its cases are no longer approved)")
 
 
 def _why_not(case) -> str:

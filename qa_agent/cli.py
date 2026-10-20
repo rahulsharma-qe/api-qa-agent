@@ -89,6 +89,8 @@ def _parser() -> argparse.ArgumentParser:
 
     write = commands.add_parser("generate", help="approved cases -> tests for every stack; exit 1 if a case "
                                                   "can't be written")
+    write.add_argument("--check", action="store_true",
+                       help="write nothing; exit 1 if the generated tests don't match the approved cases (CI)")
     write.set_defaults(run=run_generate)
 
     trace = commands.add_parser("trace", help="criteria -> cases -> tests -> results, and coverage; "
@@ -97,6 +99,8 @@ def _parser() -> argparse.ArgumentParser:
                        help="JUnit XML files or folders: reports/junit.xml target/surefire-reports")
     trace.add_argument("--out", type=Path, default=Path("reports"), help="where trace.md and trace.xlsx go")
     trace.add_argument("--check", action="store_true", help="exit 1 when an approved case has no test")
+    trace.add_argument("--min-coverage", type=float, metavar="PERCENT",
+                       help="exit 1 when criteria or operations coverage is below it (off unless given)")
     trace.set_defaults(run=run_trace)
     return parser
 
@@ -162,9 +166,9 @@ def review_import(args) -> int:
 
 
 def run_generate(args) -> int:
-    result = generate(TeamProject.load(args.project))
+    result = generate(TeamProject.load(args.project), check=args.check)
     print(result.as_text())
-    return FINDINGS if result.problems else DONE
+    return FINDINGS if result.problems or result.drifted else DONE
 
 
 def run_trace(args) -> int:
@@ -174,13 +178,16 @@ def run_trace(args) -> int:
     if missing:
         raise SetupError(f"no such results: {', '.join(missing)}")
     report = build_trace(project, results)
+    if args.min_coverage is not None:
+        report.apply_floor(args.min_coverage)
     out = args.out if args.out.is_absolute() else project.root / args.out
     out.mkdir(parents=True, exist_ok=True)
     (out / "trace.md").write_text(report.as_markdown(), encoding="utf-8")
     report.write_excel(out / "trace.xlsx")
     print(report.as_text())
     print(f"\nWritten: {project.relative(out / 'trace.md')}, {project.relative(out / 'trace.xlsx')}")
-    return FINDINGS if args.check and report.missing_tests else DONE
+    failed = (args.check and report.missing_tests) or report.below_floor
+    return FINDINGS if failed else DONE
 
 
 def run_check(args) -> int:

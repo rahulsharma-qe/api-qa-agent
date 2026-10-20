@@ -14,7 +14,6 @@ layer's job. `--check` fails only when an approved case has no test.
 """
 
 import re
-import xml.etree.ElementTree as ElementTree
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -24,9 +23,11 @@ from qa_agent.cases import Case, load_case_file
 from qa_agent.data_files import DataFileError, rows
 from qa_agent.project import TeamProject
 from qa_agent.renderers import RENDERERS
+from qa_agent.results import read_results
 from qa_agent.review_sheet import natural_order
 
 TAKES_A_BODY = ("POST", "PUT", "PATCH")
+FLOORED = ("Criteria", "Operations")
 TEST_NAME = {"python": re.compile(r"^def (test_\w+)\(", re.MULTILINE),
              "restassured": re.compile(r"^\s+public void (\w+)\(", re.MULTILINE)}
 
@@ -38,6 +39,10 @@ class Coverage:
     total: int
     missing: list = field(default_factory=list)
     note: str = ""
+
+    @property
+    def percent(self) -> float:
+        return 100.0 * self.covered / self.total if self.total else 100.0
 
     def as_line(self) -> str:
         if self.note:
@@ -64,6 +69,7 @@ class TraceReport:
     coverage: list = field(default_factory=list)
     not_tested: list = field(default_factory=list)        # "POST /test/reset: a test-only route"
     missing_tests: list = field(default_factory=list)     # "TC001 (restassured)"
+    below_floor: list = field(default_factory=list)       # "Operations 62% (floor 80%)", with --min-coverage
     orphan_tests: list = field(default_factory=list)
     results_read: dict = field(default_factory=dict)      # stack -> {"passed": n, ...}
 
@@ -78,7 +84,15 @@ class TraceReport:
             lines.append(f"{'No test':<15} " + ", ".join(self.missing_tests) + ": run qa-agent generate")
         if self.orphan_tests:
             lines.append(f"{'No case':<15} " + ", ".join(self.orphan_tests))
+        if self.below_floor:
+            lines.append(f"{'Below floor':<15} " + ", ".join(self.below_floor))
         return "\n".join(lines)
+
+    def apply_floor(self, minimum: float) -> None:
+        """--min-coverage: criteria and operations coverage must reach it (response codes are reported only)."""
+        for item in self.coverage:
+            if item.name in FLOORED and not item.note and item.percent < minimum:
+                self.below_floor.append(f"{item.name} {item.percent:.0f}% (floor {minimum:.0f}%)")
 
     def as_markdown(self) -> str:
         lines = [f"# Trace: {self.team}", "", "| Coverage | Covered | Missing |", "|---|---|---|"]
@@ -127,7 +141,9 @@ def build_trace(project: TeamProject, result_paths: Optional[list] = None) -> Tr
                    key=lambda case: natural_order(case.id))
     approved = [case for case in cases if case.is_approved]
     written = {stack: _written_tests(project, stack) for stack in project.stacks}
-    outcomes = _outcomes(result_paths or [], report)
+    results = read_results(result_paths or [])
+    report.results_read = results.counts
+    outcomes = results.outcomes
     expected_names = set()
     tests_by_case = {}
     for case in approved:
@@ -166,34 +182,6 @@ def _written_tests(project: TeamProject, stack: str) -> dict:
         for name in TEST_NAME[stack].findall(text):        # data providers return Object[][], not void
             found[name] = f"{path.name}::{name}"
     return found
-
-
-def _outcomes(paths: list, report: TraceReport) -> dict:
-    """Test name -> list of outcomes from JUnit XML (pytest --junitxml, Maven Surefire)."""
-    outcomes: dict = {}
-    files = []
-    for path in map(Path, paths):
-        files += sorted(path.glob("*.xml")) if path.is_dir() else [path]
-    for path in files:
-        try:
-            root = ElementTree.parse(path).getroot()
-        except (ElementTree.ParseError, OSError):
-            continue
-        if root.tag not in ("testsuite", "testsuites"):
-            continue                                       # testng-results.xml and others: not JUnit
-        for case in root.iter("testcase"):
-            name = re.split(r"[\[(]", case.get("name", ""), maxsplit=1)[0].strip()
-            if case.find("failure") is not None or case.find("error") is not None:
-                outcome = "failed"
-            elif case.find("skipped") is not None:
-                outcome = "skipped"
-            else:
-                outcome = "passed"
-            outcomes.setdefault(name, []).append(outcome)
-            stack = "python" if name.startswith("test_") else "restassured"
-            counts = report.results_read.setdefault(stack, {})
-            counts[outcome] = counts.get(outcome, 0) + 1
-    return outcomes
 
 
 def _result(case: Case, project: TeamProject, outcomes: dict) -> str:
