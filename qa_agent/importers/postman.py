@@ -19,7 +19,7 @@ import json
 import re
 from pathlib import Path
 
-from qa_agent.importers.common import CaseImportError, ImportedFeature, ImportResult, leading_id, slug
+from qa_agent.importers.common import CaseImportError, ImportedFeature, ImportResult, leading_id
 
 RESPONSE_JSON = re.compile(r"^(?:var|let|const)\s+(\w+)\s*=\s*pm\.response\.json\(\)\s*;?$")
 STATUS = [re.compile(r"^pm\.response\.to\.have\.status\((\d{3})\)"),
@@ -39,8 +39,7 @@ def read_postman_collection(path: Path, source_name: str) -> ImportResult:
     name = str(collection.get("info", {}).get("name") or path.stem)
     feature = ImportedFeature(name)
     result = ImportResult([feature])
-    counter = {"next": 1}
-    _walk(collection.get("item") or [], name, feature, result, source_name, counter)
+    _walk(collection.get("item") or [], feature, result, source_name)
     return result
 
 
@@ -55,35 +54,30 @@ def _load(path: Path) -> dict:
     return collection
 
 
-def _walk(items: list, collection_name: str, feature: ImportedFeature, result: ImportResult, source: str,
-          counter: dict) -> None:
+def _walk(items: list, feature: ImportedFeature, result: ImportResult, source: str) -> None:
     loose = []
     for item in items:
         if "item" in item:
             requests = [child for child in item["item"] if "request" in child]
             if requests:
-                feature.cases.append(_case(item.get("name", ""), requests, collection_name, result, source, counter))
-            _walk([child for child in item["item"] if "item" in child], collection_name, feature, result, source,
-                  counter)
+                feature.cases.append(_case(item.get("name", ""), requests, result, source))
+            _walk([child for child in item["item"] if "item" in child], feature, result, source)
         elif "request" in item:
             loose.append(item)
     for item in loose:
-        feature.cases.append(_case(item.get("name", ""), [item], collection_name, result, source, counter))
+        feature.cases.append(_case(item.get("name", ""), [item], result, source))
 
 
-def _case(name: str, requests: list, collection_name: str, result: ImportResult, source: str, counter: dict) -> dict:
-    case_id, title = leading_id(name)
-    if not case_id:
-        case_id = f"{slug(collection_name).upper()}-{counter['next']:02d}"
-        counter["next"] += 1
+def _case(name: str, requests: list, result: ImportResult, source: str) -> dict:
+    case_id, title = leading_id(name)            # "TC030 Create and read"; None: the next free id on import
     notes, steps = [], []
     for number, item in enumerate(requests, start=1):
         step, unread = _step(item)
         steps.append(step)
         notes += [f"step {number}: {line}" for line in unread]
     for note in notes:
-        result.notes.append(f"{source}, {case_id} {note}")
-    case = {"id": case_id, "title": title or case_id, "criteria": [], "priority": "P2", "track": "functional",
+        result.notes.append(f"{source}, '{title}' {note}")
+    case = {"id": case_id, "title": title or name, "criteria": [], "priority": "P2", "track": "functional",
             "source": {"format": "postman", "file": source, "item": name}, "steps": steps}
     if notes:
         case["notes"] = "Not converted, check by hand: " + " | ".join(notes)

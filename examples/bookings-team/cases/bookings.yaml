@@ -32,6 +32,7 @@ cases:
     criteria: [AC-1]
     priority: P2
     track: functional
+    tags: [negative]
     steps:
       - request:
           method: POST

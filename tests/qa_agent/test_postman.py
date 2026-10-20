@@ -48,11 +48,11 @@ def test_a_folder_is_one_case_and_its_scripts_become_expectations(tmp_path):
     assert "to.match(/M/)" in case["notes"] and "to.match(/M/)" in result.notes[0]
 
 
-def test_a_request_outside_a_folder_is_a_case_with_a_made_up_id(tmp_path):
+def test_a_request_outside_a_folder_is_a_case_whose_id_comes_on_import(tmp_path):
     path = collection(tmp_path, [{"name": "Health", "request": {"auth": {"type": "noauth"}, "method": "GET",
                                                                 "url": {"raw": "{{baseUrl}}/health-check"}}}])
     case = read_postman_collection(path, "c.json").features[0].cases[0]
-    assert (case["id"], case["title"]) == ("BOOKINGS-SMOKE-01", "Health")
+    assert (case["id"], case["title"]) == (None, "Health")
     assert case["steps"][0]["request"] == {"method": "GET", "path": "/health-check", "auth": "none"}
 
 

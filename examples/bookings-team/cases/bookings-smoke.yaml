@@ -5,6 +5,7 @@ cases:
     criteria: [AC-1]
     priority: P2
     track: functional
+    tags: [smoke]
     source:
       format: postman
       file: existing/bookings.postman_collection.json
@@ -35,7 +36,7 @@ cases:
       by: qa-lead
       date: '2026-10-21'
       fingerprint: 0892d03c7f40
-  - id: BOOKINGS-SMOKE-01
+  - id: TC042
     title: Health check
     criteria: []
     priority: P2

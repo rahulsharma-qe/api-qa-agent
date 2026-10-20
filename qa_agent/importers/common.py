@@ -18,10 +18,11 @@ class CaseImportError(Exception):
 
 @dataclass
 class ImportedFeature:
-    """Cases for one feature file, plus any data files they need (relative path -> rows)."""
+    """Cases for one feature file, as case dicts in the case format. A case with no id in its source
+    has "id": None and gets the project's next free id on import; a case whose data came with it
+    (a Gherkin outline's Examples) carries the rows under "_data_rows"."""
     feature: str
-    cases: list = field(default_factory=list)          # case dicts, in the case format
-    data_files: dict = field(default_factory=dict)
+    cases: list = field(default_factory=list)
 
 
 @dataclass

@@ -5,6 +5,8 @@ the project is skipped and reported, unless --overwrite, which replaces it (and 
 """
 
 import csv
+import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -23,9 +25,11 @@ class ImportSummary:
     skipped: list = field(default_factory=list)       # "TC003: already in cases/x.yaml"
     notes: list = field(default_factory=list)
     data_files: list = field(default_factory=list)
+    new_ids: list = field(default_factory=list)       # "TC042: Health check": cases that came without an id
 
     def as_text(self) -> str:
         lines = [f"{file}: {', '.join(ids)}" for file, ids in self.written.items()]
+        lines += [f"new id {item}" for item in self.new_ids]
         lines += [f"data file written: {name}" for name in self.data_files]
         lines += [f"skipped {item}" for item in self.skipped]
         lines += [f"note: {note}" for note in self.notes]
@@ -54,41 +58,75 @@ def import_cases(project: TeamProject, paths: list[Path], into: Optional[Path] =
     except CaseFormatError as error:
         raise CaseImportError(f"{project.relative(error.path)} can't be read; fix it first (qa-agent check "
                               f"lists the problems)") from error
-    for path in paths:
+    read = []
+    for path in paths:                                   # every file first, so new ids don't depend on the order
         result = read_existing_cases(path, project.relative(path))
         summary.notes += result.notes
-        for feature in result.features:
-            target = Path(into) if into else project.cases_dir / f"{slug(feature.feature)}.yaml"
-            target = target if target.is_absolute() else project.root / target
-            case_file = files.setdefault(target, CaseFile(target, feature.feature, []))
-            for raw in feature.cases:
-                _add_case(raw, case_file, files, overwrite, project, summary)
-            for relative_path, rows in feature.data_files.items():
-                _write_data_file(project.root / relative_path, rows, overwrite, summary, relative_path)
+        read += result.features
+    next_id = _id_maker(project, files, read)
+    sources = {_source_key(case.source): case.id for case_file in files.values() for case in case_file.cases
+               if case.source}
+    for feature in read:
+        target = Path(into) if into else project.cases_dir / f"{slug(feature.feature)}.yaml"
+        target = target if target.is_absolute() else project.root / target
+        case_file = files.setdefault(target, CaseFile(target, feature.feature, []))
+        for raw in feature.cases:
+            raw = dict(raw)
+            if not raw.get("id"):
+                known = sources.get(_source_key(raw.get("source")))       # imported before: keep its id
+                raw["id"] = known or next_id()
+                if not known:
+                    summary.new_ids.append(f"{raw['id']}: {raw.get('title')}")
+            rows = raw.pop("_data_rows", None)
+            if rows:
+                raw["data"] = f"data/{slug(feature.feature)}-{raw['id'].lower()}.csv"
+            if _add_case(raw, case_file, files, overwrite, project, summary) and rows:
+                _write_data_file(project.root / raw["data"], rows, overwrite, summary, raw["data"])
     for case_file in files.values():
         if project.relative(case_file.path) in summary.written:
             save_case_file(case_file)
     return summary
 
 
+def _source_key(source) -> str:
+    return json.dumps(source or {}, sort_keys=True)
+
+
+def _id_maker(project: TeamProject, files: dict, read: list):
+    """The next free id with the project's prefix: after TC041 comes TC042, whatever order files came in."""
+    prefix = project.case_id_prefix
+    pattern = re.compile(rf"^{re.escape(prefix)}-?(\d+)$", re.IGNORECASE)
+    used = [case.id for case_file in files.values() for case in case_file.cases]
+    used += [str(raw["id"]) for feature in read for raw in feature.cases if raw.get("id")]
+    numbers = [int(match.group(1)) for match in map(pattern.match, used) if match]
+    counter = {"next": max(numbers, default=0) + 1}
+
+    def next_id() -> str:
+        value = f"{prefix}{counter['next']:03d}"
+        counter["next"] += 1
+        return value
+    return next_id
+
+
 def _add_case(raw: dict, case_file: CaseFile, files: dict, overwrite: bool, project: TeamProject,
-              summary: ImportSummary) -> None:
+              summary: ImportSummary) -> bool:
     raw = {**raw, "review": {"status": "draft"}}
     try:
         case = parse_case_file({"feature": case_file.feature, "cases": [raw]}, case_file.path).cases[0]
     except CaseFormatError as error:
         summary.skipped.append(f"{raw.get('id')}: " + "; ".join(error.problems))
-        return
+        return False
     holder = next((f for f in files.values() if any(c.id == case.id for c in f.cases)), None)
     if holder is not None and not overwrite:
         summary.skipped.append(f"{case.id}: already in {project.relative(holder.path)} (use --overwrite to replace it)")
-        return
+        return False
     if holder is not None:
         holder.cases[[c.id for c in holder.cases].index(case.id)] = case
         case_file = holder
     else:
         case_file.cases.append(case)
     summary.written.setdefault(project.relative(case_file.path), []).append(case.id)
+    return True
 
 
 def _write_data_file(path: Path, rows: list[dict], overwrite: bool, summary: ImportSummary, name: str) -> None:

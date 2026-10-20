@@ -8,6 +8,7 @@ API layout, one row per step (a case's later rows may leave Case ID empty):
 Manual layout, one row per case, steps in words:
     ID | Title | Preconditions | Steps | Expected Result | Priority | Criteria
     -> a case with steps_text: kept and traced, "needs steps" until a person (or the AI layer) writes them.
+    A row with no ID gets the project's next free id on import.
 
 Each Excel sheet is one feature (its cases go to cases/<sheet name>.yaml); a CSV file is one feature.
 """
@@ -97,7 +98,7 @@ def _base_case(row, columns, case_id, source, row_number, where, result) -> dict
     priority, note = priority_from(_cell(row, columns, "priority"))
     if note:
         result.notes.append(f"{where}, row {row_number}: {note}")
-    case = {"id": case_id, "title": _cell(row, columns, "title") or case_id,
+    case = {"id": case_id, "title": _cell(row, columns, "title") or f"row {row_number}",
             "criteria": split_list(_cell(row, columns, "criteria")), "priority": priority,
             "track": _cell(row, columns, "track") or "functional"}
     tags = split_list(_cell(row, columns, "tags"))
@@ -169,11 +170,7 @@ def _manual_layout(rows, columns, layout, source_name, sheet_name, where, result
     for row_number, row in enumerate(rows[1:], start=2):
         if not any(str(cell or "").strip() for cell in row):
             continue
-        case_id = _cell(row, columns, "id")
-        if not case_id:
-            result.notes.append(f"{where}, row {row_number}: no ID; row skipped")
-            continue
-        case = _base_case(row, columns, case_id, source, row_number, where, result)
+        case = _base_case(row, columns, _cell(row, columns, "id") or None, source, row_number, where, result)
         lines = []
         if _cell(row, columns, "preconditions"):
             lines.append(f"Before: {_cell(row, columns, 'preconditions')}")

@@ -1,7 +1,7 @@
 """Gherkin (.feature) -> cases. One scenario is one case.
 
 Tags: @TC040 is the case id, @AC-2 a criterion, @P0 to @P3 the priority, any other tag a tag.
-A scenario with no id tag gets one from the feature's name (CANCELLATION-01).
+A scenario with no id tag gets the project's next free id on import.
 
 A scenario whose every step uses the fixed phrasing below becomes runnable steps; phase 3c
 generates feature files in the same phrasing, so a feature file can go both ways:
@@ -19,7 +19,7 @@ import json
 import re
 from pathlib import Path
 
-from qa_agent.importers.common import CaseImportError, ImportedFeature, ImportResult, slug
+from qa_agent.importers.common import CaseImportError, ImportedFeature, ImportResult
 
 KEYWORD = re.compile(r"^(Given|When|Then|And|But|\*)\s+(.*)$")
 REQUEST = re.compile(r'^I (GET|POST|PUT|PATCH|DELETE) "([^"]+)"(?: with)?$')
@@ -38,8 +38,8 @@ def read_feature_file(path: Path, source_name: str) -> ImportResult:
     feature = ImportedFeature(feature_name)
     result = ImportResult([feature])
     background, scenarios = _scenarios(lines)
-    for number, scenario in enumerate(scenarios, start=1):
-        feature.cases.append(_case(scenario, background, feature, number, source_name, result))
+    for scenario in scenarios:
+        feature.cases.append(_case(scenario, background, source_name, result))
     return result
 
 
@@ -84,8 +84,7 @@ def _target(current, background, section):
     return background if section == "background" or current is None else current["steps"]
 
 
-def _case(scenario: dict, background: list, feature: ImportedFeature, number: int, source: str,
-          result: ImportResult) -> dict:
+def _case(scenario: dict, background: list, source: str, result: ImportResult) -> dict:
     case_id, criteria, priority, tags = None, [], "P2", []
     for tag in scenario["tags"]:
         if CASE_ID_TAG.match(tag):
@@ -96,7 +95,6 @@ def _case(scenario: dict, background: list, feature: ImportedFeature, number: in
             priority = tag[1:].upper()
         else:
             tags.append(tag[1:])
-    case_id = case_id or f"{slug(feature.feature).upper()}-{number:02d}"
     case = {"id": case_id, "title": scenario["name"], "criteria": criteria, "priority": priority,
             "track": "functional"}
     if tags:
@@ -106,14 +104,12 @@ def _case(scenario: dict, background: list, feature: ImportedFeature, number: in
     steps = _runnable_steps(all_steps, scenario["outline"])
     if steps is None:
         case["steps_text"] = [f"{step['keyword']} {step['text']}" for step in all_steps]
-        result.notes.append(f"{source}, {case_id}: not in the fixed phrasing; kept in words (needs steps)")
+        result.notes.append(f"{source}, '{scenario['name']}': not in the fixed phrasing; kept in words (needs steps)")
         return case
     case["steps"] = steps
     if scenario["outline"] and len(scenario["examples"]) > 1:
         header, *rows = scenario["examples"]
-        data_path = f"data/{slug(feature.feature)}-{case_id.lower()}.csv"
-        feature.data_files[data_path] = [dict(zip(header, row)) for row in rows]
-        case["data"] = data_path
+        case["_data_rows"] = [dict(zip(header, row)) for row in rows]      # written to data/ on import
     return case
 
 

@@ -1,6 +1,6 @@
 """A team's project: where each of its files lives. Every command starts here.
 
-    qa-agent.yaml       team: bookings · service: bookings · stacks: [python]
+    qa-agent.yaml       team: bookings · service: bookings · stacks: [python] · case_id_prefix: TC (optional)
     api/api.yaml        the API model          criteria.yaml   the acceptance criteria
     cases/*.yaml        the cases, one file per feature
 """
@@ -30,6 +30,7 @@ class TeamProject:
     team: str
     main_service: str
     stacks: tuple[str, ...]
+    case_id_prefix: str = "TC"          # an imported case with no id gets the next free one: TC042
 
     @classmethod
     def load(cls, root: Path) -> "TeamProject":
@@ -45,7 +46,8 @@ class TeamProject:
         problems += [f"unknown stack '{stack}' (use {' or '.join(STACKS)})" for stack in stacks if stack not in STACKS]
         if problems:
             raise SetupError(f"{config_path}: " + "; ".join(problems))
-        return cls(Path(root), str(config["team"]), str(config["service"]), tuple(stacks))
+        return cls(Path(root), str(config["team"]), str(config["service"]), tuple(stacks),
+                   str(config.get("case_id_prefix") or "TC"))
 
     @property
     def api_model_path(self) -> Path:

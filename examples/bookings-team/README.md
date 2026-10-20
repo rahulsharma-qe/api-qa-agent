@@ -39,15 +39,26 @@ qa-agent import cases existing/booking_cases.xlsx existing/manual_cases.xlsx \
 ```
 cases/bookings-api.yaml: TC010, TC011, TC012
 cases/refunds.yaml: TC020, TC021
-cases/bookings-smoke.yaml: TC030, BOOKINGS-SMOKE-01
+cases/bookings-smoke.yaml: TC030, TC042
 cases/cancellation-scenarios.yaml: TC040, TC041
+new id TC042: Health check
 data file written: data/cancellation-scenarios-tc040.csv
-note: existing/bookings.postman_collection.json, TC030 step 2: pm.expect(body.passenger_name).to.match(/Meera/);
-note: existing/cancel.feature, TC041: not in the fixed phrasing; kept in words (needs steps)
+note: existing/bookings.postman_collection.json, 'Create and read a booking' step 2: pm.expect(body.passenger_name).to.match(/Meera/);
+note: existing/cancel.feature, 'Cancelling twice tells the passenger it is already cancelled': not in the fixed phrasing; kept in words (needs steps)
 9 cases imported as drafts, 0 skipped
 ```
 
-(Run it again and every case is skipped: their ids are already in the project.)
+(Run it again and every case is skipped: their ids are already in the project, and the health
+request keeps the id it was given.)
+
+**Case ids** are the team's own, never renumbered: they are what TestRail, Jira and old reports know
+a case by. Here each source had its own series (TC001 to TC006 written directly, TC010 from the API
+sheet, TC020 from the manual sheet, TC030 and TC040 from Postman and Gherkin). A case with no id
+gets the next free one with the project's prefix (`case_id_prefix: TC` in `qa-agent.yaml`): TC042.
+
+**Tags** are the team's labels for picking runs (`smoke`, `crud`, `negative`, `refund`); they become
+pytest markers and TestNG groups. They come from a sheet's Tags column or Gherkin tags; Postman has
+none, so the reviewer adds them in the review sheet.
 
 - **Excel, API layout:** one row per step, so TC010 to TC012 come in ready to run.
 - **Excel, manual layout:** TC020 and TC021 have steps in words, so they come in as "needs steps".
@@ -55,7 +66,7 @@ note: existing/cancel.feature, TC041: not in the fixed phrasing; kept in words (
   scripts became the status, fields, `contains`, a response-time limit and the captured PNR.
   `{{$randomInt}}` and `{{$guid}}` became `{{unique}}`, the token header was dropped, and the one
   line qa-agent can't read (`to.match(/Meera/)`) is in the case's notes. The health request had no
-  id, so it got one: BOOKINGS-SMOKE-01.
+  id, so it got the next free one: TC042.
 - **Gherkin:** TC040 is in the fixed phrasing, so it became steps, and its Examples became a data
   file. TC041 is in words.
 
@@ -99,21 +110,23 @@ qa-agent review export       # review/cases.xlsx: every case still to review
 qa-agent review import
 ```
 
-In the sheet, each case's steps and expected results are readable and locked, next to what check
-found; Decision is a drop-down. The reviewer here:
+In the sheet, cases are in id order; each case's steps and expected results are readable and
+locked, next to what check found; Decision is a drop-down. A case in words shows its expected
+result in words, marked "needs steps". The reviewer here:
 
 | Decision | Cases | Why |
 |---|---|---|
-| Approve | TC001 to TC004, TC010 to TC012, TC030, TC040 | TC030 also got criterion AC-1, which the Postman collection didn't have |
+| Approve | TC001 to TC004, TC010 to TC012, TC030, TC040 | TC030 also got criterion AC-1 and the tag `smoke`, which the Postman collection didn't have |
 | Changes needed | TC005 | "The API returns 422 for a missing field, not 400" |
-| Reject | BOOKINGS-SMOKE-01 | "env_check already calls /health-check before every run; not a test case" |
+| Reject | TC042 | "env_check already calls /health-check before every run; not a test case" |
 | No decision | TC006, TC020, TC021, TC041 | In words: they can't be approved until they have steps |
 
 ```
 applied  TC010: approved by qa-lead, 2026-10-21
 ...
 applied  TC005: changes needed by qa-lead, 2026-10-21
-applied  BOOKINGS-SMOKE-01: rejected by qa-lead, 2026-10-21
+...
+applied  TC042: rejected by qa-lead, 2026-10-21
 11 decisions applied, 0 refused
 ```
 

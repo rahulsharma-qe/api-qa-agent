@@ -64,4 +64,4 @@ def test_the_review_left_the_cases_the_readme_describes():
                 for case in load_case_file(path).cases}
     approved = sorted(case_id for case_id, status in statuses.items() if status == "approved")
     assert approved == ["TC001", "TC002", "TC003", "TC004", "TC010", "TC011", "TC012", "TC030", "TC040"]
-    assert statuses["TC005"] == "changes_needed" and statuses["BOOKINGS-SMOKE-01"] == "rejected"
+    assert statuses["TC005"] == "changes_needed" and statuses["TC042"] == "rejected"

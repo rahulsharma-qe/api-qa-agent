@@ -5,6 +5,7 @@ cases:
     criteria: [AC-1]
     priority: P1
     track: functional
+    tags: [smoke, crud]
     source:
       format: excel-api
       file: existing/booking_cases.xlsx
@@ -43,6 +44,7 @@ cases:
     criteria: [AC-1]
     priority: P2
     track: functional
+    tags: [crud]
     source:
       format: excel-api
       file: existing/booking_cases.xlsx
@@ -74,6 +76,7 @@ cases:
     criteria: [AC-1]
     priority: P2
     track: functional
+    tags: [crud, negative]
     source:
       format: excel-api
       file: existing/booking_cases.xlsx

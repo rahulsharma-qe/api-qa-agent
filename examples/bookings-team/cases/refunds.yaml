@@ -5,6 +5,7 @@ cases:
     criteria: [AC-5]
     priority: P2
     track: functional
+    tags: [refund]
     source:
       format: excel-manual
       file: existing/manual_cases.xlsx
@@ -21,6 +22,7 @@ cases:
     criteria: [AC-5]
     priority: P3
     track: functional
+    tags: [refund]
     source:
       format: excel-manual
       file: existing/manual_cases.xlsx

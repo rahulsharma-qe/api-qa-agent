@@ -48,9 +48,7 @@ def test_a_scenario_in_the_fixed_phrasing_becomes_steps_with_its_data(tmp_path):
                       "expect": {"status": 201}, "capture": {"pnr": "pnr"}}
     assert cancel["expect"] == {"status": "{{row.status}}",
                                 "fields": {"refund_allowed": "{{row.allowed}}", "reason": "on time"}}
-    assert outline["data"] == "data/cancellation-scenarios-tc040.csv"
-    assert feature.data_files[outline["data"]] == [{"booked_at": "t1", "cancelled_at": "t2", "status": "200",
-                                                    "allowed": "true"}]
+    assert outline["_data_rows"] == [{"booked_at": "t1", "cancelled_at": "t2", "status": "200", "allowed": "true"}]
 
 
 def test_any_other_scenario_is_kept_in_words(tmp_path):
@@ -58,6 +56,6 @@ def test_any_other_scenario_is_kept_in_words(tmp_path):
     path.write_text(FEATURE)
     result = read_feature_file(path, "existing/cancel.feature")
     words = result.features[0].cases[1]
-    assert words["id"] == "CANCELLATION-SCENARIOS-02"
+    assert words["id"] is None                       # the project's next free id, on import
     assert words["steps_text"][-3:] == ["Given a cancelled booking", "When it is cancelled again", "Then it is refused"]
     assert "steps" not in words and "kept in words" in result.notes[0]
