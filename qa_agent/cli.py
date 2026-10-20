@@ -4,6 +4,7 @@
     qa-agent import cases existing/cases.xlsx        the team's cases (Excel, CSV, Postman, Gherkin)
     qa-agent check                                   the cases, checked with rules
     qa-agent review export | import                  a person decides on each case, in Excel
+    qa-agent generate                                approved cases -> tests, for every stack
 
 Exit codes: 0 done (no errors), 1 errors found, 2 the project or an input can't be read.
 """
@@ -18,6 +19,7 @@ from qa_agent.api_model import ApiModel, ApiModelError, load_api_model, save_api
 from qa_agent.case_import import import_cases
 from qa_agent.cases import CaseFormatError
 from qa_agent.checks import check_project, plural
+from qa_agent.generate import generate
 from qa_agent.importers.common import CaseImportError
 from qa_agent.importers.curl import CurlError, read_curl
 from qa_agent.importers.openapi import OpenApiError, read_openapi
@@ -73,6 +75,10 @@ def _parser() -> argparse.ArgumentParser:
     apply = review.add_parser("import", help="apply the decisions in review/cases.xlsx; exit 1 if any is refused")
     apply.add_argument("--sheet", type=Path, default=Path("review/cases.xlsx"))
     apply.set_defaults(run=review_import)
+
+    write = commands.add_parser("generate", help="approved cases -> tests for every stack; exit 1 if a case "
+                                                  "can't be written")
+    write.set_defaults(run=run_generate)
     return parser
 
 
@@ -128,6 +134,12 @@ def review_import(args) -> int:
     result = import_review_sheet(project, sheet)
     print(result.as_text())
     return FINDINGS if result.refused else DONE
+
+
+def run_generate(args) -> int:
+    result = generate(TeamProject.load(args.project))
+    print(result.as_text())
+    return FINDINGS if result.problems else DONE
 
 
 def run_check(args) -> int:

@@ -1,0 +1,22 @@
+# {{ header }}
+"""{{ feature }}: {{ tests | length }} {{ "case" if tests | length == 1 else "cases" }}, one test each."""
+{% if data_files %}
+
+from pathlib import Path
+{% endif %}
+
+import pytest
+
+from api_test_framework import {{ imports | join(", ") }}
+{% if data_files %}
+
+PROJECT = Path(__file__).resolve().parents[2]
+{% for name, path in data_files %}
+{{ name }} = load_rows(PROJECT / "{{ path }}")
+{% endfor %}
+{% endif %}
+{% for test in tests %}
+
+
+{{ test }}
+{% endfor %}

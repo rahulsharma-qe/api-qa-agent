@@ -1,0 +1,16 @@
+// {{ header }}
+package generated;
+{% for group in import_groups %}
+
+{% for name in group %}
+import {{ name }};
+{% endfor %}
+{% endfor %}
+
+/** {{ feature }}: {{ methods | length }} {{ "case" if methods | length == 1 else "cases" }}, one test each. */
+public class {{ class_name }} extends BaseTest {
+{% for method in methods %}
+
+{{ method }}
+{% endfor %}
+}
