@@ -151,3 +151,27 @@ jobs:
           path: |
             examples/bookings-team/reports/trace.md
             examples/bookings-team/reports/trace.xlsx
+
+  docker-image:
+    # The Docker image as a team uses it: built, then qa-agent run inside it on a mounted project
+    # folder (the example, and a new project from init). The tool only: no tests run in the image.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker build -t qa-agent .
+      - name: qa-agent in the image, on the example project
+        working-directory: examples/bookings-team
+        run: |
+          qa_agent() { docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/project" qa-agent "$@"; }
+          qa_agent check
+          qa_agent generate --check
+          qa_agent trace --check
+      - name: A new project from init in the image, owned by the runner's user (the Linux tip)
+        run: |
+          mkdir -p "$RUNNER_TEMP/new"
+          cd "$RUNNER_TEMP/new"
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/project" qa-agent init my-team --stack python
+          test "$(stat -c %u my-team/qa-agent.yaml)" = "$(id -u)"
+          cd my-team
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/project" qa-agent check

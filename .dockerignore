@@ -1,0 +1,9 @@
+# Only what the image installs (see Dockerfile); everything else stays out.
+*
+!pyproject.toml
+!README.md
+!LICENSE
+!qa_agent
+!env_check
+!mock_service
+**/__pycache__
