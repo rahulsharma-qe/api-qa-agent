@@ -1,4 +1,5 @@
-# The team's API tests on every change: environment ready, generated tests up to date, tests, trace.
+# The team's API tests on every change, with the platform's reusable workflow: the environment is
+# ready, the generated tests match the approved cases, the tests ({{ "pytest" if stack == "python" else "REST Assured" }}), the trace.
 name: API tests
 
 on:
@@ -6,25 +7,11 @@ on:
   pull_request:
 
 jobs:
-  tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install qa-agent and env_check, and the framework
-        run: |
-          pip install "api-qa-agent @ git+https://github.com/rahulsharma-qe/api-qa-agent.git"
-          pip install -r requirements.txt
-      - name: Start the reference API (your own environment replaces this step)
-        run: python -m mock_service &
-      - name: Is the environment ready? (exit 3 if not)
-        run: python -m env_check --env mock
-      - name: The generated tests match the approved cases
-        run: qa-agent generate --check
-      - name: Tests
-        run: pytest --junitxml=reports/junit.xml
-      - name: Trace (fails if an approved case has no test)
-        if: always()
-        run: qa-agent trace --results reports/junit.xml --check
+  api-tests:
+    uses: rahulsharma-qe/api-qa-agent/.github/workflows/qa-agent-team.yml@main
+    with:
+      stack: python
+      environment: mock                 # an environment in config/environments.yaml
+      name: {{ artifact }}
+      start-reference-api: true         # the reference API; remove it when you test your own environment
+      # min-coverage: "80"              # a floor for criteria and operations coverage, if the team wants one

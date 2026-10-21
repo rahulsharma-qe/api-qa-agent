@@ -40,7 +40,8 @@ def test_a_rest_assured_project_has_its_pom_and_maven_wrapper(tmp_path):
     assert os.access(root / "mvnw", os.X_OK) and (root / ".mvn/wrapper/maven-wrapper.properties").is_file()
     assert (root / "src/test/java/generated/BookingsTest.java").is_file()
     assert "payments:" in (root / "config/environments.yaml").read_text()
-    assert "./mvnw -B test" in (root / ".github/workflows/api-tests.yml").read_text()
+    workflow = (root / ".github/workflows/api-tests.yml").read_text()
+    assert "qa-agent-team.yml@main" in workflow and "stack: restassured" in workflow and "name: payments-team" in workflow
 
 
 def test_the_empty_sheet_is_in_the_layout_the_importer_reads(tmp_path):

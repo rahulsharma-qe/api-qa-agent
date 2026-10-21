@@ -1,0 +1,121 @@
+# One team's API tests, called from the team's own CI with one job:
+#
+#   jobs:
+#     api-tests:
+#       uses: rahulsharma-qe/api-qa-agent/.github/workflows/qa-agent-team.yml@main
+#       with:
+#         stack: python                # or restassured
+#         environment: mock            # an environment in config/environments.yaml
+#         start-reference-api: true    # only when testing the reference API
+#
+# The environment is ready, the generated tests match the approved cases, the tests, the trace.
+# A team builds only its own stack.
+name: qa-agent team
+
+on:
+  workflow_call:
+    inputs:
+      stack:
+        description: python or restassured
+        required: true
+        type: string
+      environment:
+        description: the environment to test, from config/environments.yaml
+        type: string
+        default: mock
+      project-path:
+        description: the team's project folder in its repository
+        type: string
+        default: "."
+      name:
+        description: the team's name, for the kept reports
+        type: string
+        default: team
+      start-reference-api:
+        description: start the reference API first (python -m mock_service)
+        type: boolean
+        default: false
+      min-coverage:
+        description: a coverage floor for criteria and operations, in percent (empty for none)
+        type: string
+        default: ""
+      platform-ref:
+        description: the api-qa-agent version (a branch or a tag) for qa-agent and the frameworks
+        type: string
+        default: main
+      platform-from-checkout:
+        description: use the platform from this checkout (only inside the api-qa-agent repository)
+        type: boolean
+        default: false
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.project-path }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - if: inputs.stack == 'restassured'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Install qa-agent and env_check (and the reference API)
+        working-directory: .
+        run: |
+          if [ "${{ inputs.platform-from-checkout }}" = "true" ]; then
+            pip install -e .
+          else
+            pip install "api-qa-agent @ git+https://github.com/rahulsharma-qe/api-qa-agent.git@${{ inputs.platform-ref }}"
+          fi
+      - name: Install the framework (${{ inputs.stack }})
+        working-directory: .
+        run: |
+          if [ "${{ inputs.platform-from-checkout }}" = "true" ]; then
+            platform="$PWD"
+          else
+            platform="$RUNNER_TEMP/platform"
+            git clone --quiet --depth 1 --branch "${{ inputs.platform-ref }}" \
+              https://github.com/rahulsharma-qe/api-qa-agent.git "$platform"
+          fi
+          if [ "${{ inputs.stack }}" = "python" ]; then
+            pip install "$platform/frameworks/python_api"
+          else
+            (cd "$platform/frameworks/restassured_api" && ./mvnw -q -B install -DskipTests)
+          fi
+      - name: Start the reference API
+        if: inputs.start-reference-api
+        run: python -m mock_service > "$RUNNER_TEMP/mock_service.log" 2>&1 &
+      - name: Is the environment ready? (exit 3 if not)
+        run: python -m env_check --env "${{ inputs.environment }}"
+      - name: The generated tests match the approved cases
+        run: qa-agent generate --check
+      - name: Tests
+        run: |
+          if [ "${{ inputs.stack }}" = "python" ]; then
+            python -m pytest --env "${{ inputs.environment }}" --junitxml=reports/junit.xml
+          else
+            ./mvnw -B test -Denv="${{ inputs.environment }}"
+          fi
+      - name: Trace (fails if an approved case has no test)
+        if: always()
+        run: |
+          results=reports/junit.xml
+          [ "${{ inputs.stack }}" = "restassured" ] && results=target/surefire-reports
+          floor=()
+          [ -n "${{ inputs.min-coverage }}" ] && floor=(--min-coverage "${{ inputs.min-coverage }}")
+          qa-agent trace --results "$results" --check "${floor[@]}"
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.name }}-reports
+          path: |
+            ${{ inputs.project-path }}/reports/
+            ${{ inputs.project-path }}/target/surefire-reports/
+          if-no-files-found: ignore
