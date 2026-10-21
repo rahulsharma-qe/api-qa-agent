@@ -21,6 +21,7 @@ from qa_agent.renderers.common import (HEADER, TEMPLATES, GeneratedFile, Literal
 
 OUTPUT_DIR = "src/test/java/generated"
 MAP_OF_LIMIT = 10                    # Map.of takes up to 10 pairs; more use Map.ofEntries
+INT_MIN, INT_MAX = -2**31, 2**31 - 1
 LINE = 120
 
 
@@ -158,6 +159,8 @@ def _code(value: Any, uses: Uses, needs: set, where: str, wrap: bool = False) ->
         return _string(value, uses)
     if isinstance(value, bool):
         return "true" if value else "false"
+    if isinstance(value, int) and not INT_MIN <= value <= INT_MAX:
+        return f"{value}L"                     # a long: Java's int stops at 2147483647 (an ID, say)
     if isinstance(value, (int, float)):
         return repr(value)
     if isinstance(value, list):

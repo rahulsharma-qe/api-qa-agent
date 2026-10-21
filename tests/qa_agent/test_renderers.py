@@ -102,3 +102,12 @@ def test_the_test_names_trace_looks_for():
     _, found = cases()
     assert RENDERERS["python"].test_names(found[0]) == ["test_tc7_everything_the_format_can_say_isnt_it"]
     assert RENDERERS["restassured"].test_names(found[0]) == ["tc7EverythingTheFormatCanSayIsntIt"]
+
+
+def test_a_number_past_javas_int_is_written_as_a_long():
+    data = {"feature": "x", "cases": [{"id": "TC1", "title": "t", "steps": [
+        {"request": {"method": "POST", "path": "/pet", "body": {"id": 7310001001, "small": 5}},
+         "expect": {"status": 200, "fields": {"id": 7310001001}}}]}]}
+    case_file, found = cases(data)
+    text = RENDERERS["restassured"].render_file("cases/x.yaml", case_file, found).text
+    assert 'Map.of("id", 7310001001L, "small", 5)' in text and 'fieldEquals("id", 7310001001L)' in text
