@@ -914,7 +914,7 @@ own stack: Java and the Maven framework only for `restassured`.
 
 ### 10.5 Swagger Petstore: someone else's API
 
-`examples/petstore-team/`: a team project for Swagger Petstore (its OpenAPI 3 description, cases in
+`examples/external-apis/petstore/`: a team project for Swagger Petstore (each external API gets a folder under `examples/external-apis/`) (its OpenAPI 3 description, cases in
 an Excel sheet in the API layout, reviewed, generated in both stacks, traced).
 
 | Where it runs | How | When |
@@ -922,9 +922,23 @@ an Excel sheet in the API layout, reviewed, generated in both stacks, traced).
 | CI | The official Docker image (`swaggerapi/petstore3:unstable`, port 8080, base path `/api/v3`) as a service container: our own copy, clean data, the same every time | Every build |
 | The public server | `petstore3.swagger.io`: shared with everyone, data changes, sometimes down | On demand only (`workflow_dispatch`), and in the Colab check |
 
-The cases make their own data (a pet with a unique name, then read, update, delete it), so they
-don't depend on anyone else's. What Petstore actually returns is checked against the public server
-in Colab before the cases are written: no expected result is guessed.
+The cases make their own data (a pet or an order with a fixed id and a unique name, then read,
+update and delete it), so they don't depend on anyone else's. What Petstore actually returns was
+checked against the public server first, call by call: no expected result is guessed. As built:
+
+- `api/source/openapi.json` is Petstore's own (OpenAPI 3.0.4, 19 operations); the image upload is
+  `not_tested` (binary, and the case format sends JSON).
+- `config/environments.yaml` has `local` and `public`, no auth; `config/dependencies.yaml` checks
+  `GET /store/inventory`, since Petstore has no health endpoint (env_check's `path` setting).
+- Six cases in `existing/petstore_cases.xlsx` (API layout), imported, reviewed by the team's lead.
+  Five are approved and generated in both stacks. TC106 (a pet without a name is refused) is held
+  back with "changes needed": Petstore accepts it with 200, against its own OpenAPI (name required,
+  422 documented). A real finding on someone else's API, and the review step deciding what the build
+  does about it.
+- Pet ids are past Java's `int`, so the REST Assured renderer writes such numbers as longs
+  (`7310001001L`).
+- `.github/workflows/external-apis.yml` ("External APIs"): the Docker image as a service container on every change;
+  `workflow_dispatch` with `environment: public` runs the same against the public server.
 
 ### 10.6 Docker image: qa-agent in one command
 

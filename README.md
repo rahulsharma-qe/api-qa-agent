@@ -25,7 +25,8 @@ testing AI agents themselves.
 | `qa-agent`: every day | **Built**: the drift check (`generate --check`), a coverage floor (`trace --min-coverage`), `promote` stable cases to regression, `track` to move one back, on the record |
 | Bug-detection rate | **Built**: the reference API can switch on one of seven planted bugs; `qa-agent bugs` runs the tests once per bug and says which bugs they catch, and by which cases |
 | Many teams ([`teams/`](teams/)) | **Built**: a reusable CI workflow a team calls in one job, with its stack and environment; two teams (pytest, REST Assured) use it, each building only its own stack |
-| A run on Swagger Petstore, a Docker image | **Next** |
+| External APIs ([`examples/external-apis/`](examples/external-apis/)) | **Built**: Swagger Petstore from its own OpenAPI and a team's Excel sheet, in both stacks; its Docker image on every change, the public server by hand. It found a real gap: Petstore accepts a pet with no name |
+| A Docker image for qa-agent | **Next** |
 | Cucumber on REST Assured | Later |
 | User-interface tests, in their own repository (`playwright-qa-agent`) | Later |
 | Jira and wiki; results back to TestRail, Zephyr or Xray | Later |
@@ -99,6 +100,7 @@ both stacks, and the trace. A new team starts with `qa-agent init my-team --stac
 | [`qa_agent/`](qa_agent/) | `qa-agent`, the command line: `init`, `import`, `check`, `review`, `generate`, `trace` |
 | [`examples/bookings-team/`](examples/bookings-team/) | A team's project for the reference API: every `qa-agent` feature, with its output |
 | [`teams/`](teams/) | Two small teams, each shaped like its own repository: `bookings-python` (pytest) and `refunds-java` (REST Assured) |
+| [`examples/external-apis/`](examples/external-apis/) | qa-agent and both frameworks on APIs this repository didn't write; first, Swagger Petstore |
 | [`.github/workflows/qa-agent-team.yml`](.github/workflows/qa-agent-team.yml) | The reusable workflow a team's CI calls: environment ready, generated tests up to date, tests, trace |
 | [`docs/`](docs/) | The design: [high-level](docs/architecture.md) and [low-level](docs/lld.md) |
 | `core/` | The first version's language-model steps (case and data drafting, a review step); reworked into the AI layer later |
