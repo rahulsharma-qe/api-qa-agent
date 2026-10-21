@@ -42,3 +42,9 @@ def test_ci_calls_the_reusable_workflow_once_per_team():
     on = called.get("on", called.get(True))                     # YAML 1.1 reads a bare "on" as true
     assert set(on["workflow_call"]["inputs"]) >= {"stack", "environment", "project-path", "start-reference-api",
                                                   "min-coverage", "platform-ref"}
+
+
+@pytest.mark.parametrize("team", TEAMS)
+def test_each_team_uses_the_reference_apis_current_openapi(team):
+    assert (REPO / "teams" / team / "api/source/openapi.json").read_bytes() == \
+        (REPO / "mock_service/openapi.json").read_bytes(), f"copy mock_service/openapi.json into teams/{team}/api/source/"
