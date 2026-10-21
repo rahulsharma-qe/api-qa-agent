@@ -1,0 +1,17 @@
+# The team's API tests on every change, with the platform's reusable workflow: the environment is
+# ready, the generated tests match the approved cases, the tests (pytest), the trace.
+name: API tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  api-tests:
+    uses: rahulsharma-qe/api-qa-agent/.github/workflows/qa-agent-team.yml@main
+    with:
+      stack: python
+      environment: mock                 # an environment in config/environments.yaml
+      name: bookings-python
+      start-reference-api: true         # the reference API; remove it when you test your own environment
+      # min-coverage: "80"              # a floor for criteria and operations coverage, if the team wants one

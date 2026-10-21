@@ -1,0 +1,7 @@
+criteria:
+  - id: AC-1
+    text: A booking cancelled within 24 hours, exactly 24 hours included, gets a full refund.
+  - id: AC-2
+    text: A booking cancelled more than 24 hours after it was made gets no refund.
+  - {id: AC-3, text: The refund status of a cancelled booking can be read.}
+  - {id: AC-4, text: A booking can't be cancelled twice.}

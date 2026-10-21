@@ -1,0 +1,128 @@
+feature: Cancellation and refunds
+cases:
+  - id: TC001
+    title: A cancel at exactly 24 hours gets a full refund
+    criteria: [AC-1]
+    priority: P0
+    track: functional
+    tags: [boundary]
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body:
+            passenger_name: Arjun Mehta {{unique}}
+            email: arjun.{{unique}}@testdata.example
+            amount: 300
+            booked_at: '2026-03-01T09:00:00Z'
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request:
+          method: POST
+          path: /bookings/{{pnr}}/cancel
+          body: {cancelled_at: '2026-03-02T09:00:00Z'}
+        expect:
+          status: 200
+          fields: {refund_allowed: true, refund_amount: 300}
+    review:
+      status: approved
+      by: refunds-lead
+      date: '2026-10-21'
+      fingerprint: 23d317376e70
+  - id: TC002
+    title: A cancel after 24 hours gets no refund
+    criteria: [AC-2]
+    priority: P1
+    track: functional
+    tags: [boundary]
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body:
+            passenger_name: Arjun Mehta {{unique}}
+            email: arjun.{{unique}}@testdata.example
+            amount: 300
+            booked_at: '2026-03-01T09:00:00Z'
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request:
+          method: POST
+          path: /bookings/{{pnr}}/cancel
+          body: {cancelled_at: '2026-03-02T10:00:00Z'}
+        expect:
+          status: 200
+          fields: {refund_allowed: false, refund_amount: 0}
+    review:
+      status: approved
+      by: refunds-lead
+      date: '2026-10-21'
+      fingerprint: e58af5317568
+  - id: TC003
+    title: After a cancel within 24 hours, the refund status is refunded
+    criteria: [AC-3]
+    priority: P1
+    track: functional
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body:
+            passenger_name: Arjun Mehta {{unique}}
+            email: arjun.{{unique}}@testdata.example
+            amount: 300
+            booked_at: '2026-03-01T09:00:00Z'
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request:
+          method: POST
+          path: /bookings/{{pnr}}/cancel
+          body: {cancelled_at: '2026-03-01T12:00:00Z'}
+        expect: {status: 200}
+      - request: {method: GET, path: '/bookings/{{pnr}}/refund'}
+        expect:
+          status: 200
+          fields: {refund_status: refunded, refund_amount: 300}
+    review:
+      status: approved
+      by: refunds-lead
+      date: '2026-10-21'
+      fingerprint: eaa59017dcf4
+  - id: TC004
+    title: A second cancel is refused and changes nothing
+    criteria: [AC-4]
+    priority: P1
+    track: functional
+    tags: [negative]
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body:
+            passenger_name: Arjun Mehta {{unique}}
+            email: arjun.{{unique}}@testdata.example
+            amount: 300
+            booked_at: '2026-03-01T09:00:00Z'
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request:
+          method: POST
+          path: /bookings/{{pnr}}/cancel
+          body: {cancelled_at: '2026-03-01T12:00:00Z'}
+        expect: {status: 200}
+      - request:
+          method: POST
+          path: /bookings/{{pnr}}/cancel
+          body: {cancelled_at: '2026-03-05T12:00:00Z'}
+        expect:
+          status: 409
+          fields: {error.code: already_cancelled}
+      - request: {method: GET, path: '/bookings/{{pnr}}/refund'}
+        expect:
+          status: 200
+          fields: {refund_status: refunded}
+    review:
+      status: approved
+      by: refunds-lead
+      date: '2026-10-21'
+      fingerprint: a734a421e0c5

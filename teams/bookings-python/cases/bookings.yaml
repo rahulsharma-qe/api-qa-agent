@@ -1,0 +1,107 @@
+feature: Bookings
+cases:
+  - id: TC001
+    title: A new booking can be read back by its PNR
+    criteria: [AC-1]
+    priority: P1
+    track: functional
+    tags: [smoke]
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body:
+            passenger_name: Neha Iyer {{unique}}
+            email: neha.{{unique}}@testdata.example
+            amount: 180
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request: {method: GET, path: '/bookings/{{pnr}}'}
+        expect:
+          status: 200
+          fields: {pnr: '{{pnr}}', amount: 180, status: active}
+    review:
+      status: approved
+      by: bookings-lead
+      date: '2026-10-21'
+      fingerprint: 9e5caf94b8d9
+  - id: TC002
+    title: A deleted booking can no longer be read
+    criteria: [AC-2]
+    priority: P1
+    track: functional
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body:
+            passenger_name: Neha Iyer {{unique}}
+            email: neha.{{unique}}@testdata.example
+            amount: 180
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request: {method: DELETE, path: '/bookings/{{pnr}}'}
+        expect: {status: 204}
+      - request: {method: GET, path: '/bookings/{{pnr}}'}
+        expect:
+          status: 404
+          fields: {error.code: booking_not_found}
+    review:
+      status: approved
+      by: bookings-lead
+      date: '2026-10-21'
+      fingerprint: f73301bcc788
+  - id: TC003
+    title: A cancelled booking is listed as cancelled, not as active
+    criteria: [AC-3]
+    priority: P2
+    track: functional
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body:
+            passenger_name: Neha Iyer {{unique}}
+            email: neha.{{unique}}@testdata.example
+            amount: 180
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request: {method: POST, path: '/bookings/{{pnr}}/cancel'}
+        expect: {status: 200}
+      - request:
+          method: GET
+          path: /bookings
+          query: {status: cancelled, limit: 100}
+        expect:
+          status: 200
+          list_contains:
+            items: {pnr: '{{pnr}}'}
+      - request:
+          method: GET
+          path: /bookings
+          query: {status: active, limit: 100}
+        expect:
+          status: 200
+          list_excludes:
+            items: {pnr: '{{pnr}}'}
+    review:
+      status: approved
+      by: bookings-lead
+      date: '2026-10-21'
+      fingerprint: e77f65f77997
+  - id: TC004
+    title: Without a token, bookings can't be read
+    criteria: [AC-4]
+    priority: P0
+    track: functional
+    tags: [negative]
+    steps:
+      - request: {method: GET, path: /bookings, auth: none}
+        expect:
+          status: 401
+          fields: {error.code: unauthorized}
+    review:
+      status: approved
+      by: bookings-lead
+      date: '2026-10-21'
+      fingerprint: 7d3a48541fe8

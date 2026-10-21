@@ -1,0 +1,5 @@
+criteria:
+  - {id: AC-1, text: A booking can be made and read back by its PNR.}
+  - {id: AC-2, text: A deleted booking can no longer be read.}
+  - {id: AC-3, text: Listing by status shows a booking under its own status only.}
+  - {id: AC-4, text: Bookings can't be read without a token.}

@@ -1,0 +1,48 @@
+services:
+  bookings:
+    operations:
+      - method: POST
+        path: /auth/token
+        summary: Issue Token
+        body_required: [client_id, client_secret]
+        responses: [200, 401, 422]
+      - method: GET
+        path: /bookings
+        summary: List Bookings
+        responses: [200, 401, 422]
+      - method: POST
+        path: /bookings
+        summary: Create Booking
+        body_required: [passenger_name, email, amount]
+        responses: [201, 401, 422]
+      - method: GET
+        path: /bookings/{pnr}
+        summary: Get Booking
+        responses: [200, 401, 404, 422]
+      - method: PUT
+        path: /bookings/{pnr}
+        summary: Update Booking
+        body_required: [passenger_name, email]
+        responses: [200, 401, 404, 422]
+      - method: DELETE
+        path: /bookings/{pnr}
+        summary: Delete Booking
+        responses: [204, 401, 404, 422]
+      - method: POST
+        path: /bookings/{pnr}/cancel
+        summary: Cancel Booking
+        responses: [200, 401, 404, 409, 422]
+      - method: GET
+        path: /bookings/{pnr}/refund
+        summary: Refund Status
+        responses: [200, 401, 404, 422]
+      - method: GET
+        path: /health-check
+        summary: Health Check
+        responses: [200]
+        not_tested: env_check calls it before every run
+      - method: POST
+        path: /test/reset
+        summary: Reset
+        responses: [204]
+        not_tested: a test-only route; it resets the data
