@@ -898,8 +898,19 @@ jobs:
 ```
 
 It runs env_check, `generate --check`, the tests, `trace --check` (and `--min-coverage` when given),
-and keeps the reports. In this repository, `teams.yml` calls it once per team; the workflow `init`
-writes becomes this one call. Each team builds only its own stack.
+and keeps the reports as an artifact named after the team. Its other inputs: `project-path` (the
+team's folder in its repository), `name`, `platform-ref` (the api-qa-agent branch or tag that
+qa-agent and the framework come from, so a team pins a version) and `platform-from-checkout` (only
+inside this repository, so its teams test the platform's current code). Each team builds only its
+own stack: Java and the Maven framework only for `restassured`.
+
+- In this repository, `teams.yml` calls it once per team; the workflow `init` writes is this one call.
+- The teams were made with `qa-agent init`; each was then given the reference API's OpenAPI
+  description, its own four criteria and four cases, approved by its lead in the review sheet. A
+  team folder also keeps the `.github/workflows/api-tests.yml` it would run in its own repository
+  (GitHub runs only the repository's top-level workflows, so here `teams.yml` stands in).
+- `bookings-python` covers what the example doesn't: listing by status and a call without a token,
+  so the two bugs the example misses would fail its tests.
 
 ### 10.5 Swagger Petstore: someone else's API
 
