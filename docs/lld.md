@@ -940,18 +940,30 @@ checked against the public server first, call by call: no expected result is gue
 - `.github/workflows/external-apis.yml` ("External APIs"): the Docker image as a service container on every change;
   `workflow_dispatch` with `environment: public` runs the same against the public server.
 
-### 10.6 Docker image: qa-agent in one command
+### 10.6 Docker image: qa-agent with no Python install
 
-A `Dockerfile` (Python 3.12 slim) with qa-agent, env_check, the reference API and the Python
-framework:
+Built from the repository; nothing to publish first:
 
 ```
-docker run --rm -v "$PWD":/project ghcr.io/rahulsharma-qe/qa-agent check
+docker build -t qa-agent https://github.com/rahulsharma-qe/api-qa-agent.git
+cd your-team-project
+docker run --rm -v "$PWD:/project" qa-agent check
 ```
 
-CI builds the image and runs `qa-agent check` on the example inside it. Publishing it to the GitHub
-Container Registry is a separate step, done when you choose (it needs the repository's package
-setting). Java teams still bring their own JDK and Maven wrapper.
+| Choice | Why |
+|---|---|
+| The tool only: `init`, `import`, `check`, `review`, `generate`, `trace`, `promote`, `track` | Tests call the team's API. Inside a container `localhost` is the container, so reaching an API on the team's machine needs a different network setting on each system. Tests run where they always run |
+| No Java in the image | Java teams already have a JDK and the Maven wrapper; the tool's commands work on their projects all the same |
+| Built from the GitHub URL; publishing to the GitHub Container Registry later, with Releases | The first command in the README always works; a registry name would fail until the package is published and public |
+| Runs as root by default; Linux users add `--user "$(id -u):$(id -g)"` | A fixed non-root user can't write a mounted folder owned by another id on Linux. Docker Desktop (macOS, Windows) maps ownership itself |
+| `.dockerignore` lets in only what the install needs | A small build context, no tests or examples in the image; a test checks that everything `pyproject.toml` needs is let in and copied |
+
+- `Dockerfile`: Python 3.12 slim, `pip install .` (qa-agent, env_check and the reference API: one
+  package), `WORKDIR /project`, `ENTRYPOINT ["qa-agent"]`.
+- CI job `docker-image`: builds the image, runs `check`, `generate --check` and `trace --check` on the
+  example inside it, then `init` a new project and checks the files belong to the runner's user.
+- Later: publishing (a version tag, then the package made public), and tests in the image for teams
+  whose API runs in the same Docker network.
 
 ### 10.7 Smaller items
 

@@ -26,7 +26,7 @@ testing AI agents themselves.
 | Bug-detection rate | **Built**: the reference API can switch on one of seven planted bugs; `qa-agent bugs` runs the tests once per bug and says which bugs they catch, and by which cases |
 | Many teams ([`teams/`](teams/)) | **Built**: a reusable CI workflow a team calls in one job, with its stack and environment; two teams (pytest, REST Assured) use it, each building only its own stack |
 | External APIs ([`examples/external-apis/`](examples/external-apis/)) | **Built**: Swagger Petstore from its own OpenAPI and a team's Excel sheet, in both stacks; its Docker image on every change, the public server by hand. It found a real gap: Petstore accepts a pet with no name |
-| A Docker image for qa-agent | **Next** |
+| A Docker image for qa-agent ([`Dockerfile`](Dockerfile)) | **Built**: qa-agent with no Python install, built straight from this repository; the tool only, so tests run where they always run |
 | Cucumber on REST Assured | Later |
 | User-interface tests, in their own repository (`playwright-qa-agent`) | Later |
 | Jira and wiki; results back to TestRail, Zephyr or Xray | Later |
@@ -89,6 +89,19 @@ team's existing cases in four formats, what `check` finds, the review sheet, the
 both stacks, and the trace. A new team starts with `qa-agent init my-team --stack python` (or
 `--stack restassured`): a project that runs on day one.
 
+### Run with Docker (no Python install)
+
+```bash
+docker build -t qa-agent https://github.com/rahulsharma-qe/api-qa-agent.git
+cd your-team-project
+docker run --rm -v "$PWD:/project" qa-agent check
+```
+
+In the image: `init`, `import`, `check`, `review`, `generate`, `trace`, `promote`, `track`. Your
+tests run where they always run (pytest or Maven), since they call your API.
+On Linux, add `--user "$(id -u):$(id -g)"` so the files qa-agent writes are yours.
+In Windows PowerShell, write `${PWD}` instead of `$PWD`.
+
 ## What's inside
 
 | Folder | What it is |
@@ -97,7 +110,8 @@ both stacks, and the trace. A new team starts with `qa-agent init my-team --stac
 | [`env_check/`](env_check/) | Before a run: call every service a team depends on; exit 3 when a critical one is down. One tool for every framework |
 | [`frameworks/python_api/`](frameworks/python_api/) | The Python framework (pytest, httpx), installable on its own, with an example for every feature |
 | [`frameworks/restassured_api/`](frameworks/restassured_api/) | The Java framework (REST Assured, TestNG), a Maven library on its own, with an example for every feature |
-| [`qa_agent/`](qa_agent/) | `qa-agent`, the command line: `init`, `import`, `check`, `review`, `generate`, `trace` |
+| [`qa_agent/`](qa_agent/) | `qa-agent`, the command line: `init`, `import`, `check`, `review`, `generate`, `trace`, `promote`, `track`, `bugs` |
+| [`Dockerfile`](Dockerfile) | qa-agent in a container, for a team with no Python install |
 | [`examples/bookings-team/`](examples/bookings-team/) | A team's project for the reference API: every `qa-agent` feature, with its output |
 | [`teams/`](teams/) | Two small teams, each shaped like its own repository: `bookings-python` (pytest) and `refunds-java` (REST Assured) |
 | [`examples/external-apis/`](examples/external-apis/) | qa-agent and both frameworks on APIs this repository didn't write; first, Swagger Petstore |
