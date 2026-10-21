@@ -55,12 +55,12 @@ jobs:
       run:
         working-directory: ${{ inputs.project-path }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - if: inputs.stack == 'restassured'
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -112,7 +112,7 @@ jobs:
           qa-agent trace --results "$results" --check "${floor[@]}"
       - name: Keep the reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ inputs.name }}-reports
           path: |

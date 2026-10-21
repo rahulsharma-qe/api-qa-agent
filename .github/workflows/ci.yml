@@ -14,8 +14,8 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install the reference API, env_check and qa-agent
@@ -45,8 +45,8 @@ jobs:
       run:
         working-directory: frameworks/python_api
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install the reference API, env_check and the framework
@@ -64,7 +64,7 @@ jobs:
         run: npx --yes allure-commandline generate reports/allure-results -o reports/allure-report --clean --single-file
       - name: Keep the reports and the evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: python-framework-reports-py${{ matrix.python-version }}
           path: |
@@ -80,11 +80,11 @@ jobs:
       run:
         working-directory: frameworks/restassured_api
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -102,7 +102,7 @@ jobs:
         run: npx --yes allure-commandline generate target/allure-results -o target/allure-report --clean --single-file
       - name: Keep the reports and the evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: restassured-framework-reports
           path: |
@@ -117,11 +117,11 @@ jobs:
     # a new project from qa-agent init runs, in each stack.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -145,7 +145,7 @@ jobs:
           ./mvnw -q -B test
       - name: Keep the trace
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: qa-agent-trace
           path: |
@@ -157,7 +157,7 @@ jobs:
     # folder (the example, and a new project from init). The tool only: no tests run in the image.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build the image
         run: docker build -t qa-agent .
       - name: qa-agent in the image, on the example project
