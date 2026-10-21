@@ -1,0 +1,12 @@
+# What the team checks on Petstore. Cases link to them by id.
+criteria:
+  - id: AC-1
+    text: A pet can be added and read back by its id; a pet must have a name.
+  - id: AC-2
+    text: A pet's status can be changed.
+  - id: AC-3
+    text: A deleted pet can no longer be read.
+  - id: AC-4
+    text: An order can be placed, read back and deleted.
+  - id: AC-5
+    text: An id that is not a number is refused.

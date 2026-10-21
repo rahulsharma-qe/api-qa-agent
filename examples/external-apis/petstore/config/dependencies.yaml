@@ -1,0 +1,8 @@
+# What these tests need before they run:  python -m env_check --env local
+# Petstore has no health endpoint, so the check reads the inventory, a safe GET.
+team: petstore
+attempts: 8               # the Docker image takes a few seconds to start
+wait_seconds: 2
+checks:
+  - service: petstore
+    path: /store/inventory

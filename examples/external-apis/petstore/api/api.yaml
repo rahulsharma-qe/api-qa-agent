@@ -1,0 +1,82 @@
+services:
+  petstore:
+    operations:
+      - method: POST
+        path: /pet
+        summary: Add a new pet to the store.
+        body_required: [name, photoUrls]
+        responses: [200, 400, 422]
+      - method: PUT
+        path: /pet
+        summary: Update an existing pet.
+        body_required: [name, photoUrls]
+        responses: [200, 400, 404, 422]
+      - method: GET
+        path: /pet/findByStatus
+        summary: Finds Pets by status.
+        responses: [200, 400]
+      - method: GET
+        path: /pet/findByTags
+        summary: Finds Pets by tags.
+        responses: [200, 400]
+      - method: GET
+        path: /pet/{petId}
+        summary: Find pet by ID.
+        responses: [200, 400, 404]
+      - method: POST
+        path: /pet/{petId}
+        summary: Updates a pet in the store with form data.
+        responses: [200, 400]
+      - method: DELETE
+        path: /pet/{petId}
+        summary: Deletes a pet.
+        responses: [200, 400]
+      - method: POST
+        path: /pet/{petId}/uploadImage
+        summary: Uploads an image.
+        responses: [200, 400, 404]
+        not_tested: 'a binary upload: the case format sends JSON'
+      - method: GET
+        path: /store/inventory
+        summary: Returns pet inventories by status.
+        responses: [200]
+      - method: POST
+        path: /store/order
+        summary: Place an order for a pet.
+        responses: [200, 400, 422]
+      - method: GET
+        path: /store/order/{orderId}
+        summary: Find purchase order by ID.
+        responses: [200, 400, 404]
+      - method: DELETE
+        path: /store/order/{orderId}
+        summary: Delete purchase order by identifier.
+        responses: [200, 400, 404]
+      - method: POST
+        path: /user
+        summary: Create user.
+        responses: [200]
+      - method: POST
+        path: /user/createWithList
+        summary: Creates list of users with given input array.
+        responses: [200]
+      - method: GET
+        path: /user/login
+        summary: Logs user into the system.
+        responses: [200, 400]
+      - method: GET
+        path: /user/logout
+        summary: Logs out current logged in user session.
+        responses: [200]
+      - method: GET
+        path: /user/{username}
+        summary: Get user by user name.
+        responses: [200, 400, 404]
+      - method: PUT
+        path: /user/{username}
+        summary: Update user resource.
+        responses: [200, 400, 404]
+      - method: DELETE
+        path: /user/{username}
+        summary: Delete user resource.
+        responses: [200, 400, 404]

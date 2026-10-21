@@ -1,0 +1,5 @@
+# A team's project for Swagger Petstore: an API this repository didn't write.
+team: petstore
+service: petstore            # the main service: a step without `service:` calls it
+stacks: [python, restassured]
+case_id_prefix: TC

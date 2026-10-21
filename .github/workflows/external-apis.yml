@@ -1,0 +1,65 @@
+# qa-agent and both frameworks on APIs this repository didn't write (examples/external-apis/).
+# Swagger Petstore: on every change against its official Docker image (our own copy: clean data,
+# the same every time); by hand, against the public server too (shared with everyone, so its data
+# changes and it is sometimes down). Another external API is another job here.
+name: External APIs
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: local (the Docker image) or public (petstore3.swagger.io)
+        type: choice
+        options: [ local, public ]
+        default: local
+
+jobs:
+  petstore:
+    runs-on: ubuntu-latest
+    services:
+      petstore:
+        image: swaggerapi/petstore3:unstable
+        ports: [ "8080:8080" ]
+    env:
+      API_ENV: ${{ inputs.environment || 'local' }}
+    defaults:
+      run:
+        working-directory: examples/external-apis/petstore
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Install qa-agent, env_check and both frameworks
+        working-directory: .
+        run: |
+          pip install -e . -e frameworks/python_api
+          (cd frameworks/restassured_api && ./mvnw -q -B install -DskipTests)
+      - name: Is Petstore ready? (exit 3 if not)
+        run: python -m env_check --env "$API_ENV"
+      - name: The generated tests match the approved cases
+        run: qa-agent generate --check
+      - name: The tests, in pytest and in REST Assured
+        run: |
+          python -m pytest --junitxml=reports/junit.xml
+          ./mvnw -B test
+      - name: Trace (fails if an approved case has no test)
+        if: always()
+        run: qa-agent trace --results reports/junit.xml target/surefire-reports --check
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: petstore-reports
+          path: |
+            examples/external-apis/petstore/reports/
+            examples/external-apis/petstore/target/surefire-reports/
+          if-no-files-found: ignore

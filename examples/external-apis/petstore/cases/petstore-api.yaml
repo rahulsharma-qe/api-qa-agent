@@ -1,0 +1,170 @@
+feature: Petstore API
+cases:
+  - id: TC101
+    title: A new pet can be read back by its id
+    criteria: [AC-1]
+    priority: P1
+    track: functional
+    tags: [smoke]
+    source:
+      format: excel-api
+      file: existing/petstore_cases.xlsx
+      sheet: Petstore API
+      row: 2
+    steps:
+      - request:
+          method: POST
+          path: /pet
+          body: {id: 7310001001, name: 'qa-agent-{{unique}}', photoUrls: [], status: available}
+        expect:
+          status: 200
+          fields: {status: available}
+        capture: {petId: id}
+      - request: {method: GET, path: '/pet/{{petId}}'}
+        expect:
+          status: 200
+          fields: {name: 'qa-agent-{{unique}}', status: available}
+      - request: {method: DELETE, path: '/pet/{{petId}}'}
+        expect: {status: 200}
+    review:
+      status: approved
+      by: petstore-lead
+      date: '2026-10-21'
+      fingerprint: df15c2bebed3
+  - id: TC102
+    title: A pet's status can be changed to sold
+    criteria: [AC-2]
+    priority: P2
+    track: functional
+    source:
+      format: excel-api
+      file: existing/petstore_cases.xlsx
+      sheet: Petstore API
+      row: 5
+    steps:
+      - request:
+          method: POST
+          path: /pet
+          body: {id: 7310001002, name: 'qa-agent-{{unique}}', photoUrls: [], status: available}
+        expect: {status: 200}
+        capture: {petId: id}
+      - request:
+          method: PUT
+          path: /pet
+          body: {id: 7310001002, name: 'qa-agent-{{unique}}', photoUrls: [], status: sold}
+        expect:
+          status: 200
+          fields: {status: sold}
+      - request: {method: GET, path: '/pet/{{petId}}'}
+        expect:
+          status: 200
+          fields: {status: sold}
+      - request: {method: DELETE, path: '/pet/{{petId}}'}
+        expect: {status: 200}
+    review:
+      status: approved
+      by: petstore-lead
+      date: '2026-10-21'
+      fingerprint: 1d7edd39acda
+  - id: TC103
+    title: A deleted pet can no longer be read
+    criteria: [AC-3]
+    priority: P2
+    track: functional
+    source:
+      format: excel-api
+      file: existing/petstore_cases.xlsx
+      sheet: Petstore API
+      row: 9
+    steps:
+      - request:
+          method: POST
+          path: /pet
+          body: {id: 7310001003, name: 'qa-agent-{{unique}}', photoUrls: [], status: available}
+        expect: {status: 200}
+        capture: {petId: id}
+      - request: {method: DELETE, path: '/pet/{{petId}}'}
+        expect: {status: 200}
+      - request: {method: GET, path: '/pet/{{petId}}'}
+        expect: {status: 404}
+    review:
+      status: approved
+      by: petstore-lead
+      date: '2026-10-21'
+      fingerprint: 15186ace4ebc
+  - id: TC104
+    title: An order can be placed, read back and deleted
+    criteria: [AC-4]
+    priority: P2
+    track: functional
+    source:
+      format: excel-api
+      file: existing/petstore_cases.xlsx
+      sheet: Petstore API
+      row: 12
+    steps:
+      - request:
+          method: POST
+          path: /store/order
+          body: {id: 7310011, petId: 7310001004, quantity: 1, status: placed, complete: false}
+        expect:
+          status: 200
+          fields: {status: placed}
+        capture: {orderId: id}
+      - request: {method: GET, path: '/store/order/{{orderId}}'}
+        expect:
+          status: 200
+          fields: {quantity: 1, petId: 7310001004}
+      - request: {method: DELETE, path: '/store/order/{{orderId}}'}
+        expect: {status: 200}
+      - request: {method: GET, path: '/store/order/{{orderId}}'}
+        expect: {status: 404}
+    review:
+      status: approved
+      by: petstore-lead
+      date: '2026-10-21'
+      fingerprint: 536fa671832b
+  - id: TC105
+    title: An id that is not a number is refused
+    criteria: [AC-5]
+    priority: P3
+    track: functional
+    tags: [negative]
+    source:
+      format: excel-api
+      file: existing/petstore_cases.xlsx
+      sheet: Petstore API
+      row: 16
+    steps:
+      - request: {method: GET, path: /pet/abc}
+        expect:
+          status: 400
+          fields: {code: 400}
+    review:
+      status: approved
+      by: petstore-lead
+      date: '2026-10-21'
+      fingerprint: 44e46fd965d8
+  - id: TC106
+    title: A pet without a name is refused
+    criteria: [AC-1]
+    priority: P1
+    track: functional
+    tags: [negative]
+    source:
+      format: excel-api
+      file: existing/petstore_cases.xlsx
+      sheet: Petstore API
+      row: 17
+    steps:
+      - request:
+          method: POST
+          path: /pet
+          body: {id: 7310001006, photoUrls: []}
+        expect: {status: 422}
+    review:
+      status: changes_needed
+      by: petstore-lead
+      date: '2026-10-21'
+      comment: 'The case is right; Petstore is not: it accepts a pet with no name (200), though its own OpenAPI
+        requires a name and documents 422. Held back from the run until Petstore is fixed.'

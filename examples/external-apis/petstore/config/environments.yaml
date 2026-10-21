@@ -1,0 +1,15 @@
+# Where Petstore lives. Pick one with --env (API_ENV); there is no mock here.
+environments:
+  local:                                  # the official Docker image: docker run -p 8080:8080 swaggerapi/petstore3:unstable
+    default_service: petstore
+    services:
+      petstore: "http://localhost:8080/api/v3"
+    auth: {type: none}
+    timeout_seconds: 15
+
+  public:                                 # the public server: shared with everyone, data changes, sometimes down
+    default_service: petstore
+    services:
+      petstore: "https://petstore3.swagger.io/api/v3"
+    auth: {type: none}
+    timeout_seconds: 20
