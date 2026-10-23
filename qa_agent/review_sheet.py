@@ -167,8 +167,8 @@ def readable_expectations(case: Case) -> str:
         parts += [f"{path} has an item {_short(json.dumps(m))}" for path, m in expect.get("list_contains", {}).items()]
         parts += [f"{path} has no item {_short(json.dumps(m))}" for path, m in expect.get("list_excludes", {}).items()]
         parts += [f"header {name} = {value}" for name, value in expect.get("headers", {}).items()]
-        if "within_ms" in expect:
-            parts.append(f"within {expect['within_ms']} ms")
+        if "max_response_ms" in expect:
+            parts.append(f"within {expect['max_response_ms']} ms")
         lines.append(f"{number}. " + ("; ".join(parts) or "(nothing checked)"))
     return "\n".join(lines)
 

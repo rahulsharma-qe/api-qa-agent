@@ -44,7 +44,7 @@ def test_a_folder_is_one_case_and_its_scripts_become_expectations(tmp_path):
     assert create["expect"] == {"status": 201, "fields": {"status": "active"}}
     assert create["capture"] == {"pnr": "pnr"}
     assert read["request"] == {"method": "GET", "path": "/bookings/{{pnr}}", "query": {"full": "1"}}
-    assert read["expect"] == {"status": 200, "fields": {"amount": 120}, "contains": {"email": "@"}, "within_ms": 500}
+    assert read["expect"] == {"status": 200, "fields": {"amount": 120}, "contains": {"email": "@"}, "max_response_ms": 500}
     assert "to.match(/M/)" in case["notes"] and "to.match(/M/)" in result.notes[0]
 
 

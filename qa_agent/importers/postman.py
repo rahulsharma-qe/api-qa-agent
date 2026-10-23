@@ -7,7 +7,7 @@ is a case of its own. These test-script lines become expectations and captured v
     pm.expect(pm.response.code).to.eql(201)                 -> status
     pm.expect(json.refund_amount).to.eql(250)               -> fields (also .equal, .to.be.eql)
     pm.expect(json.email).to.include("@")                   -> contains
-    pm.expect(pm.response.responseTime).to.be.below(500)    -> within_ms
+    pm.expect(pm.response.responseTime).to.be.below(500)    -> max_response_ms
     pm.environment.set("pnr", json.pnr)                     -> capture (also collectionVariables, globals, variables)
 
 Any other line is kept in the case's notes and reported, to be checked by hand. The host
@@ -169,7 +169,7 @@ def _read_line(line: str, names: set, expect: dict, capture: dict) -> bool:
             return True
     match = WITHIN.match(line)
     if match:
-        expect["within_ms"] = int(match.group(1))
+        expect["max_response_ms"] = int(match.group(1))
         return True
     for pattern, key in ((FIELD_EQUALS, "fields"), (FIELD_CONTAINS, "contains")):
         match = pattern.match(line)

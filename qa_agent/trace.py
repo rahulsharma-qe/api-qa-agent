@@ -285,10 +285,10 @@ def _statuses(status, case: Case, project: TeamProject) -> set:
     if isinstance(status, int):
         return {status}
     match = re.match(r"^\{\{\s*row\.(\w+)\s*\}\}$", str(status or ""))
-    if not match or not case.data:
+    if not match or not case.data_file:
         return set()
     try:
-        values = [row.get(match.group(1)) for row in rows(project.root / case.data)]
+        values = [row.get(match.group(1)) for row in rows(project.root / case.data_file)]
     except DataFileError:
         return set()
     return {int(float(value)) for value in values if str(value).strip().replace(".0", "").isdigit()}

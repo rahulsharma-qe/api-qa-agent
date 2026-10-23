@@ -33,7 +33,7 @@ cases:
   - id: TC2
     title: Read by status
     criteria: [AC-2]
-    data: data/reads.csv
+    data_file: data/reads.csv
     steps:
       - request: {method: GET, path: "/bookings/{{row.pnr}}"}
         expect: {status: "{{row.status}}"}

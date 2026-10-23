@@ -6,7 +6,7 @@ cases:
     priority: P0
     track: functional
     tags: [boundary]
-    data: data/cancellation_boundaries.csv
+    data_file: data/cancellation_boundaries.csv
     steps:
       - request:
           method: POST

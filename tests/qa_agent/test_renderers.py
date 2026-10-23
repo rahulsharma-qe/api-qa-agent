@@ -9,7 +9,7 @@ from qa_agent.renderers import RENDERERS, RenderError
 
 EVERYTHING = {"feature": "Bookings", "cases": [{
     "id": "TC7", "title": "Everything the format can say, isn't it", "criteria": ["AC-1"], "priority": "P1",
-    "tags": ["smoke", "crud-flow"], "data": "data/rows.csv",
+    "tags": ["smoke", "crud-flow"], "data_file": "data/rows.csv",
     "steps": [
         {"request": {"method": "POST", "path": "/bookings",
                      "body": {"name": "Asha {{unique}}", "amount": "{{row.amount}}", "paid": True, "ids": [1, 2]}},
@@ -19,7 +19,7 @@ EVERYTHING = {"feature": "Bookings", "cases": [{
          "expect": {"status": 200, "fields": {"items[0].pnr": "{{pnr}}"}, "exists": ["count"],
                     "contains": {"items[0].email": "@"}, "list_length": {"items": 1},
                     "list_contains": {"items": {"pnr": "{{pnr}}"}}, "list_excludes": {"items": {"status": "x"}},
-                    "headers": {"content-type": "application/json"}, "within_ms": 2000}},
+                    "headers": {"content-type": "application/json"}, "max_response_ms": 2000}},
         {"request": {"method": "PUT", "path": "/bookings/{{pnr}}", "query": {"notify": "no"}, "body": {"a": 1}},
          "expect": {"status": 200}},
         {"request": {"method": "GET", "path": "/health-check", "service": "notifications", "auth": "none"},

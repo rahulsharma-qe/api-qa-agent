@@ -62,20 +62,20 @@ class RestAssuredRenderer:
         lines = []
         group_list = ", ".join(json.dumps(group) for group in groups(case))
         test = f"groups = {{{group_list}}}"
-        if case.data:
+        if case.data_file:
             provider = f"{name}Rows"
             test += f', dataProvider = "{provider}"'
             needs |= {"DataProvider", "TestData", "Map"}
-            lines += ["    /** One run per row of " + case.data + ". */",
+            lines += ["    /** One run per row of " + case.data_file + ". */",
                       f'    @DataProvider(name = "{provider}")',
                       f"    public Object[][] {provider}() {{",
-                      f"        return TestData.asDataProvider(TestData.rows({json.dumps(case.data)}));",
+                      f"        return TestData.asDataProvider(TestData.rows({json.dumps(case.data_file)}));",
                       "    }", ""]
         criteria = f" Criteria: {', '.join(case.criteria)}." if case.criteria else ""
         lines += [f"    /** {_comment(case.title)}.{criteria} */",
                   f"    @Test({test})",
                   f"    @CaseId({json.dumps(case.id)}) @Priority({json.dumps(case.priority)})",
-                  f"    public void {name}({'Map<String, Object> row' if case.data else ''}) {{"]
+                  f"    public void {name}({'Map<String, Object> row' if case.data_file else ''}) {{"]
         if uses.unique:
             lines.append("        String unique = TestData.uniqueId();")
             needs.add("TestData")
@@ -140,8 +140,8 @@ def _expect_lines(expect: dict, uses: Uses, needs: set, where: str) -> list[str]
             calls.append(f"{method}({json.dumps(path)}, {pairs})")
     for name, value in expect.get("headers", {}).items():
         calls.append(f"headerEquals({json.dumps(name)}, {_as_string(value, uses)})")
-    if "within_ms" in expect:
-        calls.append(f"respondedWithin({expect['within_ms']})")
+    if "max_response_ms" in expect:
+        calls.append(f"respondedWithin({expect['max_response_ms']})")
     one_line = "        Expect.that(response)." + ".".join(calls) + ";"
     if len(one_line) <= LINE or len(calls) == 1:
         return [one_line]

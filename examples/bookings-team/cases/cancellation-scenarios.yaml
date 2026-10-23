@@ -6,7 +6,7 @@ cases:
     priority: P0
     track: functional
     tags: [cancellation]
-    data: data/cancellation-scenarios-tc040.csv
+    data_file: data/cancellation-scenarios-tc040.csv
     source:
       format: gherkin
       file: existing/cancel.feature

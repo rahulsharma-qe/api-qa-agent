@@ -45,7 +45,7 @@ def test_values_used_before_capture_and_data_columns(make_project, tmp_path):
           - id: TC2
             title: t
             criteria: [AC-1]
-            data: data/rows.csv
+            data_file: data/rows.csv
             steps:
               - request: {method: POST, path: /bookings, body: {passenger_name: x, email: y, amount: "{{row.amont}}"}}
                 expect: {status: "{{row.status}}"}
@@ -155,7 +155,7 @@ def _hollow_warnings(make_project, steps: str) -> list[str]:
 def test_a_case_that_checks_only_status_codes_and_ends_in_success_is_hollow(make_project):
     create = '{request: {method: POST, path: /bookings, body: {passenger_name: "A {{unique}}", email: a@b.c}}, ' \
              'expect: {status: 201}, capture: {pnr: pnr}}'
-    read = '{request: {method: GET, path: "/bookings/{{pnr}}"}, expect: {status: 200, within_ms: 2000}}'
+    read = '{request: {method: GET, path: "/bookings/{{pnr}}"}, expect: {status: 200, max_response_ms: 2000}}'
     warnings = _hollow_warnings(make_project, f"[{create}, {read}]")
     assert len(warnings) == 1 and "Fix: add fields, exists or types" in warnings[0]
 

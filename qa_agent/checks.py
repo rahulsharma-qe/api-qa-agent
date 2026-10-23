@@ -132,7 +132,7 @@ def _case_findings(case: Case, case_file: CaseFile, project: TeamProject, api: O
         where = f" step {number}"
         if not step.expect:
             found.append((ERROR, f"{where}: checks nothing. Fix: add expect (at least a status)"))
-        found += _value_findings(step, where, captured, columns, case.data)
+        found += _value_findings(step, where, captured, columns, case.data_file)
         if api is not None:
             found += _api_findings(step, where, api, step.request.service or project.main_service)
         captured |= set(step.capture)
@@ -146,7 +146,7 @@ def _case_findings(case: Case, case_file: CaseFile, project: TeamProject, api: O
 def _is_hollow(steps: list[Step]) -> bool:
     """Every step checks only a status (or a time), and the last one expects success: a wrong answer passes.
     A case that ends in a refusal or a 404 is not hollow: that status is the point of it."""
-    if not steps or any(set(step.expect) - {"status", "within_ms"} for step in steps):
+    if not steps or any(set(step.expect) - {"status", "max_response_ms"} for step in steps):
         return False
     last = steps[-1].expect.get("status")
     return isinstance(last, int) and 200 <= last < 300
@@ -162,12 +162,12 @@ def _criteria_findings(case: Case, criteria: dict) -> list[tuple[str, str]]:
 
 
 def _data_columns(case: Case, project: TeamProject, found: list) -> Optional[list[str]]:
-    if not case.data:
+    if not case.data_file:
         return None
     try:
-        return column_names(project.root / case.data)
+        return column_names(project.root / case.data_file)
     except DataFileError as error:
-        found.append((ERROR, f": data file {case.data}: {str(error).split(': ', 1)[-1]}"))
+        found.append((ERROR, f": data file {case.data_file}: {str(error).split(': ', 1)[-1]}"))
         return []
 
 
@@ -180,7 +180,7 @@ def _value_findings(step: Step, where: str, captured: set, columns: Optional[lis
         if name.startswith("row."):
             column = name[4:]
             if columns is None:
-                found.append((ERROR, f"{where}: {{{{{name}}}}} needs a data file. Fix: add data: <file> to the case"))
+                found.append((ERROR, f"{where}: {{{{{name}}}}} needs a data file. Fix: add data_file: <file> to the case"))
             elif columns and column not in columns:
                 found.append((ERROR, f"{where}: {{{{{name}}}}}: {data} has no column '{column}' "
                                      f"(it has: {', '.join(columns)})"))

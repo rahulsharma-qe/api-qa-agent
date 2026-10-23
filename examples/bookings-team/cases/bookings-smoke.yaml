@@ -30,7 +30,7 @@ cases:
           status: 200
           fields: {amount: 120}
           contains: {email: '@testdata.example'}
-          within_ms: 2000
+          max_response_ms: 2000
     review:
       status: approved
       by: qa-lead

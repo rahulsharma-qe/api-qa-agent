@@ -39,9 +39,9 @@ class PytestRenderer:
             tests.append(text)
             if uses.unique:
                 imports.add("unique_id")
-            if case.data:
+            if case.data_file:
                 imports.add("load_rows")
-                data_files.append((_rows_name(case), case.data))
+                data_files.append((_rows_name(case), case.data_file))
         text = TEMPLATES.get_template("test_module.py.j2").render(
             header=HEADER.format(source=source), feature=case_file.feature, tests=tests,
             imports=sorted(imports), data_files=data_files)
@@ -60,7 +60,7 @@ class PytestRenderer:
         lines = [f"@pytest.mark.{_marker(group)}" for group in groups(case)]
         lines += [f'@pytest.mark.case("{case.id}")', f'@pytest.mark.priority("{case.priority}")']
         arguments = ["api", "context"] + (["api_for"] if uses.services else [])
-        if case.data:
+        if case.data_file:
             rows = _rows_name(case)
             lines.append(f'@pytest.mark.parametrize("row", {rows}, ids=lambda row: str(row["case"]) if "case" in row '
                          f"else None)")
@@ -134,8 +134,8 @@ def _expect_lines(expect: dict, uses: Uses) -> list[str]:
             calls.append(f"{method}({json.dumps(path)}, **{_code(match, uses)})")
     for name, value in expect.get("headers", {}).items():
         calls.append(f"header_equals({json.dumps(name)}, {_code(value, uses)})")
-    if "within_ms" in expect:
-        calls.append(f"responded_within({expect['within_ms']})")
+    if "max_response_ms" in expect:
+        calls.append(f"responded_within({expect['max_response_ms']})")
     one_line = "    Expect(response)." + ".".join(calls)
     if len(one_line) <= LINE or len(calls) == 1:
         return [one_line]

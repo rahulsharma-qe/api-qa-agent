@@ -32,12 +32,12 @@ TRACKS = ("functional", "regression")
 REVIEW_STATUSES = ("draft", "approved", "changes_needed", "rejected")
 TYPE_NAMES = ("string", "number", "integer", "boolean", "list", "object", "null")
 EXPECTATIONS = ("status", "fields", "exists", "types", "contains", "list_length", "list_contains",
-                "list_excludes", "headers", "within_ms")
+                "list_excludes", "headers", "max_response_ms")
 NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 ROW_VALUE = re.compile(r"^\{\{\s*row\.[^{}]+\}\}$")       # {{row.expected_status}}: a value from the data file
 RESERVED_NAMES = ("unique", "row")
 
-CASE_KEYS = ("id", "title", "criteria", "priority", "track", "tags", "data", "source", "steps", "manual_steps",
+CASE_KEYS = ("id", "title", "criteria", "priority", "track", "tags", "data_file", "source", "steps", "manual_steps",
              "notes", "review")
 STEP_KEYS = ("name", "request", "expect", "capture")
 REQUEST_KEYS = ("method", "path", "query", "headers", "body", "service", "auth")
@@ -108,7 +108,7 @@ class Case:
     priority: str = "P2"
     track: str = "functional"
     tags: list = field(default_factory=list)
-    data: Optional[str] = None
+    data_file: Optional[str] = None
     source: dict = field(default_factory=dict)
     steps: list = field(default_factory=list)
     manual_steps: list = field(default_factory=list)
@@ -116,11 +116,11 @@ class Case:
     review: Review = field(default_factory=Review)
 
     def fingerprint(self) -> str:
-        """A hash of what the test does (id, steps, data). Editing any of it after approval shows up."""
-        # The keys here are the names the format had when approvals began (steps_text, not manual_steps):
+        """A hash of what the test does (id, steps, data file). Editing any of it after approval shows up."""
+        # The names inside are the ones the format had when approvals began (data, steps_text, within_ms):
         # renaming a field in the file must not change the fingerprint of a case already approved.
-        content = {"id": self.id, "steps": [step.to_dict() for step in self.steps], "data": self.data,
-                   "steps_text": self.manual_steps}
+        steps = [_with_names_at_approval(step.to_dict()) for step in self.steps]
+        content = {"id": self.id, "steps": steps, "data": self.data_file, "steps_text": self.manual_steps}
         return hashlib.sha256(json.dumps(content, sort_keys=True, default=str).encode()).hexdigest()[:12]
 
     @property
@@ -139,7 +139,7 @@ class Case:
     def to_dict(self) -> dict:
         data = {"id": self.id, "title": self.title, "criteria": self.criteria, "priority": self.priority,
                 "track": self.track}
-        for key in ("tags", "data", "source", "notes"):
+        for key in ("tags", "data_file", "source", "notes"):
             if getattr(self, key):
                 data[key] = getattr(self, key)
         if self.steps:
@@ -148,6 +148,14 @@ class Case:
             data["manual_steps"] = self.manual_steps
         data["review"] = self.review.to_dict()
         return data
+
+
+FIELD_NAMES_AT_APPROVAL = {"max_response_ms": "within_ms"}       # the expectation's name now -> in fingerprints
+
+
+def _with_names_at_approval(step: dict) -> dict:
+    expect = {FIELD_NAMES_AT_APPROVAL.get(key, key): value for key, value in step.get("expect", {}).items()}
+    return {**step, "expect": expect} if "expect" in step else step
 
 
 @dataclass
@@ -213,7 +221,7 @@ def _parse_case(entry: Any, number: int, problems: list[str]) -> Optional[Case]:
         criteria=[str(item) for item in _as_list(entry.get("criteria"), f"{case_id}: 'criteria'", problems)],
         priority=priority, track=track,
         tags=[str(item) for item in _as_list(entry.get("tags"), f"{case_id}: 'tags'", problems)],
-        data=str(entry["data"]) if entry.get("data") else None,
+        data_file=str(entry["data_file"]) if entry.get("data_file") else None,
         source=entry.get("source") if isinstance(entry.get("source"), dict) else {},
         steps=[step for step in steps if step is not None],
         manual_steps=[manual_steps] if isinstance(manual_steps, str) else [str(line) for line in manual_steps],
@@ -262,7 +270,7 @@ def _check_expect(expect: Any, where: str, problems: list[str]) -> None:
     shapes = {
         "status": lambda v: (isinstance(v, int) and not isinstance(v, bool) and 100 <= v <= 599)
         or (isinstance(v, str) and bool(ROW_VALUE.match(v))),
-        "within_ms": lambda v: isinstance(v, int) and not isinstance(v, bool) and v > 0,
+        "max_response_ms": lambda v: isinstance(v, int) and not isinstance(v, bool) and v > 0,
         "exists": lambda v: isinstance(v, list) and all(isinstance(item, str) for item in v),
         "fields": lambda v: isinstance(v, dict),
         "types": lambda v: isinstance(v, dict) and all(item in TYPE_NAMES for item in v.values()),
@@ -272,7 +280,7 @@ def _check_expect(expect: Any, where: str, problems: list[str]) -> None:
         "list_excludes": lambda v: isinstance(v, dict) and all(isinstance(item, dict) for item in v.values()),
         "headers": lambda v: isinstance(v, dict),
     }
-    hints = {"status": "a status code such as 201, or {{row.column}} in a data-driven case", "within_ms": "milliseconds, a whole number",
+    hints = {"status": "a status code such as 201, or {{row.column}} in a data-driven case", "max_response_ms": "milliseconds, a whole number",
              "exists": "a list of paths", "fields": "path: expected value",
              "types": f"path: one of {', '.join(TYPE_NAMES)}", "contains": "path: text",
              "list_length": "path: a whole number", "list_contains": "path: {field: value}",

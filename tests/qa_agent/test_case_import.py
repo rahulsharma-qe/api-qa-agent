@@ -69,7 +69,7 @@ def test_a_case_without_an_id_gets_the_next_free_one_whatever_the_order(make_pro
                                      root / "existing/booking_api.csv"])
     assert summary.new_ids == ["TC042: Health", "TC043: By time"]
     refunds = load_case_file(root / "cases/refunds.yaml").cases[0]
-    assert refunds.data == "data/refunds-tc043.csv"
+    assert refunds.data_file == "data/refunds-tc043.csv"
     assert (root / "data/refunds-tc043.csv").read_text().splitlines() == ["pnr", "A1"]
 
 

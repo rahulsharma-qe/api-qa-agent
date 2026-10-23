@@ -41,7 +41,7 @@ def test_every_problem_is_reported_at_once():
 
 
 def test_a_data_driven_status_may_come_from_the_data():
-    data = {"feature": "x", "cases": [{"id": "TC1", "title": "t", "data": "data/rows.csv", "steps": [
+    data = {"feature": "x", "cases": [{"id": "TC1", "title": "t", "data_file": "data/rows.csv", "steps": [
         {"request": {"method": "GET", "path": "/x"}, "expect": {"status": "{{row.expected_status}}"}}]}]}
     assert parse_case_file(data, Path("x.yaml")).cases[0].steps[0].expect["status"] == "{{row.expected_status}}"
 
@@ -83,3 +83,12 @@ def test_renaming_a_field_keeps_every_approval():
     data = {"feature": "x", "cases": [{"id": "TC1", "title": "t", "manual_steps": ["Make a booking", "Cancel it"]}]}
     cases = parse_case_file(data, Path("x.yaml")).cases
     assert [case.fingerprint() for case in cases] == ["d0b0821d2e7f"]
+
+
+def test_renaming_an_expectation_or_the_data_file_keeps_every_approval():
+    """Taken before data -> data_file and within_ms -> max_response_ms: still the same fingerprint."""
+    data = {"feature": "x", "cases": [{"id": "TC2", "title": "t", "data_file": "rows.csv", "steps": [
+        {"request": {"method": "GET", "path": "/bookings/{{row.pnr}}"},
+         "expect": {"status": 200, "max_response_ms": 2000}}]}]}
+    cases = parse_case_file(data, Path("x.yaml")).cases
+    assert [case.fingerprint() for case in cases] == ["ebf305a4de5c"]

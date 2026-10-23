@@ -79,9 +79,9 @@ def import_cases(project: TeamProject, paths: list[Path], into: Optional[Path] =
                     summary.new_ids.append(f"{raw['id']}: {raw.get('title')}")
             rows = raw.pop("_data_rows", None)
             if rows:
-                raw["data"] = f"data/{slug(feature.feature)}-{raw['id'].lower()}.csv"
+                raw["data_file"] = f"data/{slug(feature.feature)}-{raw['id'].lower()}.csv"
             if _add_case(raw, case_file, files, overwrite, project, summary) and rows:
-                _write_data_file(project.root / raw["data"], rows, overwrite, summary, raw["data"])
+                _write_data_file(project.root / raw["data_file"], rows, overwrite, summary, raw["data_file"])
     for case_file in files.values():
         if project.relative(case_file.path) in summary.written:
             save_case_file(case_file)
