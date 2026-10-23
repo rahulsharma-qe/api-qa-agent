@@ -1003,3 +1003,83 @@ time (one mapping in `cases.py`, pinned by tests), so no approved case went back
 | 3b-3 | The reusable workflow, the two teams |
 | 3b-4 | Petstore |
 | 3b-5 | The Docker image |
+
+## 11. Phase 6: the AI layer
+
+Code decides **what** is missing; the model writes **how** to test it; every draft takes the path a
+person's case takes: `check`, the review sheet, a person's approval, then templates. The model never
+approves, never writes test code, and never decides scope.
+
+### 11.1 Where a team starts
+
+| The team has | What happens |
+|---|---|
+| Acceptance criteria and an API description, no cases | `qa-agent draft` drafts a case for each gap the trace finds, in batches (`--max`) |
+| A requirement in plain words only (a story, a document) | `qa-agent draft criteria` splits it into acceptance criteria as drafts; a person approves them; then `draft` |
+| A requirement, and no API yet | Later: criteria and manual cases (`manual_steps`), turned into steps once the API exists |
+
+A requirement never becomes an API description: without a real one (OpenAPI or curl) there are no
+runnable tests. Where the requirement is unclear, the model asks instead of guessing: a criterion
+draft can be a question (`QUESTION: refund at exactly 24 hours?`) for a person to settle.
+
+### 11.2 Commands
+
+| Command | What it does | Model calls |
+|---|---|---|
+| `qa-agent draft criteria <requirement file>` | Acceptance criteria drafted from plain words, each with the line it came from | One |
+| `qa-agent draft --plan` | The gaps, the calls and the estimated cost | None |
+| `qa-agent draft [--max 10]` | A draft case for each gap, up to `--max` | One per gap |
+
+Settings in `qa-agent.yaml`: `ai: {provider, model}` (or `recorded: <folder>`), optional prices
+per million tokens. The key comes only from the environment.
+
+### 11.3 Guardrails, all in code
+
+| # | Guardrail |
+|---|---|
+| G1 | A draft's review status is always `draft`; anything the model writes under `review` is dropped |
+| G2 | Case ids come from code (the next free id), never from the model |
+| G3 | `source: ai-draft · <model> · gap <AC-3>` is written by code |
+| G4 | A value the model can't source is `TBD`; `check` makes it an error, so the case can't be approved or generated |
+| G5 | Only operations in `api/api.yaml` (today's `check` already refuses others) |
+| G6 | Drafts are only added; no case a person wrote is changed |
+| G7 | The same gap drafted again adds nothing (known by its source) |
+| G8 | Sent to the model: the criterion, the operation's structure, one or two approved cases as examples; redacted first (emails, tokens, keys, secret values) |
+| G9 | Every call logged to `reports/ai-audit-log.jsonl`: what was sent, the reply, tokens, cost |
+| G10 | A reply that isn't the case format is refused with the reason; nothing is written |
+
+The same holds for criteria: a drafted criterion is `draft` until a person approves it in the review
+sheet's Criteria tab, and the trace and `draft` count only approved criteria.
+
+### 11.4 Measured, with a real model
+
+On the bookings example:
+
+1. The seeded bugs caught rise from 5 of 7 (the two missed are trace gaps) to at least 6 of 7, after
+   the drafts are reviewed and approved.
+2. At least 70% of drafts approved unchanged or with small edits.
+3. No draft that breaks a `check` rule gets in.
+4. One full run costs under $0.50.
+
+### 11.5 Build order
+
+| Push | What |
+|---|---|
+| 6-1 | The model (anthropic, openai, recorded), redaction, the audit log; `core/` removed |
+| 6-2 | Gaps, prompts, reading replies, guardrails, `qa-agent draft`, the `TBD` rule |
+| 6-3 | `qa-agent draft criteria`, criteria review status, the Criteria tab |
+| 6-4 | The example from a requirement in plain words, with recorded replies (hand-written until a real model records them) |
+| 6-5 | Replies recorded from a real model; 11.4 measured |
+
+### 11.6 As built: the model (6-1)
+
+`qa_agent/ai/`:
+
+| File | What |
+|---|---|
+| `models.py` | `complete(ModelRequest) -> ModelReply` (text, input and output tokens). `AnthropicModel`, `OpenAIModel` (temperature 0; the SDK is imported only when used: `pip install .[anthropic]` or `.[openai]`), `RecordedModel` (`<folder>/<request name>.txt`) |
+| `redaction.py` | Bearer and Basic tokens, JWTs, `sk-`/`gh*_`/AWS keys, values of password and secret keys, emails. Placeholders (`{{row.x}}`) and field names stay |
+| `audit.py` | `reports/ai-audit-log.jsonl`, appended: time, name, provider, model, what was sent, what was redacted, reply, tokens, cost, duration, error |
+| `session.py` | `AiSession.ask(name, system, user)`: redact, call, log. The only way the AI layer calls a model |
+
+A wrong or missing setting says what to add; a missing key names the environment variable.
