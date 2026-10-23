@@ -8,7 +8,7 @@ import apiqa.framework.config.EnvironmentConfig;
 /**
  * Chooses a token provider from the environment's {@code auth.type}:
  * {@code none}, {@code static_token} (token_env) or {@code client_credentials}
- * (service, token_path, client_id_env, client_secret_env; plain client_id / client_secret for a mock only).
+ * (service, token_path, client_id_env, client_secret_env; plain client_id / client_secret for the demo API only).
  */
 public final class TokenProviders {
     private TokenProviders() {
@@ -35,7 +35,7 @@ public final class TokenProviders {
         }
     }
 
-    /** A value from {@code <name>_env} (an environment variable), or a plain {@code <name>} (a mock only). */
+    /** A value from {@code <name>_env} (an environment variable), or a plain {@code <name>} (a demo only). */
     private static String secret(Map<String, Object> auth, String name, String environment) {
         Object variable = auth.get(name + "_env");
         if (variable != null) {
@@ -48,6 +48,6 @@ public final class TokenProviders {
         if (auth.containsKey(name)) {
             return String.valueOf(auth.get(name));
         }
-        throw new ConfigException("environment '" + environment + "': auth needs '" + name + "_env' (or '" + name + "' for a mock)");
+        throw new ConfigException("environment '" + environment + "': auth needs '" + name + "_env' (or '" + name + "' for the demo API)");
     }
 }

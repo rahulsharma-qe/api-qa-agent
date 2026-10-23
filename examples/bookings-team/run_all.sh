@@ -41,12 +41,12 @@ echo "== 2. The drift check, the reference API, the environment, the tests"
 cd "$example"
 qa-agent generate --check
 mkdir -p reports
-if ! python -m env_check --env mock > /dev/null 2>&1; then
-  python -m mock_service > reports/mock_service.log 2>&1 &
-  mock=$!
-  trap 'rm -rf "$scratch"; kill "$mock" 2> /dev/null || true' EXIT
+if ! python -m env_check --env demo > /dev/null 2>&1; then
+  python -m demo_api > reports/demo_api.log 2>&1 &
+  demo=$!
+  trap 'rm -rf "$scratch"; kill "$demo" 2> /dev/null || true' EXIT
 fi
-python -m env_check --env mock
+python -m env_check --env demo
 results=()
 if [[ " $frameworks " == *" pytest "* ]]; then
   python -m pytest -q --junitxml=reports/junit.xml
@@ -68,9 +68,9 @@ done
 qa-agent promote --runs reports/run1.xml reports/run2.xml reports/run3.xml
 
 echo "== 5. Bug-detection rate (seeded bugs, one at a time)"
-if [[ -n "${mock:-}" ]]; then
-  kill "$mock"
-  wait "$mock" 2> /dev/null || true
+if [[ -n "${demo:-}" ]]; then
+  kill "$demo"
+  wait "$demo" 2> /dev/null || true
   qa-agent bug-detection --framework pytest
 else
   echo "The reference API was already running: stop it, then run qa-agent bug-detection --framework pytest"

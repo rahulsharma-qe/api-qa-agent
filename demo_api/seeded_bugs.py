@@ -1,7 +1,7 @@
 """Seeded bugs: small slips a developer makes, switched on one at a time, so `qa-agent bug-detection` can
 measure whether a suite catches bugs or only passes.
 
-Off unless asked:  python -m mock_service --bug refund-boundary   (or MOCK_BUG=refund-boundary).
+Off unless asked:  python -m demo_api --bug refund-boundary   (or DEMO_BUG=refund-boundary).
 The OpenAPI description is always the one without bugs.
 """
 

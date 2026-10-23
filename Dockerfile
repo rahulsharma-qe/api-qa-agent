@@ -15,7 +15,7 @@ WORKDIR /opt/qa-agent
 COPY pyproject.toml README.md LICENSE ./
 COPY qa_agent qa_agent
 COPY env_check env_check
-COPY mock_service mock_service
+COPY demo_api demo_api
 RUN pip install --no-cache-dir .
 
 # Your project folder is mounted here; qa-agent reads and writes it as if you ran it there.

@@ -11,7 +11,7 @@ jobs:
     uses: rahulsharma-qe/api-qa-agent/.github/workflows/qa-agent-team.yml@main
     with:
       framework: restassured
-      environment: mock                 # an environment in config/environments.yaml
+      environment: demo                 # an environment in config/environments.yaml
       name: refunds-java
       start-reference-api: true         # the reference API; remove it when you test your own environment
       # min-coverage: "80"              # a floor for criteria and operations coverage, if the team wants one

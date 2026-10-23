@@ -11,8 +11,8 @@ that same call for both teams, each building only its own framework.
 ```bash
 pip install -e . -e frameworks/python_api          # at the repository's root
 cd teams/bookings-python
-python -m mock_service &                   # the reference API
-python -m env_check --env mock
+python -m demo_api &                       # the reference API
+python -m env_check --env demo
 python -m pytest --junitxml=reports/junit.xml
 qa-agent trace --results reports/junit.xml
 ```

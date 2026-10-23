@@ -6,8 +6,8 @@ framework handles environments, tokens, values carried between steps, and readab
 
 ```bash
 pip install -e ../.. -e .                  # the reference API + env_check, then this framework
-python -m mock_service &                   # the reference API (bookings :8000, notifications :8001)
-python -m env_check --env mock && pytest   # is the environment ready? then run
+python -m demo_api &                       # the reference API (bookings :8000, notifications :8001)
+python -m env_check --env demo && pytest   # is the environment ready? then run
 ```
 
 ## A test
@@ -75,7 +75,7 @@ pytest --env staging -m writes -rs   # read-only: every test that changes data i
 |---|---|
 | `none` | no header |
 | `static_token` | the environment variable named in `token_env` |
-| `client_credentials` | the token endpoint, once per run; the id and secret from `client_id_env` and `client_secret_env` (plain values for a mock only) |
+| `client_credentials` | the token endpoint, once per run; the id and secret from `client_id_env` and `client_secret_env` (plain values for the demo API only) |
 
 A missing environment, file or variable stops the run with `SETUP PROBLEM` (exit 2), never a test failure.
 

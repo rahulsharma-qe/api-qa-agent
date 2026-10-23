@@ -48,8 +48,8 @@ class InitResult:
         run = "pytest" if framework == "pytest" else "./mvnw test"
         return "\n".join([f"created {self.root}: {len(self.files)} files, one starter case and its test in "
                           f"{test_folder}", "", "Next:", f"  cd {self.root}",
-                          "  python -m mock_service &          # the reference API",
-                          "  python -m env_check --env mock",
+                          "  python -m demo_api &              # the reference API",
+                          "  python -m env_check --env demo",
                           f"  {run}", "", "Then bring your own API and cases: see README.md"])
 
 

@@ -1,9 +1,9 @@
 """Run the reference API, or export its OpenAPI description.
 
-    python -m mock_service                          bookings on :8000, notifications on :8001
-    python -m mock_service --only bookings          one service (stop it to see env_check say "not ready")
-    python -m mock_service --export-openapi mock_service/openapi.json
-    python -m mock_service --bug refund-boundary    one seeded bug switched on (for qa-agent bug-detection)
+    python -m demo_api                          bookings on :8000, notifications on :8001
+    python -m demo_api --only bookings          one service (stop it to see env_check say "not ready")
+    python -m demo_api --export-openapi demo_api/openapi.json
+    python -m demo_api --bug refund-boundary    one seeded bug switched on (for qa-agent bug-detection)
 """
 
 import argparse
@@ -12,21 +12,21 @@ import json
 from dataclasses import replace
 from pathlib import Path
 
-from mock_service.bookings_app import create_bookings_app
-from mock_service.notifications_app import create_notifications_app
-from mock_service.seeded_bugs import BUGS, UnknownBug, checked
-from mock_service.settings import MockSettings
+from demo_api.bookings_app import create_bookings_app
+from demo_api.notifications_app import create_notifications_app
+from demo_api.seeded_bugs import BUGS, UnknownBug, checked
+from demo_api.settings import DemoApiSettings
 
 SERVICES = {"bookings": (create_bookings_app, 8000), "notifications": (create_notifications_app, 8001)}
 
 
 def openapi_text() -> str:
     """The bookings service's OpenAPI description, from default settings so it is the same everywhere."""
-    return json.dumps(create_bookings_app(MockSettings()).openapi(), indent=2) + "\n"
+    return json.dumps(create_bookings_app(DemoApiSettings()).openapi(), indent=2) + "\n"
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(prog="python -m mock_service", description="The reference API for api-qa-agent.")
+    parser = argparse.ArgumentParser(prog="python -m demo_api", description="The reference API for api-qa-agent.")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--only", choices=sorted(SERVICES), help="run one service instead of both")
     parser.add_argument("--export-openapi", metavar="PATH", help="write the OpenAPI description and exit")
@@ -40,11 +40,11 @@ def main(argv=None) -> int:
 
     import uvicorn
 
-    settings = MockSettings.from_environment()
+    settings = DemoApiSettings.from_environment()
     try:
         bug = checked(args.bug or settings.bug)
     except UnknownBug as error:
-        print(f"mock_service: {error}")
+        print(f"demo_api: {error}")
         return 2
     settings = replace(settings, bug=bug)
     if bug:

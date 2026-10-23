@@ -47,4 +47,4 @@ def test_ci_calls_the_reusable_workflow_once_per_team():
 @pytest.mark.parametrize("team", TEAMS)
 def test_each_team_uses_the_reference_apis_current_openapi(team):
     assert (REPO / "teams" / team / "api/source/openapi.json").read_bytes() == \
-        (REPO / "mock_service/openapi.json").read_bytes(), f"copy mock_service/openapi.json into teams/{team}/api/source/"
+        (REPO / "demo_api/openapi.json").read_bytes(), f"copy demo_api/openapi.json into teams/{team}/api/source/"

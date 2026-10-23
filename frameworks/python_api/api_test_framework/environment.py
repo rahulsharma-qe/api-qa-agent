@@ -2,11 +2,11 @@
 whether tests may change data there.
 
     environments:
-      mock:
+      demo:
         default_service: bookings
         services: {bookings: "http://localhost:8000", notifications: "http://localhost:8001"}
         auth: {type: client_credentials, service: bookings, token_path: /auth/token,
-               client_id: demo-client, client_secret: demo-secret}     # plain values: mock only
+               client_id: demo-client, client_secret: demo-secret}     # plain values: demo only
         timeout_seconds: 10
         read_only: false
 """
@@ -17,7 +17,7 @@ from typing import Optional
 
 import yaml
 
-DEFAULT_ENVIRONMENT = "mock"
+DEFAULT_ENVIRONMENT = "demo"
 DEFAULT_TIMEOUT_SECONDS = 10.0
 
 

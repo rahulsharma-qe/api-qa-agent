@@ -1,4 +1,4 @@
-# What these tests need before they run:  python -m env_check --env mock
+# What these tests need before they run:  python -m env_check --env demo
 team: bookings-python
 attempts: 5               # a service just started may need a few seconds
 wait_seconds: 1

@@ -1,7 +1,7 @@
 # bookings-team: a team's project, for the reference API
 
 This folder has exactly the shape of a team's own repository. It shows every `qa-agent` feature
-against the reference API (`python -m mock_service`), with what each command printed: from the API
+against the reference API (`python -m demo_api`), with what each command printed: from the API
 and the team's existing cases to tests in both frameworks and the trace.
 
 ```bash
@@ -209,8 +209,8 @@ groups: `pytest -m negative`, `./mvnw test -Dgroups=negative`.
 ## 6. Run
 
 ```bash
-python -m mock_service &                   # the reference API
-python -m env_check --env mock             # READY (exit 0)
+python -m demo_api &                       # the reference API
+python -m env_check --env demo             # READY (exit 0)
 python -m pytest --junitxml=reports/junit.xml      # 12 passed: TC002 runs once per data row, TC040 too
 ./mvnw test                                # the same tests in Java
 ```
@@ -276,7 +276,7 @@ itself; the reviewer can set Suite there.)
 
 ## 9. Do the tests catch bugs?
 
-The reference API can switch on one seeded bug at a time (`python -m mock_service --bug
+The reference API can switch on one seeded bug at a time (`python -m demo_api --bug
 refund-boundary`). `seeded-bugs.yaml` says how to start it with each; `qa-agent bug-detection` runs the tests once
 with no bug (they must pass), then once per bug:
 

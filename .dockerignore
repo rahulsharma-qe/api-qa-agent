@@ -5,5 +5,5 @@
 !LICENSE
 !qa_agent
 !env_check
-!mock_service
+!demo_api
 **/__pycache__

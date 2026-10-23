@@ -4,7 +4,7 @@ import json
 
 ENVIRONMENTS = """
 environments:
-  mock:
+  demo:
     services: {bookings: "http://bookings.test"}
   staging:
     services: {bookings: "http://staging.test"}

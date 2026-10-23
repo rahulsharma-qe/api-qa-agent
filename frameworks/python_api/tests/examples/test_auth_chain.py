@@ -15,7 +15,7 @@ from api_test_framework import Expect, new_passenger
 @pytest.mark.priority("P1")
 def test_token_then_booking_then_cancel_then_refund_status(api, context, environment):
     if "client_id" not in environment.auth:
-        pytest.skip("this example reads plain credentials, which only the mock environment has")
+        pytest.skip("this example reads plain credentials, which only the demo environment has")
     anonymous = api.without_auth()
 
     token = anonymous.post("/auth/token", json={"client_id": environment.auth["client_id"],

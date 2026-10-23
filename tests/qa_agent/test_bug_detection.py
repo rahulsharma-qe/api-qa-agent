@@ -8,8 +8,8 @@ from qa_agent.cli import main
 from qa_agent.project import SetupError, TeamProject
 
 SEEDED_BUGS = """
-start_with_bug: python -m mock_service --bug {bug}
-start_clean: python -m mock_service
+start_with_bug: python -m demo_api --bug {bug}
+start_clean: python -m demo_api
 bugs:
   refund-boundary: a cancel at exactly 24 hours gets no refund
   token-not-checked: a call with no token is let through
@@ -36,8 +36,8 @@ def stand_in(monkeypatch, already_up=False, failing=None):
 def test_a_clean_run_first_then_one_run_per_bug_and_the_rate(project, monkeypatch):
     started = stand_in(monkeypatch, failing={"refund-boundary": ["TC002", "TC040"]})
     report = bug_detection.measure(project, project.root / "seeded-bugs.yaml", "pytest")
-    assert started == ["python -m mock_service", "python -m mock_service --bug refund-boundary",
-                       "python -m mock_service --bug token-not-checked"]
+    assert started == ["python -m demo_api", "python -m demo_api --bug refund-boundary",
+                       "python -m demo_api --bug token-not-checked"]
     assert (report.caught, len(report.runs)) == (1, 2)
     text = report.as_text()
     assert "1 of 2 seeded bugs caught (50%)" in text
@@ -57,7 +57,7 @@ def test_an_api_already_up_or_a_bad_seeded_bugs_file_is_a_setup_problem(project,
     stand_in(monkeypatch, already_up=True)
     assert main(["--project", str(project.root), "bug-detection", "--framework", "pytest"]) == 2
     assert "the API is already up" in capsys.readouterr().err
-    (project.root / "seeded-bugs.yaml").write_text("start_with_bug: python -m mock_service\nstart_clean: x\nbugs: [x]\n")
+    (project.root / "seeded-bugs.yaml").write_text("start_with_bug: python -m demo_api\nstart_clean: x\nbugs: [x]\n")
     with pytest.raises(SetupError, match="a command with {bug} in it"):
         bug_detection.measure(project, project.root / "seeded-bugs.yaml", "pytest")
     with pytest.raises(SetupError, match="framework 'restassured' is not in qa-agent.yaml"):

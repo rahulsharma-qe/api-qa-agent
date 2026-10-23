@@ -14,8 +14,8 @@ pip install -r requirements.txt            # the framework
 # once, in a clone of api-qa-agent, until the framework is published:
 #   cd frameworks/restassured_api && ./mvnw -q install -DskipTests
 {% endif %}
-python -m mock_service &                   # the reference API (your environment replaces it)
-python -m env_check --env mock             # is the environment ready?
+python -m demo_api &                       # the reference API (your environment replaces it)
+python -m env_check --env demo             # is the environment ready?
 {{ "pytest --junitxml=reports/junit.xml" if framework == "pytest" else "./mvnw test" }}
 qa-agent trace --results {{ "reports/junit.xml" if framework == "pytest" else "target/surefire-reports" }}
 ```

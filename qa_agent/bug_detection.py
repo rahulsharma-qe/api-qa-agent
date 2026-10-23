@@ -4,9 +4,9 @@
 
 seeded-bugs.yaml says how to start the API under test with each seeded bug, one at a time:
 
-    start_with_bug: python -m mock_service --bug {bug}
-    start_clean: python -m mock_service
-    environment: mock                       # checked with env_check before each run
+    start_with_bug: python -m demo_api --bug {bug}
+    start_clean: python -m demo_api
+    environment: demo                       # checked with env_check before each run
     bugs:
       refund-boundary: a cancel at exactly 24 hours gets no refund
       token-not-checked: a call with no token is let through
@@ -111,7 +111,7 @@ def _read_seeded_bugs(path: Path) -> dict:
     bugs = data["bugs"]
     bugs = {str(name): "" for name in bugs} if isinstance(bugs, list) else {str(k): str(v) for k, v in bugs.items()}
     start_with_bug = str(data["start_with_bug"])
-    return {"start_with_bug": start_with_bug, "bugs": bugs, "environment": str(data.get("environment") or "mock"),
+    return {"start_with_bug": start_with_bug, "bugs": bugs, "environment": str(data.get("environment") or "demo"),
             "start_clean": str(data["start_clean"])}
 
 

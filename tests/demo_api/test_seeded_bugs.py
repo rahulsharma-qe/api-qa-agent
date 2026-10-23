@@ -3,16 +3,16 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from mock_service.__main__ import main
-from mock_service.bookings_app import create_bookings_app
-from mock_service.seeded_bugs import BUGS, UnknownBug
-from mock_service.settings import MockSettings
+from demo_api.__main__ import main
+from demo_api.bookings_app import create_bookings_app
+from demo_api.seeded_bugs import BUGS, UnknownBug
+from demo_api.settings import DemoApiSettings
 
 BOOKED = "2026-01-15T10:00:00Z"
 
 
 def client(bug=""):
-    app = TestClient(create_bookings_app(MockSettings(bug=bug)))
+    app = TestClient(create_bookings_app(DemoApiSettings(bug=bug)))
     token = app.post("/auth/token", json={"client_id": "demo-client", "client_secret": "demo-secret"}).json()
     app.headers["Authorization"] = f"Bearer {token['access_token']}"
     return app
@@ -82,11 +82,11 @@ def test_every_bug_has_a_test_here_and_an_unknown_one_is_refused(capsys):
     assert set(BUGS) == {"refund-boundary", "wrong-refund-amount", "second-cancel-allowed", "deleted-still-readable",
                          "amount-changeable", "token-not-checked", "status-filter-ignored"}
     with pytest.raises(UnknownBug, match="no seeded bug 'typo'"):
-        create_bookings_app(MockSettings(bug="typo"))
+        create_bookings_app(DemoApiSettings(bug="typo"))
     assert main(["--bug", "typo"]) == 2
     assert "use one of: refund-boundary" in capsys.readouterr().out
 
 
 def test_the_openapi_description_is_the_one_without_bugs():
-    assert create_bookings_app(MockSettings(bug="amount-changeable")).openapi()["paths"].keys() == \
-        create_bookings_app(MockSettings()).openapi()["paths"].keys()
+    assert create_bookings_app(DemoApiSettings(bug="amount-changeable")).openapi()["paths"].keys() == \
+        create_bookings_app(DemoApiSettings()).openapi()["paths"].keys()

@@ -2,7 +2,7 @@
 
 The high-level design ([architecture.md](architecture.md)) says what the utility is and why. This
 document says how each part is built. It grows phase by phase: this version covers **phase 0**
-(the mock service), **phase 1** (the Python framework and env_check), **phase 1b** (the Python
+(the demo API), **phase 1** (the Python framework and env_check), **phase 1b** (the Python
 framework for QA teams), **phase 2** (the REST Assured framework with TestNG), **phase 3a**
 (cases, importers, the review sheet, generated tests, trace and init) and **phase 3b** (drift check,
 promote, bug-detection rate, teams, Petstore, Docker); later phases get their sections when they are
@@ -12,9 +12,9 @@ designed.
 
 ```
 api-qa-agent/
-  README.md  LICENSE  pyproject.toml     pip install -e .  installs mock_service and env_check
-  mock_service/                  the reference API under test (FastAPI)
-    __main__.py                  python -m mock_service  -> bookings on :8000, notifications on :8001
+  README.md  LICENSE  pyproject.toml     pip install -e .  installs demo_api and env_check
+  demo_api/                  the reference API under test (FastAPI)
+    __main__.py                  python -m demo_api  -> bookings on :8000, notifications on :8001
     bookings_app.py              create_bookings_app(): routes for auth, bookings, refunds, health
     notifications_app.py         create_notifications_app(): a stand-in dependency that can be switched down
     booking_store.py             BookingStore: in-memory bookings, reset for tests
@@ -38,19 +38,19 @@ api-qa-agent/
         scenario_context.py      ScenarioContext: values carried between steps, and the step history
         test_data.py             load_rows() from JSON, CSV or Excel; new_passenger()
         pytest_plugin.py         fixtures, --env, markers, the chain shown on failure
-      config/environments.yaml   mock, qa1, qa2, staging
+      config/environments.yaml   demo, qa1, qa2, staging
       data/cancellation_boundaries.csv
       tests/examples/            one runnable example per feature, shaped like generated tests
       tests/unit/                the framework's own tests (no network)
     restassured_api/             the same framework in Java (REST Assured, TestNG): section 5
-  tests/mock_service/            the mock service's own tests
+  tests/demo_api/            the demo API's own tests
   tests/env_check/               env_check's own tests (a fake network)
   docs/  architecture.md  lld.md  history/first-version.md
   .github/workflows/ci.yml
 ```
 
 **Rules**
-- `frameworks/python_api` never imports `mock_service`: expected values come from the test or
+- `frameworks/python_api` never imports `demo_api`: expected values come from the test or
   its data, never from the service's code. A unit test fails the build if such an import appears.
 - `env_check` and the framework read the same `environments.yaml` format. env_check reads only the
   service addresses, so it needs nothing from the framework (a Java team uses it too).
@@ -61,7 +61,7 @@ api-qa-agent/
 ```mermaid
 flowchart TB
   subgraph REF["Reference API (phase 0)"]
-    MS["mock_service<br/>bookings · notifications"]
+    MS["demo_api<br/>bookings · notifications"]
   end
   subgraph TOOLS["Tools (phase 1)"]
     EC["env_check"]
@@ -81,7 +81,7 @@ flowchart TB
   linkStyle default stroke:#94a3b8,stroke-width:2px
 ```
 
-## 2. Mock service (phase 0)
+## 2. Demo API (phase 0)
 
 ### 2.1 Endpoints
 
@@ -131,9 +131,9 @@ it; it exists so env_check has a non-critical dependency to report on.
 
 - **One error shape** for every failure, including validation:
   `{"error": {"code": "booking_not_found", "message": "No booking with PNR AB12CD"}}`.
-- **Configuration by environment variables:** `MOCK_CLIENT_ID` and `MOCK_CLIENT_SECRET`
-  (defaults `demo-client` and `demo-secret`), `MOCK_TEST_MODE` (default on; turns `/test/*` on).
-- **OpenAPI:** `python -m mock_service --export-openapi mock_service/openapi.json`. A test fails if the
+- **Configuration by environment variables:** `DEMO_CLIENT_ID` and `DEMO_CLIENT_SECRET`
+  (defaults `demo-client` and `demo-secret`), `DEMO_TEST_MODE` (default on; turns `/test/*` on).
+- **OpenAPI:** `python -m demo_api --export-openapi demo_api/openapi.json`. A test fails if the
   committed file differs from what the app produces, so the description never drifts.
 
 ## 3. env_check (phase 1)
@@ -143,10 +143,10 @@ it; it exists so env_check has a non-critical dependency to report on.
 ```yaml
 # environments.yaml (shared with the framework)
 environments:
-  mock:
+  demo:
     services: {bookings: "http://localhost:8000", notifications: "http://localhost:8001"}
     auth: {type: client_credentials, service: bookings, token_path: /auth/token,
-           client_id: demo-client, client_secret: demo-secret}   # plain values: mock only
+           client_id: demo-client, client_secret: demo-secret}   # plain values: demo only
     timeout_seconds: 10
     read_only: false
   qa1:
@@ -252,7 +252,7 @@ classDiagram
 
 | Class | Responsibility | Notes |
 |---|---|---|
-| `EnvironmentConfig` | One environment from `environments.yaml` | Chosen by `--env` or `API_ENV` (default `mock`) |
+| `EnvironmentConfig` | One environment from `environments.yaml` | Chosen by `--env` or `API_ENV` (default `demo`) |
 | `TokenProvider` | The `Authorization` header | `NoAuth`; `StaticToken` from an environment variable; `ClientCredentials` asks the token endpoint once per run and reuses it |
 | `ApiClient` | One service's HTTP calls | Base URL from the environment; timeout; records every request and response in the scenario context; the token is masked in every log; `without_auth()` gives the same client with no token, for 401 tests |
 | `ApiResponse` | What came back | `value("items[0].pnr")` reads any field by a dotted path; a missing field fails with the path and the body |
@@ -374,8 +374,8 @@ Maven Surefire 3.5. Built and tested in CI with `actions/setup-java`.
 | Job | Steps |
 |---|---|
 | `platform` | Install the reference API, env_check and qa-agent; their tests, including the OpenAPI drift test and qa-agent's own; `qa-agent check` on the example project; start both services and check their health |
-| `python-framework` | Install the mock and the framework; start both services in the background; `python -m env_check --env mock`; every test with plain `pytest`; then the examples with Allure, evidence, one retry and JUnit; build the single-file Allure report; keep the reports and the evidence |
-| `restassured-framework` | Java 17 with the Maven cache; start the reference API; `python -m env_check --env mock`; `./mvnw test` with evidence and one retry (the framework's own tests, then every example); build the single-file Allure report; keep the reports and the evidence |
+| `python-framework` | Install the demo API and the framework; start both services in the background; `python -m env_check --env demo`; every test with plain `pytest`; then the examples with Allure, evidence, one retry and JUnit; build the single-file Allure report; keep the reports and the evidence |
+| `restassured-framework` | Java 17 with the Maven cache; start the reference API; `python -m env_check --env demo`; `./mvnw test` with evidence and one retry (the framework's own tests, then every example); build the single-file Allure report; keep the reports and the evidence |
 | `qa-agent` | Install both frameworks; the example project end to end with `run_all.sh` (rebuilt from its inputs and compared, both frameworks' generated tests, the trace); a new project from `qa-agent init` runs, in each framework; keep the trace (section 9.12) |
 
 The two Python jobs run on Python 3.11 and 3.12, on every push and pull request. No API key anywhere.
@@ -384,7 +384,7 @@ The two Python jobs run on Python 3.11 and 3.12, on every push and pull request.
 
 | Part | Packages |
 |---|---|
-| mock_service | fastapi, uvicorn, pydantic |
+| demo_api | fastapi, uvicorn, pydantic |
 | env_check | httpx, pyyaml |
 | api_test_framework | httpx, pyyaml, pytest, openpyxl (Excel data), allure-pytest, pytest-rerunfailures |
 | restassured-api-framework | rest-assured, testng, allure-testng, jackson-databind, snakeyaml, poi-ooxml (Excel data); log4j-core for its own test runs only |
@@ -837,7 +837,7 @@ qa-agent promote --runs ... --apply
 ### 10.3 Bug-detection rate: do the tests catch bugs?
 
 The reference API can switch on small seeded bugs, one at a time:
-`python -m mock_service --bug refund-boundary`. Each is the kind of slip a developer makes.
+`python -m demo_api --bug refund-boundary`. Each is the kind of slip a developer makes.
 
 | Bug | What changes |
 |---|---|
@@ -858,13 +858,13 @@ qa-agent bug-detection --seeded-bugs seeded-bugs.yaml --framework pytest
 
 ```yaml
 # seeded-bugs.yaml: how to start the API with each seeded bug (any team can write its own)
-start_with_bug: python -m mock_service --bug {bug}
+start_with_bug: python -m demo_api --bug {bug}
 bugs: [refund-boundary, wrong-refund-amount, second-cancel-allowed, deleted-still-readable,
        amount-changeable, token-not-checked, status-filter-ignored]
 ```
 
-`seeded-bugs.yaml` also names `start_clean` (`python -m mock_service`) and the `environment`
-env_check uses (default `mock`); the bugs may be a list or a mapping of name to what it changes.
+`seeded-bugs.yaml` also names `start_clean` (`python -m demo_api`) and the `environment`
+env_check uses (default `demo`); the bugs may be a list or a mapping of name to what it changes.
 
 For each bug: start the API (its output in `reports/bug-detection/<bug>.api.log`), wait until env_check says
 ready, run the framework's tests, stop the API and wait for it to exit. A bug is caught when at least one
@@ -894,7 +894,7 @@ jobs:
     uses: rahulsharma-qe/api-qa-agent/.github/workflows/qa-agent-team.yml@main
     with:
       framework: pytest                 # or restassured
-      environment: mock             # an environment in config/environments.yaml
+      environment: demo             # an environment in config/environments.yaml
       start-reference-api: true     # only for the reference API
 ```
 

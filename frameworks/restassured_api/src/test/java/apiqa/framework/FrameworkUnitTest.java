@@ -109,14 +109,14 @@ public class FrameworkUnitTest {
 
     @Test
     public void environmentsAreReadFromTheSharedFile() {
-        EnvironmentConfig mock = EnvironmentLoader.load(Path.of("config/environments.yaml"), "mock");
-        assertEquals(mock.baseUrl(), "http://localhost:8000");
-        assertEquals(mock.baseUrl("notifications"), "http://localhost:8001");
+        EnvironmentConfig demo = EnvironmentLoader.load(Path.of("config/environments.yaml"), "demo");
+        assertEquals(demo.baseUrl(), "http://localhost:8000");
+        assertEquals(demo.baseUrl("notifications"), "http://localhost:8001");
         assertTrue(EnvironmentLoader.load(Path.of("config/environments.yaml"), "staging").readOnly());
         ConfigException unknown = expectThrows(ConfigException.class,
                 () -> EnvironmentLoader.load(Path.of("config/environments.yaml"), "qa9"));
         assertTrue(unknown.getMessage().contains("unknown environment 'qa9'"));
-        ConfigException service = expectThrows(ConfigException.class, () -> mock.baseUrl("payments"));
+        ConfigException service = expectThrows(ConfigException.class, () -> demo.baseUrl("payments"));
         assertTrue(service.getMessage().contains("no service 'payments'"));
     }
 }

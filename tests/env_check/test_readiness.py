@@ -10,7 +10,7 @@ from env_check.__main__ import main
 def run(files, network, **file_overrides):
     environments, dependencies = files(**file_overrides)
     waits = []
-    report = check_environment("mock", environments, dependencies, http=network.client(), sleep=waits.append)
+    report = check_environment("demo", environments, dependencies, http=network.client(), sleep=waits.append)
     return report, waits
 
 
@@ -44,7 +44,7 @@ def test_a_service_that_recovers_on_retry_is_ok(files, network):
     def flaky(request):
         return httpx.Response(next(answers) if request.url.host == "bookings.test" else 200)
     environments, dependencies = files()
-    report = check_environment("mock", environments, dependencies,
+    report = check_environment("demo", environments, dependencies,
                                http=httpx.Client(transport=httpx.MockTransport(flaky)), sleep=lambda s: None)
     assert report.ready and report.results[0].attempts == 2
 
@@ -68,8 +68,8 @@ checks:
 
 
 @pytest.mark.parametrize("environments, dependencies, message", [
-    ("environments: {}", "checks: [{service: bookings}]", "unknown environment 'mock'"),
-    (None, "checks: [{service: payments}]", "service 'payments' is not in environment 'mock'"),
+    ("environments: {}", "checks: [{service: bookings}]", "unknown environment 'demo'"),
+    (None, "checks: [{service: payments}]", "service 'payments' is not in environment 'demo'"),
     (None, "checks: []", "'checks' must list at least one service"),
     (None, "checks: [{service: bookings, critcal: false}]", "unknown setting(s) for 'bookings': critcal"),
     (None, "checks: [{service: bookings}]\nattempts: 0", "'attempts' must be a whole number"),
@@ -79,14 +79,14 @@ def test_setup_problems_are_named(files, network, environments, dependencies, me
     from tests.env_check.conftest import ENVIRONMENTS
     paths = files(environments=environments or ENVIRONMENTS, dependencies=dependencies)
     with pytest.raises(SetupError, match=message.replace("(", r"\(").replace(")", r"\)")):
-        check_environment("mock", *paths, http=network.client())
+        check_environment("demo", *paths, http=network.client())
 
 
 def test_command_exit_codes_and_json(files, capsys, tmp_path):
     environments, dependencies = files()
     assert main(["--env", "nope", "--environments", str(environments), "--dependencies", str(dependencies)]) == 2
     assert "SETUP PROBLEM (exit 2): unknown environment 'nope'" in capsys.readouterr().err
-    assert main(["--env", "mock", "--environments", str(tmp_path / "missing.yaml"),
+    assert main(["--env", "demo", "--environments", str(tmp_path / "missing.yaml"),
                  "--dependencies", str(dependencies)]) == 2
 
 
@@ -94,7 +94,7 @@ def test_command_json_report(files, network, capsys, monkeypatch):
     environments, dependencies = files()
     fake_client = network.client()
     monkeypatch.setattr("env_check.readiness.httpx.Client", lambda: fake_client)
-    assert main(["--env", "mock", "--environments", str(environments), "--dependencies", str(dependencies),
+    assert main(["--env", "demo", "--environments", str(environments), "--dependencies", str(dependencies),
                  "--json"]) == 0
     report = json.loads(capsys.readouterr().out)
     assert report["ready"] is True and [r["service"] for r in report["results"]] == ["bookings", "notifications"]

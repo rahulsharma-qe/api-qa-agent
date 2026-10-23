@@ -6,11 +6,11 @@ product bug. One tool for every framework (Python, REST Assured); it only ever s
 
 ```bash
 pip install -e .                       # from the repository root
-python -m env_check --env mock --environments config/environments.yaml --dependencies config/dependencies.yaml
+python -m env_check --env demo --environments config/environments.yaml --dependencies config/dependencies.yaml
 ```
 
 ```
-mock · cancellations
+demo · cancellations
   bookings        200   6 ms      ok
   notifications   503   2 ms      DOWN, not critical: tests still run (expected 200, got 503)
 READY (exit 0)

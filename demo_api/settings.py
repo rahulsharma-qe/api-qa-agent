@@ -7,7 +7,7 @@ TRUE_WORDS = ("1", "true", "yes", "on")
 
 
 @dataclass(frozen=True)
-class MockSettings:
+class DemoApiSettings:
     client_id: str = "demo-client"
     client_secret: str = "demo-secret"
     test_mode: bool = True              # turns /test/* routes on
@@ -15,13 +15,13 @@ class MockSettings:
     bug: str = ""                       # one seeded bug switched on (seeded_bugs.py); none by default
 
     @classmethod
-    def from_environment(cls) -> "MockSettings":
+    def from_environment(cls) -> "DemoApiSettings":
         return cls(
-            client_id=os.getenv("MOCK_CLIENT_ID", cls.client_id),
-            client_secret=os.getenv("MOCK_CLIENT_SECRET", cls.client_secret),
-            test_mode=_flag("MOCK_TEST_MODE", default=True),
+            client_id=os.getenv("DEMO_CLIENT_ID", cls.client_id),
+            client_secret=os.getenv("DEMO_CLIENT_SECRET", cls.client_secret),
+            test_mode=_flag("DEMO_TEST_MODE", default=True),
             notifications_down=_flag("NOTIFICATIONS_DOWN", default=False),
-            bug=os.getenv("MOCK_BUG", ""),
+            bug=os.getenv("DEMO_BUG", ""),
         )
 
 

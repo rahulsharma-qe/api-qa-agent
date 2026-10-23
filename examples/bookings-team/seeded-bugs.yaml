@@ -1,7 +1,7 @@
 # How to start the API under test with each seeded bug, one at a time: qa-agent bug-detection --framework pytest
-start_with_bug: python -m mock_service --bug {bug}
-start_clean: python -m mock_service
-environment: mock
+start_with_bug: python -m demo_api --bug {bug}
+start_clean: python -m demo_api
+environment: demo
 bugs:
   refund-boundary: a cancel at exactly 24 hours gets no refund (< instead of <=)
   wrong-refund-amount: the refund is half the amount

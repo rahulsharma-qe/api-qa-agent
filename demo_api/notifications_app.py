@@ -9,15 +9,15 @@ from typing import Optional
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
-from mock_service.errors import add_error_handlers
-from mock_service.models import Health, NotificationsState
-from mock_service.settings import MockSettings
+from demo_api.errors import add_error_handlers
+from demo_api.models import Health, NotificationsState
+from demo_api.settings import DemoApiSettings
 
 SERVICE_NAME = "notifications"
 
 
-def create_notifications_app(settings: Optional[MockSettings] = None) -> FastAPI:
-    settings = settings or MockSettings.from_environment()
+def create_notifications_app(settings: Optional[DemoApiSettings] = None) -> FastAPI:
+    settings = settings or DemoApiSettings.from_environment()
     app = FastAPI(title="Notifications (stand-in)", version="1.0.0")
     add_error_handlers(app)
     app.state.down = settings.notifications_down

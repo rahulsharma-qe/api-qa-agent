@@ -5,7 +5,7 @@ from api_test_framework import ClientCredentials, ConfigError, NoAuth, StaticTok
 
 ENVIRONMENTS = """
 environments:
-  mock:
+  demo:
     default_service: bookings
     services: {notifications: "http://notify.test", bookings: "http://bookings.test/"}
     auth: {type: client_credentials, service: bookings, token_path: /auth/token,
@@ -28,8 +28,8 @@ def config(tmp_path):
 
 
 def test_an_environment_is_read_with_its_settings(config):
-    mock, staging = load_environment(config, "mock"), load_environment(config, "staging")
-    assert mock.base_url() == "http://bookings.test" and mock.base_url("notifications") == "http://notify.test"
+    demo, staging = load_environment(config, "demo"), load_environment(config, "staging")
+    assert demo.base_url() == "http://bookings.test" and demo.base_url("notifications") == "http://notify.test"
     assert (staging.read_only, staging.timeout_seconds, staging.default_service) == (True, 3.0, "bookings")
 
 
@@ -49,12 +49,12 @@ def test_config_mistakes_are_named(tmp_path, config, name, text, message):
 
 def test_an_unknown_service_is_named(config):
     with pytest.raises(ConfigError, match="no service 'payments'"):
-        load_environment(config, "mock").base_url("payments")
+        load_environment(config, "demo").base_url("payments")
 
 
 def test_client_credentials_ask_for_a_token_once(config, fake_http):
     fake_http.answer = lambda request: httpx.Response(200, json={"access_token": "t-1"})
-    provider = token_provider_for(load_environment(config, "mock"), fake_http.client())
+    provider = token_provider_for(load_environment(config, "demo"), fake_http.client())
     assert isinstance(provider, ClientCredentials)
     assert provider.headers() == provider.headers() == {"Authorization": "Bearer t-1"}
     assert len(fake_http.requests) == 1 and str(fake_http.requests[0].url) == "http://bookings.test/auth/token"
@@ -64,7 +64,7 @@ def test_client_credentials_ask_for_a_token_once(config, fake_http):
 def test_a_refused_token_request_is_a_config_error(config, fake_http):
     fake_http.answer = lambda request: httpx.Response(401, json={"error": {"code": "invalid_credentials"}})
     with pytest.raises(ConfigError, match="token request to http://bookings.test/auth/token failed: 401"):
-        token_provider_for(load_environment(config, "mock"), fake_http.client()).headers()
+        token_provider_for(load_environment(config, "demo"), fake_http.client()).headers()
 
 
 def test_a_static_token_comes_from_an_environment_variable(config, fake_http, monkeypatch):

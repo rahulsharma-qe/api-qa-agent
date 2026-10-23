@@ -12,8 +12,8 @@ that same call for both teams, each building only its own framework.
 pip install -e .                                   # at the repository's root
 (cd frameworks/restassured_api && ./mvnw -q install -DskipTests)
 cd teams/refunds-java
-python -m mock_service &                   # the reference API
-python -m env_check --env mock
+python -m demo_api &                       # the reference API
+python -m env_check --env demo
 ./mvnw test
 qa-agent trace --results target/surefire-reports
 ```

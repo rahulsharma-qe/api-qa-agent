@@ -14,12 +14,12 @@ import org.yaml.snakeyaml.Yaml;
  * Reads environments.yaml, the same file the Python framework and env_check read.
  *
  * <pre>
- *   ./mvnw test -Denv=qa1                      the environment (or API_ENV=qa1); default: mock
+ *   ./mvnw test -Denv=qa1                      the environment (or API_ENV=qa1); default: demo
  *   ./mvnw test -Dapi.config=path.yaml         the file (or API_CONFIG); default: config/environments.yaml
  * </pre>
  */
 public final class EnvironmentLoader {
-    public static final String DEFAULT_ENVIRONMENT = "mock";
+    public static final String DEFAULT_ENVIRONMENT = "demo";
     public static final String DEFAULT_CONFIG = "config/environments.yaml";
     private static final double DEFAULT_TIMEOUT_SECONDS = 10.0;
 

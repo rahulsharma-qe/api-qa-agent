@@ -21,8 +21,8 @@ GENERATED = ["tests/generated", "src/test/java/generated"]
 
 
 def test_the_example_uses_the_reference_apis_current_openapi():
-    assert filecmp.cmp(EXAMPLE / "api/source/openapi.json", REPO / "mock_service/openapi.json", shallow=False), \
-        "copy mock_service/openapi.json to examples/bookings-team/api/source/openapi.json"
+    assert filecmp.cmp(EXAMPLE / "api/source/openapi.json", REPO / "demo_api/openapi.json", shallow=False), \
+        "copy demo_api/openapi.json to examples/bookings-team/api/source/openapi.json"
 
 
 def test_importing_the_examples_sources_again_gives_the_committed_api_model(tmp_path):
@@ -103,7 +103,7 @@ def test_the_review_left_the_cases_the_readme_describes():
 
 
 def test_the_examples_seeded_bugs_file_lists_every_seeded_bug():
-    from mock_service.seeded_bugs import BUGS
+    from demo_api.seeded_bugs import BUGS
     from qa_agent.yaml_files import read_yaml
     seeded = read_yaml(EXAMPLE / "seeded-bugs.yaml")
     assert list(seeded["bugs"]) == list(BUGS)

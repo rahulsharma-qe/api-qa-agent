@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from mock_service.refund_rules import CancelledBeforeBooked, decide_refund
+from demo_api.refund_rules import CancelledBeforeBooked, decide_refund
 
 BOOKED = datetime(2026, 10, 20, 10, 0, tzinfo=timezone.utc)
 

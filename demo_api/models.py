@@ -110,7 +110,7 @@ class ErrorDetail(BaseModel):
 
 
 class ErrorResponse(BaseModel):
-    """The one error shape (mock_service/errors.py), so the OpenAPI description shows it."""
+    """The one error shape (demo_api/errors.py), so the OpenAPI description shows it."""
     error: ErrorDetail
 
 

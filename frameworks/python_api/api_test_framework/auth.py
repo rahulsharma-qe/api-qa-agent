@@ -4,7 +4,7 @@
     static_token         a token from an environment variable:   {type: static_token, token_env: STAGING_TOKEN}
     client_credentials   asked from a token endpoint once per run: {type: client_credentials, service: bookings,
                          token_path: /auth/token, client_id_env: QA1_CLIENT_ID, client_secret_env: QA1_CLIENT_SECRET}
-                         (client_id / client_secret as plain values are for a mock only)
+                         (client_id / client_secret as plain values are for the demo API only)
 """
 
 import os
@@ -66,7 +66,7 @@ def token_provider_for(environment: EnvironmentConfig, http: httpx.Client) -> To
 
 
 def _secret(auth: dict, name: str, environment: str) -> str:
-    """A value from `<name>_env` (an environment variable), or a plain `<name>` (for a mock only)."""
+    """A value from `<name>_env` (an environment variable), or a plain `<name>` (for the demo API only)."""
     variable = auth.get(f"{name}_env")
     if variable:
         value = os.getenv(variable)
@@ -75,4 +75,4 @@ def _secret(auth: dict, name: str, environment: str) -> str:
         return value
     if name in auth:
         return str(auth[name])
-    raise ConfigError(f"environment '{environment}': auth needs '{name}_env' (or '{name}' for a mock)")
+    raise ConfigError(f"environment '{environment}': auth needs '{name}_env' (or '{name}' for the demo API)")

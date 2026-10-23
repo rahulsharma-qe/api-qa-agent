@@ -6,8 +6,8 @@ and what to expect; the framework handles environments, tokens, values carried b
 readable failures, evidence and retries. `qa-agent generate` will write tests in exactly this shape.
 
 ```bash
-pip install -e ../..  &&  python -m mock_service &          # the reference API and env_check (from the repository root)
-python -m env_check --env mock                              # is the environment ready?
+pip install -e ../..  &&  python -m demo_api &              # the reference API and env_check (from the repository root)
+python -m env_check --env demo                              # is the environment ready?
 ./mvnw test                                                 # the Maven wrapper: Java 17 is all you need
 ```
 

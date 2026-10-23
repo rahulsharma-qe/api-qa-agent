@@ -24,7 +24,7 @@ public class AuthChainTest extends BaseTest {
     public void tokenThenBookingThenCancelThenRefundStatus() {
         Map<String, Object> auth = environment().auth();
         if (!auth.containsKey("client_id")) {
-            throw new SkipException("this example reads plain credentials, which only the mock environment has");
+            throw new SkipException("this example reads plain credentials, which only the demo environment has");
         }
         ApiClient anonymous = api().withoutAuth();
 

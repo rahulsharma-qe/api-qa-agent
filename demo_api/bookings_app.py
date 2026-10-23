@@ -9,13 +9,13 @@ from typing import Optional
 
 from fastapi import Depends, FastAPI, Header, Query, Response
 
-from mock_service.booking_store import BookingStore
-from mock_service.errors import ApiError, add_error_handlers
-from mock_service.models import (Booking, BookingList, BookingStatus, BookingUpdate, BookingUpdateAnyAmount,
+from demo_api.booking_store import BookingStore
+from demo_api.errors import ApiError, add_error_handlers
+from demo_api.models import (Booking, BookingList, BookingStatus, BookingUpdate, BookingUpdateAnyAmount,
                                  CancelRequest, CancelResult, ErrorResponse, Health, NewBooking, RefundStatus,
                                  TokenRequest, TokenResponse)
-from mock_service.seeded_bugs import checked
-from mock_service.settings import MockSettings
+from demo_api.seeded_bugs import checked
+from demo_api.settings import DemoApiSettings
 
 SERVICE_NAME = "bookings"
 SERVICE_VERSION = "1.0.0"
@@ -31,8 +31,8 @@ def errors(*statuses: int) -> dict:
     return {status: {"model": ErrorResponse, "description": ERROR_MEANINGS[status]} for status in statuses}
 
 
-def create_bookings_app(settings: Optional[MockSettings] = None) -> FastAPI:
-    settings = settings or MockSettings.from_environment()
+def create_bookings_app(settings: Optional[DemoApiSettings] = None) -> FastAPI:
+    settings = settings or DemoApiSettings.from_environment()
     app = FastAPI(title="AeroAssist bookings (reference API)", version=SERVICE_VERSION,
                   description="A small bookings API that api-qa-agent's frameworks and examples run against.")
     add_error_handlers(app)

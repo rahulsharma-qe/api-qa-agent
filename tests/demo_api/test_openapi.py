@@ -2,16 +2,16 @@
 
 from pathlib import Path
 
-from mock_service.__main__ import main, openapi_text
+from demo_api.__main__ import main, openapi_text
 
-COMMITTED = Path(__file__).resolve().parents[2] / "mock_service" / "openapi.json"
+COMMITTED = Path(__file__).resolve().parents[2] / "demo_api" / "openapi.json"
 EXPECTED_ROUTES = {"/auth/token", "/bookings", "/bookings/{pnr}", "/bookings/{pnr}/cancel",
                    "/bookings/{pnr}/refund", "/health-check", "/test/reset"}
 
 
 def test_committed_openapi_matches_the_service():
     assert COMMITTED.read_text(encoding="utf-8") == openapi_text(), (
-        "mock_service/openapi.json is out of date: run  python -m mock_service --export-openapi mock_service/openapi.json")
+        "demo_api/openapi.json is out of date: run  python -m demo_api --export-openapi demo_api/openapi.json")
 
 
 def test_openapi_lists_every_route():

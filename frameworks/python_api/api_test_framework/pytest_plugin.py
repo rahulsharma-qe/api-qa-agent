@@ -1,6 +1,6 @@
 """The pytest side of the framework, switched on when the package is installed.
 
-    pytest --env qa2                      the environment (or API_ENV=qa2); default: mock
+    pytest --env qa2                      the environment (or API_ENV=qa2); default: demo
     pytest --api-config path.yaml         the environments file (or API_CONFIG); default: config/environments.yaml
     pytest -m regression                  only regression tests (or -m smoke)
     pytest --evidence reports/evidence    every test's requests and responses, pass or fail, one file each
@@ -44,7 +44,7 @@ PASSED_ON_RETRY_KEY = pytest.StashKey[list]()
 
 def pytest_addoption(parser):
     group = parser.getgroup("api_test_framework", "API tests")
-    group.addoption("--env", default=None, help="environment name in environments.yaml (default: API_ENV, else mock)")
+    group.addoption("--env", default=None, help="environment name in environments.yaml (default: API_ENV, else demo)")
     group.addoption("--api-config", default=None,
                     help=f"environments file (default: API_CONFIG, else {DEFAULT_CONFIG} under the test root)")
     group.addoption("--evidence", default=None, metavar="FOLDER",

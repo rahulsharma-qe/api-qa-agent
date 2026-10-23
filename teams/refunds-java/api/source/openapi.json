@@ -841,7 +841,7 @@
           "error"
         ],
         "title": "ErrorResponse",
-        "description": "The one error shape (mock_service/errors.py), so the OpenAPI description shows it."
+        "description": "The one error shape (demo_api/errors.py), so the OpenAPI description shows it."
       },
       "Health": {
         "properties": {

@@ -5,7 +5,7 @@ import pytest
 
 ENVIRONMENTS = """
 environments:
-  mock:
+  demo:
     services: {bookings: "http://bookings.test", notifications: "http://notify.test/"}
 """
 DEPENDENCIES = """

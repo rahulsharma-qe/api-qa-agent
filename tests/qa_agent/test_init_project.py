@@ -28,7 +28,7 @@ def test_a_python_project_has_everything_and_its_starter_test(tmp_path, capsys):
     assert starter.is_approved and starter.review.by == "qa-agent init"
     compile((root / "tests/generated/test_bookings.py").read_text(), "test_bookings.py", "exec")
     assert not check_project(project).has_errors
-    assert "python -m env_check --env mock" in capsys.readouterr().out
+    assert "python -m env_check --env demo" in capsys.readouterr().out
 
 
 def test_a_rest_assured_project_has_its_pom_and_maven_wrapper(tmp_path):

@@ -5,7 +5,7 @@
 #       uses: rahulsharma-qe/api-qa-agent/.github/workflows/qa-agent-team.yml@main
 #       with:
 #         framework: pytest                # or restassured
-#         environment: mock            # an environment in config/environments.yaml
+#         environment: demo            # an environment in config/environments.yaml
 #         start-reference-api: true    # only when testing the reference API
 #
 # The environment is ready, the generated tests match the approved cases, the tests, the trace.
@@ -22,7 +22,7 @@ on:
       environment:
         description: the environment to test, from config/environments.yaml
         type: string
-        default: mock
+        default: demo
       project-path:
         description: the team's project folder in its repository
         type: string
@@ -32,7 +32,7 @@ on:
         type: string
         default: team
       start-reference-api:
-        description: start the reference API first (python -m mock_service)
+        description: start the reference API first (python -m demo_api)
         type: boolean
         default: false
       min-coverage:
@@ -90,7 +90,7 @@ jobs:
           fi
       - name: Start the reference API
         if: inputs.start-reference-api
-        run: python -m mock_service > "$RUNNER_TEMP/mock_service.log" 2>&1 &
+        run: python -m demo_api > "$RUNNER_TEMP/demo_api.log" 2>&1 &
       - name: Is the environment ready? (exit 3 if not)
         run: python -m env_check --env "${{ inputs.environment }}"
       - name: The generated tests match the approved cases

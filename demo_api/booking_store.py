@@ -7,9 +7,9 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from typing import Optional
 
-from mock_service.errors import ApiError
-from mock_service.models import Booking, RefundStatus
-from mock_service.refund_rules import CancelledBeforeBooked, RefundDecision, decide_refund
+from demo_api.errors import ApiError
+from demo_api.models import Booking, RefundStatus
+from demo_api.refund_rules import CancelledBeforeBooked, RefundDecision, decide_refund
 
 PNR_ALPHABET = string.ascii_uppercase + string.digits
 PNR_LENGTH = 6

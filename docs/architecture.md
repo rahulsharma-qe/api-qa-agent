@@ -53,7 +53,7 @@ flowchart TB
   CI["Team CI"]
   ENV["env_check<br/>is the environment ready?"]
   FW["Frameworks<br/>Python · REST Assured"]
-  API["API under test<br/>mock · qa1 · qa2 · staging"]
+  API["API under test<br/>demo · qa1 · qa2 · staging"]
   QA --> CLI
   CLI -.->|"redacted, minimum, logged"| LLM
   CLI --> REPO
@@ -80,7 +80,7 @@ Blue-bordered boxes are the platform; dashed boxes are outside the organisation'
 | Reviewer (a person on the team) | Approves, edits or rejects every drafted case and data set |
 | Team CI | Checks the environment, checks generated code is up to date, runs the tests, keeps the report |
 | Model provider | Drafts and reviews cases and data; chosen by the organisation |
-| API under test | The team's services in each environment; a mock service for the examples |
+| API under test | The team's services in each environment; a demo API for the examples |
 
 ## 3. Components
 
@@ -150,7 +150,7 @@ flowchart TB
 | Frameworks | Libraries a team's tests run on: configuration, client, expectations, chaining, test data, tags | Nothing about qa-agent |
 | env_check | Before a run, call each service's health endpoint; stop with a clear message if a critical one is down | `environments.yaml`, `dependencies.yaml` |
 | Promote | Move a case to regression once it passed and stayed stable | Run results |
-| Mock service | A reference API (bookings) the examples and CI run against | Nothing else |
+| Demo API | A reference API (bookings) the examples and CI run against | Nothing else |
 
 ## 4. A team's journey
 
@@ -307,7 +307,7 @@ flowchart TB
 
 | Measure | Question it answers | How |
 |---|---|---|
-| Bug-detection rate (mutation testing) | Do the generated tests catch bugs, not just pass? | The mock service can switch on small seeded bugs (a boundary moved, a deleted booking still returned); the share the suite catches |
+| Bug-detection rate (mutation testing) | Do the generated tests catch bugs, not just pass? | The demo API can switch on small seeded bugs (a boundary moved, a deleted booking still returned); the share the suite catches |
 | Reviewer agreement | Can we trust the AI reviewer's comments? | Its comments against the reviewer's decisions in the review sheets; tuning and held-back halves, as in the sibling repository |
 | Endpoint coverage | Is every endpoint and response code tested? | Approved cases against the API description (API → cases) |
 | Criteria coverage | Is every acceptance criterion tested? | Each criterion's approved cases (criteria → cases) |
@@ -337,14 +337,14 @@ existing cases before any AI is switched on. The AI layer comes last and sits on
 
 | Phase | What | Model access |
 |---|---|---|
-| 0 | Mock bookings service (create, read, update, delete, cancel, token, refund status, health check; `booked_at` and `cancelled_at` so time boundaries can be tested), a stand-in notifications service that can be switched down, the OpenAPI description; repository clean-up | No |
+| 0 | Demo bookings API (create, read, update, delete, cancel, token, refund status, health check; `booked_at` and `cancelled_at` so time boundaries can be tested), a stand-in notifications service that can be switched down, the OpenAPI description; repository clean-up | No |
 | 1 | Python framework and env_check, with an example for every feature | No |
 | 1b | Python framework, for QA teams: Allure report, `smoke` and `priority` tags, evidence of every test, one retry shown separately | No |
 | 2 | REST Assured framework with TestNG: the familiar layout (`BaseTest`, request specifications, listeners, `testng.xml` suites for smoke, regression and functional, Excel data), Allure, evidence, retry, the Maven wrapper; same environments file | No |
 | 3a | Case format, importers (API descriptions; existing cases from Excel, CSV, Postman collections, Gherkin), the Excel review sheet, renderers, `generate`, `trace`, `init` | No |
 | 3b | Drift check, `promote`, bug-detection rate, two example teams, the reusable workflow, the public-API run, a one-command setup (Docker image for qa-agent) | No |
 | 3c | Cucumber on REST Assured: step definitions written once, `.feature` files generated from the same cases | No |
-| 4 | User-interface track, in its own repository `playwright-qa-agent` (TypeScript, Playwright Test), using this repository's core as a package: the team's UI cases imported, reviewed, generated and run through the same flow; rule-based self-healing (each element has ranked locators: test id, then role and name, then text), every heal logged and approved by a person before it is kept; a small bookings web page on the mock service, with a switch that renames elements to show healing | No |
+| 4 | User-interface track, in its own repository `playwright-qa-agent` (TypeScript, Playwright Test), using this repository's core as a package: the team's UI cases imported, reviewed, generated and run through the same flow; rule-based self-healing (each element has ranked locators: test id, then role and name, then text), every heal logged and approved by a person before it is kept; a small bookings web page on the demo API, with a switch that renames elements to show healing | No |
 | 5 | Jira and wiki: read acceptance criteria from a Jira issue or a wiki page; a failing test goes to a triage file, and a person decides before a Jira bug is raised with the request, response and case attached; results sent back to TestRail, Zephyr or Xray by case id; tested with fakes, confirmed live on a free Atlassian account | No (needs Jira and wiki access) |
 | 6 | The AI layer: AI review of existing cases, drafting of missing cases and test data (API and UI), a suggested locator when rule-based healing fails, a suggested triage; model providers (direct API, AWS Bedrock, Google Vertex, Azure); safety (redaction, minimum sent, audit log); reviewer agreement | Yes |
 

@@ -1,16 +1,16 @@
-"""Fixtures for the mock service's own tests: an app per test, a token, and a booking factory."""
+"""Fixtures for the demo API's own tests: an app per test, a token, and a booking factory."""
 
 import pytest
 from fastapi.testclient import TestClient
 
-from mock_service import MockSettings, create_bookings_app
+from demo_api import DemoApiSettings, create_bookings_app
 
 BOOKED_AT = "2026-10-20T10:00:00Z"
 
 
 @pytest.fixture
 def client():
-    return TestClient(create_bookings_app(MockSettings()))
+    return TestClient(create_bookings_app(DemoApiSettings()))
 
 
 @pytest.fixture

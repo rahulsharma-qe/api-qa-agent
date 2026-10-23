@@ -16,7 +16,7 @@ testing AI agents themselves.
 
 | | Status |
 |---|---|
-| Reference API to test against ([`mock_service/`](mock_service/)) | **Built**: bookings, tokens, cancel and refund rules, health checks; its OpenAPI description lists every status code and is checked in CI |
+| Reference API to test against ([`demo_api/`](demo_api/)) | **Built**: bookings, tokens, cancel and refund rules, health checks; its OpenAPI description lists every status code and is checked in CI |
 | Environment check ([`env_check/`](env_check/)) | **Built**: a dependency that is down stops the run as an environment problem, never a test failure |
 | Python framework ([`frameworks/python_api/`](frameworks/python_api/)) | **Built**: environments, OAuth, API chaining, data-driven tests, readable failures; Allure report, smoke and priority tags, evidence, one retry shown separately |
 | REST Assured framework with TestNG ([`frameworks/restassured_api/`](frameworks/restassured_api/)) | **Built**: the same features in Java, with TestNG groups and suites, Excel-driven data, Allure, evidence, retry |
@@ -60,9 +60,9 @@ cases, and everything after them works the same.
 
 ```bash
 pip install -e . -e frameworks/python_api          # the reference API, env_check, qa-agent, the Python framework
-python -m mock_service &                           # bookings on :8000, notifications on :8001
+python -m demo_api &                               # bookings on :8000, notifications on :8001
 cd frameworks/python_api
-python -m env_check --env mock                     # is the environment ready?
+python -m env_check --env demo                     # is the environment ready?
 pytest                                             # every example, against the reference API
 ```
 
@@ -109,7 +109,7 @@ In Windows PowerShell, write `${PWD}` instead of `$PWD`.
 
 | Folder | What it is |
 |---|---|
-| [`mock_service/`](mock_service/) | The reference API: bookings (create, read, update, delete, list), cancel with a 24-hour refund rule, refund status, tokens, health checks, and a stand-in dependency that can be switched down |
+| [`demo_api/`](demo_api/) | The reference API: bookings (create, read, update, delete, list), cancel with a 24-hour refund rule, refund status, tokens, health checks, and a stand-in dependency that can be switched down |
 | [`env_check/`](env_check/) | Before a run: call every service a team depends on; exit 3 when a critical one is down. One tool for every framework |
 | [`frameworks/python_api/`](frameworks/python_api/) | The Python framework (pytest, httpx), installable on its own, with an example for every feature |
 | [`frameworks/restassured_api/`](frameworks/restassured_api/) | The Java framework (REST Assured, TestNG), a Maven library on its own, with an example for every feature |

@@ -27,12 +27,12 @@ jobs:
         run: qa-agent check
       - name: Start both services and check their health
         run: |
-          python -m mock_service &
+          python -m demo_api &
           for attempt in 1 2 3 4 5 6 7 8 9 10; do
             curl -sf localhost:8000/health-check && curl -sf localhost:8001/health-check && exit 0
             sleep 1
           done
-          echo "the mock service did not start"; exit 1
+          echo "the demo API did not start"; exit 1
 
   python-framework:
     # The Python framework end to end: start the reference API, check the environment is ready,
@@ -52,9 +52,9 @@ jobs:
       - name: Install the reference API, env_check and the framework
         run: pip install -e ../.. -e .
       - name: Start the reference API
-        run: python -m mock_service > mock_service.log 2>&1 &
+        run: python -m demo_api > demo_api.log 2>&1 &
       - name: Is the environment ready? (exit 3 if not)
-        run: python -m env_check --env mock
+        run: python -m env_check --env demo
       - name: The framework's own tests, then every example (one command, as in the README)
         run: python -m pytest -q
       - name: The examples as a QA team runs them (Allure, evidence, one retry, JUnit)
@@ -92,9 +92,9 @@ jobs:
       - name: Install and start the reference API, and env_check
         run: |
           pip install -e ../..
-          python -m mock_service > mock_service.log 2>&1 &
+          python -m demo_api > demo_api.log 2>&1 &
       - name: Is the environment ready? (exit 3 if not)
-        run: python -m env_check --env mock
+        run: python -m env_check --env demo
       - name: Every test, with Allure, evidence and one retry
         run: ./mvnw -B test -Dretry=1 -Devidence=target/evidence
       - name: Build the Allure report (one HTML file)
@@ -137,9 +137,9 @@ jobs:
         run: |
           qa-agent init "$RUNNER_TEMP/python-team" --framework pytest
           qa-agent init "$RUNNER_TEMP/java-team" --framework restassured
-          python -m mock_service > "$RUNNER_TEMP/mock_service.log" 2>&1 &
+          python -m demo_api > "$RUNNER_TEMP/demo_api.log" 2>&1 &
           cd "$RUNNER_TEMP/python-team"
-          python -m env_check --env mock
+          python -m env_check --env demo
           python -m pytest -q
           cd "$RUNNER_TEMP/java-team"
           ./mvnw -q -B test
