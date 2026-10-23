@@ -30,7 +30,7 @@ qa-agent import api api/source/openapi.json api/source/cancel_booking.curl
 qa-agent import api api/source/notifications_health.curl --service notifications
 qa-agent import cases existing/*
 qa-agent check
-qa-agent review import
+qa-agent review apply
 qa-agent generate
 for folder in api cases data tests/generated src/test/java/generated; do
   diff -r "$folder" "$example/$folder" -x __pycache__

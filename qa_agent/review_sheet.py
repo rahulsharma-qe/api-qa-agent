@@ -5,7 +5,7 @@ expected results are readable text, locked: steps are changed in the case file, 
 produce a case that doesn't parse. The reviewer may change Title, Criteria, Priority, Suite and
 Tags, and fills Decision, Reviewer, Date and Comment.
 
-`qa-agent review import` applies each decided row, only if the case is unchanged since the export
+`qa-agent review apply` applies each decided row, only if the case is unchanged since the export
 (a hidden column holds its fingerprint). Approve records who and when, with the fingerprint; a case
 with check errors, or with steps only in words, can't be approved.
 """
@@ -45,7 +45,7 @@ HOW_TO = [
     "2. You may change Title, Criteria, Priority, Suite and Tags. Steps are changed in the case file.",
     "3. Pick a Decision: Approve, Changes needed or Reject. Fill Reviewer; Date is today if left empty.",
     "4. Changes needed and Reject need a Comment, so the author knows why.",
-    "5. Save, then run: qa-agent review import",
+    "5. Save, then run: qa-agent review apply",
     "",
     "Only approved cases become tests. A case edited after this sheet was made is not applied:",
     "export the sheet again. A case with check errors, or with steps only in words, can't be approved.",

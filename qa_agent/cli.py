@@ -4,7 +4,7 @@
     qa-agent import api api/source/openapi.json      the API description -> api/api.yaml
     qa-agent import cases existing/cases.xlsx        the team's cases (Excel, CSV, Postman, Gherkin)
     qa-agent check                                   the cases, checked with rules
-    qa-agent review export | import                  a person decides on each case, in Excel
+    qa-agent review export | apply                   a person decides on each case, in Excel
     qa-agent generate                                approved cases -> tests, for every stack
     qa-agent trace --results reports/junit.xml       criteria -> cases -> tests -> results, and coverage
     qa-agent promote --runs r1 r2 r3 [--apply]       stable functional cases -> regression; a person applies it
@@ -88,7 +88,7 @@ def _parser() -> argparse.ArgumentParser:
     export.add_argument("--all", action="store_true", help="every case, approved ones too")
     export.add_argument("--sheet", type=Path, default=Path("review/cases.xlsx"))
     export.set_defaults(run=review_export)
-    apply = review.add_parser("import", help="apply the decisions in review/cases.xlsx; exit 1 if any is refused")
+    apply = review.add_parser("apply", help="apply the decisions in review/cases.xlsx; exit 1 if any is refused")
     apply.add_argument("--sheet", type=Path, default=Path("review/cases.xlsx"))
     apply.set_defaults(run=review_import)
 
@@ -176,7 +176,7 @@ def review_export(args) -> int:
     sheet = args.sheet if args.sheet.is_absolute() else project.root / args.sheet
     count = export_review_sheet(project, sheet, args.all)
     print(f"{project.relative(sheet)}: {plural(count, 'case')} to review. Fill Decision, Reviewer and Comment, "
-          f"save, then: qa-agent review import")
+          f"save, then: qa-agent review apply")
     return DONE
 
 

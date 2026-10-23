@@ -126,12 +126,12 @@ def test_a_decision_needs_a_reviewer_and_a_send_back_needs_a_comment(make_projec
 
 def test_the_commands_and_their_exit_codes(make_project, capsys):
     root = make_project({"criteria.yaml": CRITERIA, "cases/bookings.yaml": CASES})
-    assert main(["--project", str(root), "review", "import"]) == 2                  # no sheet yet
+    assert main(["--project", str(root), "review", "apply"]) == 2                  # no sheet yet
     assert main(["--project", str(root), "review", "export"]) == 0
     decide(root / "review/cases.xlsx", {"TC3": {"Decision": "Reject", "Reviewer": "qa-lead", "Comment": "dup"}})
-    assert main(["--project", str(root), "review", "import"]) == 0
+    assert main(["--project", str(root), "review", "apply"]) == 0
     decide(root / "review/cases.xlsx", {"TC2": {"Decision": "Approve", "Reviewer": "qa-lead"}})
-    assert main(["--project", str(root), "review", "import"]) == 1
+    assert main(["--project", str(root), "review", "apply"]) == 1
     assert "refused" in capsys.readouterr().out
 
 
@@ -140,5 +140,5 @@ def test_a_sheet_with_a_column_removed_is_a_setup_problem(make_project, capsys):
     book = load_workbook(sheet)
     book["Cases"].delete_cols(13)                                    # Reviewer
     book.save(sheet)
-    assert main(["--project", str(project.root), "review", "import"]) == 2
+    assert main(["--project", str(project.root), "review", "apply"]) == 2
     assert "columns missing: Reviewer" in capsys.readouterr().err

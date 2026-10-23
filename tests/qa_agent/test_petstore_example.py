@@ -28,7 +28,7 @@ def test_the_cases_are_the_teams_sheet_imported_and_reviewed(tmp_path):
     shutil.copytree(PETSTORE, copy)
     (copy / "cases/petstore-api.yaml").unlink()
     assert main(["--project", str(copy), "import", "cases", str(copy / "existing/petstore_cases.xlsx")]) == 0
-    assert main(["--project", str(copy), "review", "import"]) == 0
+    assert main(["--project", str(copy), "review", "apply"]) == 0
     assert (copy / "cases/petstore-api.yaml").read_text() == (PETSTORE / "cases/petstore-api.yaml").read_text()
 
 

@@ -60,7 +60,7 @@ def test_importing_the_existing_cases_and_the_filled_review_sheet_gives_the_comm
         save_case_file(case_file)
     existing = sorted(str(path) for path in (project / "existing").iterdir())
     assert main(["--project", str(project), "import", "cases", *existing]) == 0
-    assert main(["--project", str(project), "review", "import"]) == 0
+    assert main(["--project", str(project), "review", "apply"]) == 0
     for name in IMPORTED + WRITTEN_BY_HAND:
         assert (project / name).read_text() == (EXAMPLE / name).read_text(), name
 

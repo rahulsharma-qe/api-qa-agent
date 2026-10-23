@@ -412,7 +412,7 @@ flowchart TB
   AM --> CHK["qa-agent check<br/>rules only"]
   C --> CHK
   CHK -->|"qa-agent review export"| S(["review/cases.xlsx<br/>a person decides"])
-  S -->|"qa-agent review import"| A["cases/*.yaml<br/>approved, fingerprinted"]
+  S -->|"qa-agent review apply"| A["cases/*.yaml<br/>approved, fingerprinted"]
   A -->|"qa-agent generate"| G["Generated tests<br/>pytest · REST Assured"]
   G --> R["pytest · mvn test<br/>JUnit XML"]
   R -->|"qa-agent trace"| T["Trace<br/>criteria → cases → tests → results"]
@@ -480,7 +480,7 @@ cases:
 | `expect` | `status`, `fields` (equals), `exists`, `types`, `contains`, `list_length`, `list_contains`, `list_excludes`, `headers`, `max_response_ms`: exactly what both frameworks' `Expect` offers, so every case renders in both |
 | Values | `{{name}}` captured earlier in the case; `{{row.column}}` from the data file (in a request or an expectation; a data-driven `status` may be `"{{row.expected_status}}"`); `{{unique}}` six characters (`7f3a9c`), new in each test, so tests don't collide on a shared environment |
 | `manual_steps` | Steps in plain words, for a case imported from a manual sheet or Gherkin (9.4). Such a case is kept and traced but cannot be generated until it has `steps` |
-| `review` | Written only by `review import`. `status`: `draft`, `approved`, `changes_needed` or `rejected` |
+| `review` | Written only by `review apply`. `status`: `draft`, `approved`, `changes_needed` or `rejected` |
 
 - **One file per feature or resource** (`cases/cancellation.yaml`), holding a list of cases, as
   Gherkin, Karate and Postman do. Each case keeps its own id, review and fingerprint, so approval
@@ -583,13 +583,13 @@ steps in Steps and its expected result in words (a manual sheet's Expected Resul
   drop-downs), and fills **Decision** (a drop-down: Approve, Changes needed, Reject), **Reviewer**,
   **Date** (today when left empty) and **Comment**. Check findings and a Postman case's unread
   script lines are in the sheet, so the reviewer sees them.
-- A hidden column holds each case's fingerprint at export. `qa-agent review import` applies a row
+- A hidden column holds each case's fingerprint at export. `qa-agent review apply` applies a row
   only if the case is unchanged since export; otherwise it reports "the case changed after this
   sheet was made: export again".
 - A decision needs a Reviewer; Changes needed and Reject need a Comment, so the author sees why.
 - Approve writes `review: {status: approved, by, date, fingerprint}`. A case with steps only in
   words, or with check errors (after the reviewer's edits), can't be approved: the row is refused
-  with the reason. `review import` exits 1 when any row is refused.
+  with the reason. `review apply` exits 1 when any row is refused.
 - Committed in the team's repository: the record of who approved what, and when.
 
 ### 9.7 Renderers and `qa-agent generate`
@@ -729,7 +729,7 @@ qa_agent/
     sheet_cases.py             Excel and CSV, API and manual layouts -> cases
     postman.py  gherkin.py     -> cases
   checks.py                    the rules of 9.5 -> findings
-  review_sheet.py              export, import (openpyxl)
+  review_sheet.py              export, apply (openpyxl)
   renderers/
     common.py                  values ({{unique}}, {{pnr}}, {{row.x}}), test names, groups
     python_pytest.py  restassured_testng.py
@@ -761,7 +761,7 @@ cases render in both:
 | Trace | The README shows the trace, with the gaps it finds; `api/api.yaml` marks the health checks and `/test/reset` `not_tested`, with the reason |
 
 A script, `examples/bookings-team/run_all.sh`, rebuilds the example from its inputs in a scratch
-copy (import, check, review import with the filled sheet, generate), compares the result with what
+copy (import, check, review apply with the filled sheet, generate), compares the result with what
 is committed, then starts the reference API if it isn't up, runs both stacks' tests and the trace
 `--check`. `--python-only` leaves Java out. CI runs it; so do the tests, in Python.
 

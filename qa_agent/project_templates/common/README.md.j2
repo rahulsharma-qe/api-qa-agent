@@ -27,7 +27,7 @@ qa-agent import api api/source/openapi.json          # or a .curl file with a sa
 qa-agent import cases existing/api_cases_template.xlsx   # or your Excel, CSV, Postman or .feature files
 qa-agent check                                       # what to fix before review
 qa-agent review export                               # review/cases.xlsx: approve, send back, reject
-qa-agent review import
+qa-agent review apply
 qa-agent generate                                    # approved cases -> {{ "tests/generated" if stack == "python" else "src/test/java/generated" }}
 ```
 

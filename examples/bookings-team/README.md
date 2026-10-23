@@ -115,7 +115,7 @@ cases/refunds.yaml
 ```bash
 qa-agent review export       # review/cases.xlsx: every case still to review
 # the reviewer fills Decision, Reviewer, Date and Comment, and saves
-qa-agent review import
+qa-agent review apply
 ```
 
 In the sheet, cases are in id order; each case's steps and expected results are readable and
