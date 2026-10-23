@@ -57,7 +57,7 @@ class TraceRow:
     case_id: str
     title: str
     review: str
-    track: str
+    suite: str
     tests: list
     result: str
 
@@ -101,10 +101,10 @@ class TraceReport:
                          f"{', '.join(item.missing) or '-'} |")
         if self.not_tested:
             lines += ["", "Not tested, on purpose: " + "; ".join(self.not_tested)]
-        lines += ["", "| Criterion | Case | Title | Review | Track | Tests | Latest result |",
+        lines += ["", "| Criterion | Case | Title | Review | Suite | Tests | Latest result |",
                   "|---|---|---|---|---|---|---|"]
         for row in self.rows:
-            lines.append(f"| {row.criterion} | {row.case_id or '-'} | {row.title} | {row.review} | {row.track} | "
+            lines.append(f"| {row.criterion} | {row.case_id or '-'} | {row.title} | {row.review} | {row.suite} | "
                          f"{'<br>'.join(f'`{test}`' for test in row.tests) or '-'} | {row.result} |")
         return "\n".join(lines) + "\n"
 
@@ -114,9 +114,9 @@ class TraceReport:
         book = Workbook()
         matrix = book.active
         matrix.title = "Trace"
-        matrix.append(["Criterion", "Case", "Title", "Review", "Track", "Tests", "Latest result"])
+        matrix.append(["Criterion", "Case", "Title", "Review", "Suite", "Tests", "Latest result"])
         for row in self.rows:
-            matrix.append([row.criterion, row.case_id, row.title, row.review, row.track, "\n".join(row.tests),
+            matrix.append([row.criterion, row.case_id, row.title, row.review, row.suite, "\n".join(row.tests),
                            row.result])
         coverage = book.create_sheet("Coverage")
         coverage.append(["Coverage", "Covered", "Of", "Missing"])
@@ -219,7 +219,7 @@ def _rows(cases: list, criteria: dict, tests_by_case: dict, outcomes: dict, proj
         for case in linked:
             tests = tests_by_case.get(case.id, [])
             result = _result(case, project, outcomes) if case.is_approved else "-"
-            found.append(TraceRow(criterion, case.id, case.title, _review_label(case), case.track, tests, result))
+            found.append(TraceRow(criterion, case.id, case.title, _review_label(case), case.suite, tests, result))
     return found
 
 

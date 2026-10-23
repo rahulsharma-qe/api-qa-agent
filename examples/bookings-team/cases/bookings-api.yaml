@@ -4,7 +4,7 @@ cases:
     title: The passenger name can be changed
     criteria: [AC-1]
     priority: P1
-    track: functional
+    suite: functional
     tags: [smoke, crud]
     source:
       format: excel-api
@@ -43,7 +43,7 @@ cases:
     title: A deleted booking can't be read
     criteria: [AC-1]
     priority: P2
-    track: functional
+    suite: functional
     tags: [crud]
     source:
       format: excel-api
@@ -75,7 +75,7 @@ cases:
     title: The amount can't be changed
     criteria: [AC-1]
     priority: P2
-    track: functional
+    suite: functional
     tags: [crud, negative]
     source:
       format: excel-api

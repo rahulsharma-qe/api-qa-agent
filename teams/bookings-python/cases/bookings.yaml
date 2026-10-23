@@ -4,7 +4,7 @@ cases:
     title: A new booking can be read back by its PNR
     criteria: [AC-1]
     priority: P1
-    track: functional
+    suite: functional
     tags: [smoke]
     steps:
       - request:
@@ -29,7 +29,7 @@ cases:
     title: A deleted booking can no longer be read
     criteria: [AC-2]
     priority: P1
-    track: functional
+    suite: functional
     steps:
       - request:
           method: POST
@@ -55,7 +55,7 @@ cases:
     title: A cancelled booking is listed as cancelled, not as active
     criteria: [AC-3]
     priority: P2
-    track: functional
+    suite: functional
     steps:
       - request:
           method: POST
@@ -93,7 +93,7 @@ cases:
     title: Without a token, bookings can't be read
     criteria: [AC-4]
     priority: P0
-    track: functional
+    suite: functional
     tags: [negative]
     steps:
       - request: {method: GET, path: /bookings, auth: none}

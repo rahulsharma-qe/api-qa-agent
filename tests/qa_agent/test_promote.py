@@ -1,18 +1,18 @@
-"""promote (a person applies it) and track (a person moves a case, on the record)."""
+"""promote (a person applies it) and suite (a person moves a case, on the record)."""
 
 import pytest
 
 from qa_agent.cases import load_case_file, save_case_file
 from qa_agent.cli import main
 from qa_agent.project import SetupError, TeamProject
-from qa_agent.promote import move_track, promote
+from qa_agent.promote import move_to_suite, promote
 
 CASES = """
 feature: Bookings
 cases:
   - {id: TC1, title: Stable one, steps: [{request: {method: GET, path: /a}, expect: {status: 200}}]}
   - {id: TC2, title: Flaky one, steps: [{request: {method: GET, path: /b}, expect: {status: 200}}]}
-  - {id: TC3, title: Old one, track: regression, steps: [{request: {method: GET, path: /c}, expect: {status: 200}}]}
+  - {id: TC3, title: Old one, suite: regression, steps: [{request: {method: GET, path: /c}, expect: {status: 200}}]}
   - {id: TC4, title: Not approved, steps: [{request: {method: GET, path: /d}, expect: {status: 200}}]}
 """
 
@@ -40,14 +40,14 @@ def test_only_cases_that_passed_every_run_are_ready_and_nothing_changes_without_
     assert result.ready == ["TC1"]
     assert result.not_yet == ["TC2: failed in run 2 (python)"]
     assert result.look_at == ["TC3 (regression): failed in run 2 (python)"]
-    assert load_case_file(project.cases_dir / "bookings.yaml").cases[0].track == "functional"
+    assert load_case_file(project.cases_dir / "bookings.yaml").cases[0].suite == "functional"
 
 
 def test_apply_moves_them_keeps_the_approval_and_records_why(make_project, tmp_path):
     project, runs = project_with_runs(make_project, tmp_path)
     promote(project, runs, apply=True)
     case = load_case_file(project.cases_dir / "bookings.yaml").cases[0]
-    assert case.track == "regression" and case.is_approved
+    assert case.suite == "regression" and case.is_approved
     assert "promoted to regression: passed in 3 runs (python)" in case.notes
 
 
@@ -60,13 +60,13 @@ def test_fewer_than_three_runs_is_not_stability(make_project, tmp_path, capsys):
 
 def test_a_person_moves_a_case_back_with_who_and_why(make_project, tmp_path, capsys):
     project, _ = project_with_runs(make_project, tmp_path)
-    assert main(["--project", str(project.root), "track", "TC3", "functional", "--by", "qa-lead",
+    assert main(["--project", str(project.root), "suite", "TC3", "functional", "--by", "qa-lead",
                  "--reason", "refund rule changing in the next release"]) == 0
     case = load_case_file(project.cases_dir / "bookings.yaml").cases[2]
-    assert case.track == "functional" and case.is_approved
+    assert case.suite == "functional" and case.is_approved
     assert "moved from regression to functional by qa-lead: refund rule changing in the next release" in case.notes
     assert "TC3: regression -> functional" in capsys.readouterr().out
     with pytest.raises(SetupError, match="no case TC9"):
-        move_track(project, "TC9", "functional", "qa-lead", "x")
+        move_to_suite(project, "TC9", "functional", "qa-lead", "x")
     with pytest.raises(SetupError, match="say who and why"):
-        move_track(project, "TC1", "regression", "qa-lead", " ")
+        move_to_suite(project, "TC1", "regression", "qa-lead", " ")

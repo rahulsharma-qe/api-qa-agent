@@ -4,7 +4,7 @@ cases:
     title: The refund depends on when the booking is cancelled
     criteria: [AC-2, AC-3]
     priority: P0
-    track: functional
+    suite: functional
     tags: [cancellation]
     data_file: data/cancellation-scenarios-tc040.csv
     source:
@@ -38,7 +38,7 @@ cases:
     title: Cancelling twice tells the passenger it is already cancelled
     criteria: [AC-4]
     priority: P2
-    track: functional
+    suite: functional
     tags: [cancellation]
     source:
       format: gherkin

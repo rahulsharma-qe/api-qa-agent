@@ -22,7 +22,7 @@ testing AI agents themselves.
 | REST Assured framework with TestNG ([`frameworks/restassured_api/`](frameworks/restassured_api/)) | **Built**: the same features in Java, with TestNG groups and suites, Excel-driven data, Allure, evidence, retry |
 | `qa-agent`: cases from the team's API and existing cases ([`qa_agent/`](qa_agent/), [example](examples/bookings-team/)) | **Built**: API import (OpenAPI, curl); existing cases from Excel, CSV, Postman and Gherkin; `check` with the fix for every finding; review in an Excel sheet, with who and when |
 | `qa-agent`: tests, trace, new projects | **Built**: approved cases become pytest and REST Assured tests; the trace from criteria to results, with coverage; `init` makes a project that runs on day one |
-| `qa-agent`: every day | **Built**: the drift check (`generate --check`), a coverage floor (`trace --min-coverage`), `promote` stable cases to regression, `track` to move one back, on the record |
+| `qa-agent`: every day | **Built**: the drift check (`generate --check`), a coverage floor (`trace --min-coverage`), `promote` stable cases to regression, `suite` to move one back, on the record |
 | Bug-detection rate | **Built**: the reference API can switch on one of seven planted bugs; `qa-agent bugs` runs the tests once per bug and says which bugs they catch, and by which cases |
 | Many teams ([`teams/`](teams/)) | **Built**: a reusable CI workflow a team calls in one job, with its stack and environment; two teams (pytest, REST Assured) use it, each building only its own stack |
 | External APIs ([`examples/external-apis/`](examples/external-apis/)) | **Built**: Swagger Petstore from its own OpenAPI and a team's Excel sheet, in both stacks; its Docker image on every change, the public server by hand. It found a real gap: Petstore accepts a pet with no name |
@@ -100,7 +100,7 @@ A version number keeps every run the same; `:latest` follows each release. Or bu
 yourself: `docker build -t qa-agent https://github.com/rahulsharma-qe/api-qa-agent.git`, then use
 `qa-agent` in place of the image name.
 
-In the image: `init`, `import`, `check`, `review`, `generate`, `trace`, `promote`, `track`. Your
+In the image: `init`, `import`, `check`, `review`, `generate`, `trace`, `promote`, `suite`. Your
 tests run where they always run (pytest or Maven), since they call your API.
 On Linux, add `--user "$(id -u):$(id -g)"` so the files qa-agent writes are yours.
 In Windows PowerShell, write `${PWD}` instead of `$PWD`.
@@ -113,7 +113,7 @@ In Windows PowerShell, write `${PWD}` instead of `$PWD`.
 | [`env_check/`](env_check/) | Before a run: call every service a team depends on; exit 3 when a critical one is down. One tool for every framework |
 | [`frameworks/python_api/`](frameworks/python_api/) | The Python framework (pytest, httpx), installable on its own, with an example for every feature |
 | [`frameworks/restassured_api/`](frameworks/restassured_api/) | The Java framework (REST Assured, TestNG), a Maven library on its own, with an example for every feature |
-| [`qa_agent/`](qa_agent/) | `qa-agent`, the command line: `init`, `import`, `check`, `review`, `generate`, `trace`, `promote`, `track`, `bugs` |
+| [`qa_agent/`](qa_agent/) | `qa-agent`, the command line: `init`, `import`, `check`, `review`, `generate`, `trace`, `promote`, `suite`, `bugs` |
 | [`Dockerfile`](Dockerfile) | qa-agent in a container, for a team with no Python install |
 | [`examples/bookings-team/`](examples/bookings-team/) | A team's project for the reference API: every `qa-agent` feature, with its output |
 | [`teams/`](teams/) | Two small teams, each shaped like its own repository: `bookings-python` (pytest) and `refunds-java` (REST Assured) |

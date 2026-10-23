@@ -77,7 +77,7 @@ def _case(name: str, requests: list, result: ImportResult, source: str) -> dict:
         notes += [f"step {number}: {line}" for line in unread]
     for note in notes:
         result.notes.append(f"{source}, '{title}' {note}")
-    case = {"id": case_id, "title": title or name, "criteria": [], "priority": "P2", "track": "functional",
+    case = {"id": case_id, "title": title or name, "criteria": [], "priority": "P2", "suite": "functional",
             "source": {"format": "postman", "file": source, "item": name}, "steps": steps}
     if notes:
         case["notes"] = "Not converted, check by hand: " + " | ".join(notes)

@@ -18,7 +18,7 @@ def test_a_case_file_loads_into_cases_and_steps():
     case_file = parse_case_file(GOOD, Path("cases/cancellation.yaml"))
     case = case_file.cases[0]
     assert case_file.feature == "Cancellation"
-    assert (case.id, case.priority, case.track, case.review.status) == ("TC1", "P1", "functional", "draft")
+    assert (case.id, case.priority, case.suite, case.review.status) == ("TC1", "P1", "functional", "draft")
     assert case.steps[0].request.method == "POST"                # upper-cased
     assert case.steps[0].capture == {"pnr": "pnr"}
     assert case.steps[1].expect["fields"] == {"refund_amount": 250}

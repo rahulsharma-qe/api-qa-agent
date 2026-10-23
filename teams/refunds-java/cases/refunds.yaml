@@ -4,7 +4,7 @@ cases:
     title: A cancel at exactly 24 hours gets a full refund
     criteria: [AC-1]
     priority: P0
-    track: functional
+    suite: functional
     tags: [boundary]
     steps:
       - request:
@@ -33,7 +33,7 @@ cases:
     title: A cancel after 24 hours gets no refund
     criteria: [AC-2]
     priority: P1
-    track: functional
+    suite: functional
     tags: [boundary]
     steps:
       - request:
@@ -62,7 +62,7 @@ cases:
     title: After a cancel within 24 hours, the refund status is refunded
     criteria: [AC-3]
     priority: P1
-    track: functional
+    suite: functional
     steps:
       - request:
           method: POST
@@ -92,7 +92,7 @@ cases:
     title: A second cancel is refused and changes nothing
     criteria: [AC-4]
     priority: P1
-    track: functional
+    suite: functional
     tags: [negative]
     steps:
       - request:

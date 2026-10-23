@@ -8,7 +8,7 @@
     qa-agent generate                                approved cases -> tests, for every stack
     qa-agent trace --results reports/junit.xml       criteria -> cases -> tests -> results, and coverage
     qa-agent promote --runs r1 r2 r3 [--apply]       stable functional cases -> regression; a person applies it
-    qa-agent track TC010 functional --by --reason    a person moves a case between tracks, on the record
+    qa-agent suite TC010 functional --by --reason    a person moves a case between suites, on the record
     qa-agent bugs --variants bugs.yaml --stack python   the bug-detection rate: planted bugs, one at a time
 
 Exit codes: 0 done (no errors), 1 errors found, 2 the project or an input can't be read.
@@ -27,7 +27,7 @@ from qa_agent.cases import CaseFormatError
 from qa_agent.checks import check_project, plural
 from qa_agent.generate import generate
 from qa_agent.init_project import init_project
-from qa_agent.promote import move_track, promote
+from qa_agent.promote import move_to_suite, promote
 from qa_agent.trace import build_trace
 from qa_agent.importers.common import CaseImportError
 from qa_agent.importers.curl import CurlError, read_curl
@@ -112,15 +112,15 @@ def _parser() -> argparse.ArgumentParser:
                                                  "moves them")
     stable.add_argument("--runs", nargs="+", type=Path, required=True,
                         help="three or more runs, each a JUnit file or folder: reports/run1.xml reports/run2.xml ...")
-    stable.add_argument("--apply", action="store_true", help="set track: regression on the ready cases")
+    stable.add_argument("--apply", action="store_true", help="set suite: regression on the ready cases")
     stable.set_defaults(run=run_promote)
 
-    move = commands.add_parser("track", help="move a case to another track, with who and why")
+    move = commands.add_parser("suite", help="move a case to another suite, with who and why")
     move.add_argument("case_id")
-    move.add_argument("track", choices=["functional", "regression"])
+    move.add_argument("suite", choices=["functional", "regression"])
     move.add_argument("--by", required=True, help="who decided")
     move.add_argument("--reason", required=True, help="why, in a few words")
-    move.set_defaults(run=run_track)
+    move.set_defaults(run=run_suite)
 
     bugs = commands.add_parser("bugs", help="the bug-detection rate: run the tests once per planted bug")
     bugs.add_argument("--variants", type=Path, default=Path("bugs.yaml"),
@@ -225,8 +225,8 @@ def run_promote(args) -> int:
     return DONE
 
 
-def run_track(args) -> int:
-    print(move_track(TeamProject.load(args.project), args.case_id, args.track, args.by, args.reason))
+def run_suite(args) -> int:
+    print(move_to_suite(TeamProject.load(args.project), args.case_id, args.suite, args.by, args.reason))
     return DONE
 
 

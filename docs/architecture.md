@@ -20,7 +20,7 @@ agent, `playwright-qa-agent`, is a separate repository that depends on it.
    turn approved cases into code. The code always runs, and the same case runs in every framework.
 3. **People decide.** Existing test cases come first; the AI reviews them and drafts only what is
    missing; a person approves cases and data in a review file before anything becomes a test.
-4. **Two tracks.** New work is *functional*; a case that passes and stays stable is promoted to
+4. **Two suites.** New work is *functional*; a case that passes and stays stable is promoted to
    *regression*, which runs on every build with no AI and no API key.
 5. **Many teams, many stacks, many environments.** Each team works in its own repository and builds
    only its own stack; any number of environments and services per team.
@@ -186,7 +186,7 @@ flowchart TB
 id: TC003
 title: Cancel exactly at 24 hours gets a full refund
 criteria: [AC-2]          # the acceptance criterion it proves
-track: functional
+suite: functional
 steps:
   - request: {method: POST, path: /bookings,
               body: {passenger: Asha Rao, amount: 250, booked_at: "2026-10-20T10:00:00Z"}}

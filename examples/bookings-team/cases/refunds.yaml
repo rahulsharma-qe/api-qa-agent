@@ -4,7 +4,7 @@ cases:
     title: A late cancel shows no refund
     criteria: [AC-5]
     priority: P2
-    track: functional
+    suite: functional
     tags: [refund]
     source:
       format: excel-manual
@@ -21,7 +21,7 @@ cases:
     title: A booking never cancelled has no refund yet
     criteria: [AC-5]
     priority: P3
-    track: functional
+    suite: functional
     tags: [refund]
     source:
       format: excel-manual

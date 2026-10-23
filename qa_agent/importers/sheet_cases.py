@@ -27,7 +27,7 @@ HEADERS = {
     "criteria": ("criteria", "acceptance criteria", "requirement", "requirements", "ac"),
     "priority": ("priority",),
     "tags": ("tags", "labels"),
-    "track": ("track",),
+    "suite": ("suite", "track"),
     "method": ("method",),
     "path": ("path", "endpoint"),
     "body": ("body", "request body"),
@@ -109,7 +109,7 @@ def _base_case(row, columns, case_id, source, row_number, where, result) -> dict
         result.notes.append(f"{where}, row {row_number}: {note}")
     case = {"id": case_id, "title": _cell(row, columns, "title") or f"row {row_number}",
             "criteria": split_list(_cell(row, columns, "criteria")), "priority": priority,
-            "track": _cell(row, columns, "track") or "functional"}
+            "suite": _cell(row, columns, "suite") or "functional"}
     tags = split_list(_cell(row, columns, "tags"))
     if tags:
         case["tags"] = tags

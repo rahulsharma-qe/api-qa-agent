@@ -268,11 +268,11 @@ notes. The tool never moves a case back: a regression case that fails is listed 
 When a change makes a regression case wrong, a person moves it, on the record:
 
 ```bash
-qa-agent track TC010 functional --by qa-lead --reason "refund rule changing in the next release"
+qa-agent suite TC010 functional --by qa-lead --reason "refund rule changing in the next release"
 ```
 
 (If the case's steps change instead, its fingerprint no longer matches and it goes back to review by
-itself; the reviewer can set Track there.)
+itself; the reviewer can set Suite there.)
 
 ## 9. Do the tests catch bugs?
 

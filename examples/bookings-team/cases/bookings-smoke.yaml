@@ -4,7 +4,7 @@ cases:
     title: Create and read a booking
     criteria: [AC-1]
     priority: P2
-    track: functional
+    suite: functional
     tags: [smoke]
     source:
       format: postman
@@ -40,7 +40,7 @@ cases:
     title: Health check
     criteria: []
     priority: P2
-    track: functional
+    suite: functional
     source:
       format: postman
       file: existing/bookings.postman_collection.json

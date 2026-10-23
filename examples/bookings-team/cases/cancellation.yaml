@@ -4,7 +4,7 @@ cases:
     title: The refund at the 24-hour boundary
     criteria: [AC-2, AC-3]
     priority: P0
-    track: functional
+    suite: functional
     tags: [boundary]
     data_file: data/cancellation_boundaries.csv
     steps:
@@ -34,7 +34,7 @@ cases:
     title: A second cancel is refused
     criteria: [AC-4]
     priority: P1
-    track: functional
+    suite: functional
     tags: [negative]
     steps:
       - request:
@@ -68,7 +68,7 @@ cases:
     title: An unknown PNR can't be cancelled
     criteria: [AC-4]
     priority: P2
-    track: functional
+    suite: functional
     tags: [negative]
     steps:
       - request: {method: POST, path: /bookings/NOPE99/cancel}
@@ -84,7 +84,7 @@ cases:
     title: After a cancel within 24 hours, the refund status is refunded
     criteria: [AC-5]
     priority: P2
-    track: functional
+    suite: functional
     tags: [refund]
     manual_steps:
       - Make a booking.

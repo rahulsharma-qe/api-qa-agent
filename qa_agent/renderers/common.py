@@ -86,9 +86,9 @@ def is_write(case: Case) -> bool:
 
 
 def groups(case: Case) -> list[str]:
-    """The track, the team's tags, and 'writes' for a case that changes data (skipped on a read-only
+    """The suite, the team's tags, and 'writes' for a case that changes data (skipped on a read-only
     environment)."""
-    found = [case.track] + [tag for tag in case.tags if tag != case.track]
+    found = [case.suite] + [tag for tag in case.tags if tag != case.suite]
     if is_write(case) and "writes" not in found:
         found.append("writes")
     return found

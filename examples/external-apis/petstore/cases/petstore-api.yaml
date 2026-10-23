@@ -4,7 +4,7 @@ cases:
     title: A new pet can be read back by its id
     criteria: [AC-1]
     priority: P1
-    track: functional
+    suite: functional
     tags: [smoke]
     source:
       format: excel-api
@@ -35,7 +35,7 @@ cases:
     title: A pet's status can be changed to sold
     criteria: [AC-2]
     priority: P2
-    track: functional
+    suite: functional
     source:
       format: excel-api
       file: existing/petstore_cases.xlsx
@@ -70,7 +70,7 @@ cases:
     title: A deleted pet can no longer be read
     criteria: [AC-3]
     priority: P2
-    track: functional
+    suite: functional
     source:
       format: excel-api
       file: existing/petstore_cases.xlsx
@@ -96,7 +96,7 @@ cases:
     title: An order can be placed, read back and deleted
     criteria: [AC-4]
     priority: P2
-    track: functional
+    suite: functional
     source:
       format: excel-api
       file: existing/petstore_cases.xlsx
@@ -128,7 +128,7 @@ cases:
     title: An id that is not a number is refused
     criteria: [AC-5]
     priority: P3
-    track: functional
+    suite: functional
     tags: [negative]
     source:
       format: excel-api
@@ -149,7 +149,7 @@ cases:
     title: A pet without a name is refused
     criteria: [AC-1]
     priority: P1
-    track: functional
+    suite: functional
     tags: [negative]
     source:
       format: excel-api

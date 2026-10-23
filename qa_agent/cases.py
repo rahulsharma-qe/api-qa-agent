@@ -28,7 +28,7 @@ from qa_agent.yaml_files import FileFormatError, read_yaml, write_yaml
 
 METHODS = ("GET", "POST", "PUT", "PATCH", "DELETE")
 PRIORITIES = ("P0", "P1", "P2", "P3")
-TRACKS = ("functional", "regression")
+SUITES = ("functional", "regression")
 REVIEW_STATUSES = ("draft", "approved", "changes_needed", "rejected")
 TYPE_NAMES = ("string", "number", "integer", "boolean", "list", "object", "null")
 EXPECTATIONS = ("status", "fields", "exists", "types", "contains", "list_length", "list_contains",
@@ -37,7 +37,7 @@ NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 ROW_VALUE = re.compile(r"^\{\{\s*row\.[^{}]+\}\}$")       # {{row.expected_status}}: a value from the data file
 RESERVED_NAMES = ("unique", "row")
 
-CASE_KEYS = ("id", "title", "criteria", "priority", "track", "tags", "data_file", "source", "steps", "manual_steps",
+CASE_KEYS = ("id", "title", "criteria", "priority", "suite", "tags", "data_file", "source", "steps", "manual_steps",
              "notes", "review")
 STEP_KEYS = ("name", "request", "expect", "capture")
 REQUEST_KEYS = ("method", "path", "query", "headers", "body", "service", "auth")
@@ -106,7 +106,7 @@ class Case:
     title: str
     criteria: list = field(default_factory=list)
     priority: str = "P2"
-    track: str = "functional"
+    suite: str = "functional"
     tags: list = field(default_factory=list)
     data_file: Optional[str] = None
     source: dict = field(default_factory=dict)
@@ -138,7 +138,7 @@ class Case:
 
     def to_dict(self) -> dict:
         data = {"id": self.id, "title": self.title, "criteria": self.criteria, "priority": self.priority,
-                "track": self.track}
+                "suite": self.suite}
         for key in ("tags", "data_file", "source", "notes"):
             if getattr(self, key):
                 data[key] = getattr(self, key)
@@ -210,16 +210,16 @@ def _parse_case(entry: Any, number: int, problems: list[str]) -> Optional[Case]:
     priority = str(entry.get("priority", "P2"))
     if priority not in PRIORITIES:
         problems.append(f"{case_id}: priority '{priority}' (use {', '.join(PRIORITIES)})")
-    track = str(entry.get("track", "functional"))
-    if track not in TRACKS:
-        problems.append(f"{case_id}: track '{track}' (use {' or '.join(TRACKS)})")
+    suite = str(entry.get("suite", "functional"))
+    if suite not in SUITES:
+        problems.append(f"{case_id}: suite '{suite}' (use {' or '.join(SUITES)})")
     steps = [_parse_step(raw, f"{case_id} step {index}", problems)
              for index, raw in enumerate(_as_list(entry.get("steps"), f"{case_id}: 'steps'", problems), start=1)]
     manual_steps = entry.get("manual_steps") or []
     return Case(
         id=case_id, title=str(entry.get("title", "")),
         criteria=[str(item) for item in _as_list(entry.get("criteria"), f"{case_id}: 'criteria'", problems)],
-        priority=priority, track=track,
+        priority=priority, suite=suite,
         tags=[str(item) for item in _as_list(entry.get("tags"), f"{case_id}: 'tags'", problems)],
         data_file=str(entry["data_file"]) if entry.get("data_file") else None,
         source=entry.get("source") if isinstance(entry.get("source"), dict) else {},

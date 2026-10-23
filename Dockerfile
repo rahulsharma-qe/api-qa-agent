@@ -4,7 +4,7 @@
 #   cd your-team-project
 #   docker run --rm -v "$PWD:/project" qa-agent check
 #
-# The tool only (init, import, check, review, generate, trace, promote, track). Your tests run where
+# The tool only (init, import, check, review, generate, trace, promote, suite). Your tests run where
 # they always run (pytest or Maven): they call your API, and inside a container "localhost" is the
 # container, not your machine.
 FROM python:3.12-slim

@@ -2,7 +2,7 @@
 
 `qa-agent review export` writes review/cases.xlsx: one row per case still to review. The steps and
 expected results are readable text, locked: steps are changed in the case file, so a sheet can never
-produce a case that doesn't parse. The reviewer may change Title, Criteria, Priority, Track and
+produce a case that doesn't parse. The reviewer may change Title, Criteria, Priority, Suite and
 Tags, and fills Decision, Reviewer, Date and Comment.
 
 `qa-agent review import` applies each decided row, only if the case is unchanged since the export
@@ -20,7 +20,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill, Protection
 from openpyxl.worksheet.datavalidation import DataValidation
 
-from qa_agent.cases import PRIORITIES, TRACKS, Case, load_case_file, save_case_file
+from qa_agent.cases import PRIORITIES, SUITES, Case, load_case_file, save_case_file
 from qa_agent.checks import ERROR, check_project
 from qa_agent.importers.common import split_list
 from qa_agent.project import SetupError, TeamProject
@@ -30,7 +30,7 @@ DECISIONS = {"approve": "approved", "approved": "approved", "changes needed": "c
              "reject": "rejected", "rejected": "rejected"}
 COLUMNS = [  # header, width, editable
     ("ID", 12, False), ("Case file", 22, False), ("Status", 14, False), ("Title", 36, True),
-    ("Criteria", 12, True), ("Priority", 9, True), ("Track", 12, True), ("Tags", 12, True),
+    ("Criteria", 12, True), ("Priority", 9, True), ("Suite", 12, True), ("Tags", 12, True),
     ("Steps", 60, False), ("Expected", 44, False), ("Check findings", 44, False),
     ("Decision", 16, True), ("Reviewer", 14, True), ("Date", 12, True), ("Comment", 40, True),
     ("Fingerprint", 14, False)]
@@ -42,7 +42,7 @@ HOW_TO = [
     "How to review",
     "",
     "1. Read each case: its steps and expected results (grey, locked), and what qa-agent check found.",
-    "2. You may change Title, Criteria, Priority, Track and Tags. Steps are changed in the case file.",
+    "2. You may change Title, Criteria, Priority, Suite and Tags. Steps are changed in the case file.",
     "3. Pick a Decision: Approve, Changes needed or Reject. Fill Reviewer; Date is today if left empty.",
     "4. Changes needed and Reject need a Comment, so the author knows why.",
     "5. Save, then run: qa-agent review import",
@@ -78,7 +78,7 @@ def export_review_sheet(project: TeamProject, path: Path, every_case: bool = Fal
         if case.notes:
             findings.append(f"notes: {case.notes}")
         sheet.append([case.id, project.relative(case_file.path), case.review.status, case.title,
-                      ", ".join(case.criteria), case.priority, case.track, ", ".join(case.tags),
+                      ", ".join(case.criteria), case.priority, case.suite, ", ".join(case.tags),
                       readable_steps(case), readable_expectations(case), "\n".join(findings),
                       "", "", "", case.review.comment, case.fingerprint()])
     _format(sheet, len(rows))
@@ -205,7 +205,7 @@ def _format(sheet, count: int) -> None:
     sheet.freeze_panes = "B2"
     last = count + 1
     for column, values in (("L", "Approve,Changes needed,Reject"), ("F", ",".join(PRIORITIES)),
-                           ("G", ",".join(TRACKS))):
+                           ("G", ",".join(SUITES))):
         choice = DataValidation(type="list", formula1=f'"{values}"', allow_blank=True)
         sheet.add_data_validation(choice)
         choice.add(f"{column}2:{column}{max(last, 2)}")
@@ -250,14 +250,14 @@ def _row_problem(row: dict) -> str:
 
 
 def _edit(case: Case, row: dict) -> str:
-    """The reviewer's edits to the title, criteria, priority, track and tags. Returns a problem, if any."""
+    """The reviewer's edits to the title, criteria, priority, suite and tags. Returns a problem, if any."""
     if row["Priority"] not in PRIORITIES:
         return f"Priority '{row['Priority']}' (use {', '.join(PRIORITIES)})"
-    if row["Track"] not in TRACKS:
-        return f"Track '{row['Track']}' (use {' or '.join(TRACKS)})"
+    if row["Suite"] not in SUITES:
+        return f"Suite '{row['Suite']}' (use {' or '.join(SUITES)})"
     if not row["Title"]:
         return "Title is empty"
-    case.title, case.priority, case.track = row["Title"], row["Priority"], row["Track"]
+    case.title, case.priority, case.suite = row["Title"], row["Priority"], row["Suite"]
     case.criteria, case.tags = split_list(row["Criteria"]), split_list(row["Tags"])
     return ""
 

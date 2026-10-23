@@ -96,7 +96,7 @@ def _case(scenario: dict, background: list, source: str, result: ImportResult) -
         else:
             tags.append(tag[1:])
     case = {"id": case_id, "title": scenario["name"], "criteria": criteria, "priority": priority,
-            "track": "functional"}
+            "suite": "functional"}
     if tags:
         case["tags"] = tags
     case["source"] = {"format": "gherkin", "file": source, "scenario": scenario["name"]}

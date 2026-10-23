@@ -453,7 +453,7 @@ cases:
     title: Cancel exactly at 24 hours gets a full refund
     criteria: [AC-2]
     priority: P1                     # P0 to P3
-    track: functional                # functional or regression (promote, phase 3b)
+    suite: functional                # functional or regression (promote, phase 3b)
     tags: [smoke]                    # optional; become markers or TestNG groups
     data_file: data/cancellation_boundaries.csv   # optional: one run per row, values as {{row.column}}
     source: {format: excel-api, file: existing/booking_cases.xlsx, row: 7}
@@ -568,7 +568,7 @@ project can't be read. The findings also go into the review sheet.
 `qa-agent review export` writes `review/cases.xlsx`, one row per case not yet approved (or every
 case with `--all`):
 
-| ID | Case file | Status | Title | Criteria | Priority | Track | Tags | Steps | Expected | Check findings | **Decision** | **Reviewer** | **Date** | **Comment** |
+| ID | Case file | Status | Title | Criteria | Priority | Suite | Tags | Steps | Expected | Check findings | **Decision** | **Reviewer** | **Date** | **Comment** |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 
 Rows are in id order (TC001, TC002, ... TC010). A rejected case is not exported again (unless
@@ -579,7 +579,7 @@ steps in Steps and its expected result in words (a manual sheet's Expected Resul
 - **Steps** and **Expected** are readable text, one line per step (`POST /bookings → 201, remember pnr`),
   greyed and locked: the steps themselves are changed in the case file, so a sheet can never
   produce a case that doesn't parse.
-- The reviewer may change Title, Criteria, Priority, Track and Tags (Priority and Track are
+- The reviewer may change Title, Criteria, Priority, Suite and Tags (Priority and Suite are
   drop-downs), and fills **Decision** (a drop-down: Approve, Changes needed, Reject), **Reviewer**,
   **Date** (today when left empty) and **Comment**. Check findings and a Postman case's unread
   script lines are in the sheet, so the reviewer sees them.
@@ -641,7 +641,7 @@ In REST Assured (`src/test/java/generated/CancellationTest.java`):
 
 | Part of a case | pytest | REST Assured |
 |---|---|---|
-| Track and tags | Markers; a tag becomes `@pytest.mark.<tag>`, registered in a generated `tests/generated/conftest.py` | TestNG groups |
+| Suite and tags | Markers; a tag becomes `@pytest.mark.<tag>`, registered in a generated `tests/generated/conftest.py` | TestNG groups |
 | A case that changes data | `writes` marker | `writes` group: skipped on a read-only environment |
 | `{{unique}}`, `{{pnr}}`, `{{row.x}}` | `unique_id()`, `context.get("pnr")`, `row["x"]` (f-strings inside text) | `TestData.uniqueId()`, `context().get("pnr")`, `row.get("x")` (`+` inside text) |
 | Data | `@pytest.mark.parametrize("row", load_rows(...))`, named after a `case` column when there is one | `@DataProvider` with `TestData.rows(...)` |
@@ -669,7 +669,7 @@ and JUnit XML results (files or folders: pytest's `--junitxml` and Maven Surefir
 other XML is skipped), prints the coverage, and writes `reports/trace.md` (for a pull request) and
 `reports/trace.xlsx` (a Trace sheet and a Coverage sheet):
 
-| Criterion | Case | Title | Review | Track | Tests | Latest result |
+| Criterion | Case | Title | Review | Suite | Tests | Latest result |
 |---|---|---|---|---|---|---|
 | AC-4 | TC003 | A second cancel is refused | approved | functional | `test_cancellation.py::test_tc003_…` · `CancellationTest.java::tc003…` | python passed 1/1 · restassured passed 1/1 |
 | AC-4 | TC041 | Cancelling twice tells the passenger … | draft (needs steps) | functional | - | - |
@@ -808,7 +808,7 @@ runs it, and so does `run_all.sh`.
 
 ### 10.2 Promote: `qa-agent promote`
 
-The second track. A functional case joins regression when it is stable: it passed in every run given,
+The regression suite. A functional case joins it when it is stable: it passed in every run given,
 in every stack, and at least three runs were given.
 
 ```
@@ -819,19 +819,19 @@ qa-agent promote --runs ... --apply
 
 | Case | Becomes |
 |---|---|
-| Functional, approved, passed in every run and every stack | Listed as ready; `--apply` sets `track: regression` in its case file |
+| Functional, approved, passed in every run and every stack | Listed as ready; `--apply` sets `suite: regression` in its case file |
 | Failed or skipped in any run, or not run in a stack | Listed with the reason; stays functional |
 | Already regression and failed in a run | Listed: "look at this" (never demoted by the tool) |
 
-- Without `--apply` it only lists: a person decides. The track is not in the fingerprint, so the
+- Without `--apply` it only lists: a person decides. The suite is not in the fingerprint, so the
   approval stands; `generate` then writes the `regression` marker or group.
 - **A person can always move a case back.** When tomorrow's change alters what a regression case
   should do, two ways, both recorded:
   - its steps or expected results change in the case file: the fingerprint no longer matches, so it
-    goes back to review by itself, and the reviewer sets Track to functional in the review sheet;
-  - only the track changes (the feature is being reworked, the steps stay):
-    `qa-agent track TC010 functional --by qa-lead --reason "refund rule changing in the next release"`
-    writes the track and adds who, when and why to the case's notes.
+    goes back to review by itself, and the reviewer sets Suite to functional in the review sheet;
+  - only the suite changes (the feature is being reworked, the steps stay):
+    `qa-agent suite TC010 functional --by qa-lead --reason "refund rule changing in the next release"`
+    writes the suite and adds who, when and why to the case's notes.
 - Each argument to `--runs` is one run (a JUnit file, or a folder of them, as Surefire writes).
 
 ### 10.3 Bug-detection rate: do the tests catch bugs?
@@ -953,7 +953,7 @@ docker run --rm -v "$PWD:/project" qa-agent check
 
 | Choice | Why |
 |---|---|
-| The tool only: `init`, `import`, `check`, `review`, `generate`, `trace`, `promote`, `track` | Tests call the team's API. Inside a container `localhost` is the container, so reaching an API on the team's machine needs a different network setting on each system. Tests run where they always run |
+| The tool only: `init`, `import`, `check`, `review`, `generate`, `trace`, `promote`, `suite` | Tests call the team's API. Inside a container `localhost` is the container, so reaching an API on the team's machine needs a different network setting on each system. Tests run where they always run |
 | No Java in the image | Java teams already have a JDK and the Maven wrapper; the tool's commands work on their projects all the same |
 | Published to the GitHub Container Registry with each release (from `v0.3.0`); built from the GitHub URL too | The README showed the registry name only once the package was published and public, so its first command always works |
 | Runs as root by default; Linux users add `--user "$(id -u):$(id -g)"` | A fixed non-root user can't write a mounted folder owned by another id on Linux. Docker Desktop (macOS, Windows) maps ownership itself |

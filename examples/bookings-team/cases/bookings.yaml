@@ -4,7 +4,7 @@ cases:
     title: A new booking can be read back by its PNR
     criteria: [AC-1]
     priority: P1
-    track: functional
+    suite: functional
     tags: [smoke]
     steps:
       - request:
@@ -31,7 +31,7 @@ cases:
     title: A booking without an email is refused
     criteria: [AC-1]
     priority: P2
-    track: functional
+    suite: functional
     tags: [negative]
     steps:
       - request:

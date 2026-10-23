@@ -1,12 +1,12 @@
-"""The second track: functional cases join regression when they are stable; a person decides.
+"""The regression suite: functional cases join it when they are stable; a person decides.
 
     qa-agent promote --runs reports/run1 reports/run2 reports/run3          lists, changes nothing
-    qa-agent promote --runs ... --apply                                     sets track: regression
-    qa-agent track TC010 functional --by qa-lead --reason "refund rule changing"
+    qa-agent promote --runs ... --apply                                     sets suite: regression
+    qa-agent suite TC010 functional --by qa-lead --reason "refund rule changing"
 
 A case is ready when it is approved and functional, and passed in every run given (every data row),
 in every stack that has results; at least three runs. A regression case that failed in any run is
-flagged, never moved back by the tool: a person moves a case with `qa-agent track`, which records
+flagged, never moved back by the tool: a person moves a case with `qa-agent suite`, which records
 who, when and why in the case's notes.
 """
 
@@ -14,7 +14,7 @@ import datetime
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from qa_agent.cases import TRACKS, Case, load_case_file, save_case_file
+from qa_agent.cases import SUITES, Case, load_case_file, save_case_file
 from qa_agent.project import SetupError, TeamProject
 from qa_agent.renderers import RENDERERS
 from qa_agent.results import read_results
@@ -61,7 +61,7 @@ def promote(project: TeamProject, runs: list, apply: bool = False) -> PromoteRes
         if not case.is_approved:
             continue
         problem = _problem(case, per_run, result.stacks)
-        if case.track == "regression":
+        if case.suite == "regression":
             if problem:
                 result.look_at.append(f"{case.id} (regression): {problem}")
         elif problem:
@@ -69,7 +69,7 @@ def promote(project: TeamProject, runs: list, apply: bool = False) -> PromoteRes
         else:
             result.ready.append(case.id)
             if apply:
-                case.track = "regression"
+                case.suite = "regression"
                 _note(case, f"promoted to regression: passed in {len(runs)} runs ({', '.join(result.stacks)})")
                 changed.add(case_file.path)
     for case_file in files:
@@ -79,21 +79,21 @@ def promote(project: TeamProject, runs: list, apply: bool = False) -> PromoteRes
     return result
 
 
-def move_track(project: TeamProject, case_id: str, track: str, by: str, reason: str) -> str:
-    if track not in TRACKS:
-        raise SetupError(f"track '{track}' (use {' or '.join(TRACKS)})")
+def move_to_suite(project: TeamProject, case_id: str, suite: str, by: str, reason: str) -> str:
+    if suite not in SUITES:
+        raise SetupError(f"suite '{suite}' (use {' or '.join(SUITES)})")
     if not by.strip() or not reason.strip():
         raise SetupError("say who and why: --by <name> --reason <text>")
     for path in project.case_files():
         case_file = load_case_file(path)
         for case in case_file.cases:
             if case.id == case_id:
-                if case.track == track:
-                    return f"{case_id} is already {track}"
-                was, case.track = case.track, track
-                _note(case, f"moved from {was} to {track} by {by}: {reason}")
+                if case.suite == suite:
+                    return f"{case_id} is already {suite}"
+                was, case.suite = case.suite, suite
+                _note(case, f"moved from {was} to {suite} by {by}: {reason}")
                 save_case_file(case_file)
-                return f"{case_id}: {was} -> {track} ({project.relative(Path(path))}); run qa-agent generate"
+                return f"{case_id}: {was} -> {suite} ({project.relative(Path(path))}); run qa-agent generate"
     raise SetupError(f"no case {case_id} in the project")
 
 
