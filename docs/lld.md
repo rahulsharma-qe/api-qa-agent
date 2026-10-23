@@ -794,7 +794,7 @@ shows the utility on many teams and on an API this repository didn't write.
 | Drift check (`generate --check`) | Do the committed tests still match the approved cases? | Every build |
 | `trace --min-coverage` | Is coverage above the team's floor? | Every build, if the team sets one |
 | Promote | Which functional cases are stable enough for regression? | When the team chooses; a person applies it |
-| Bug-detection rate (`qa-agent bugs`) | Do the tests catch bugs, or only pass? | When the team chooses; in CI for the example |
+| Bug-detection rate (`qa-agent bug-detection`) | Do the tests catch bugs, or only pass? | When the team chooses; in CI for the example |
 | The reusable workflow and two teams | Does it scale to many teams and both stacks with one line of CI each? | Every build |
 | Swagger Petstore | Does it work on an API this repository didn't write? | Every build (its Docker image); the public server on demand |
 | Docker image | Can a team start without installing Python packages? | Built in CI |
@@ -836,7 +836,7 @@ qa-agent promote --runs ... --apply
 
 ### 10.3 Bug-detection rate: do the tests catch bugs?
 
-The reference API can switch on small planted bugs, one at a time:
+The reference API can switch on small seeded bugs, one at a time:
 `python -m mock_service --bug refund-boundary`. Each is the kind of slip a developer makes.
 
 | Bug | What changes |
@@ -849,29 +849,29 @@ The reference API can switch on small planted bugs, one at a time:
 | `token-not-checked` | A call with no token is let through |
 | `status-filter-ignored` | Listing by status returns every booking |
 
-`qa-agent bugs` runs the team's tests once per bug, against the API started with that bug, and
+`qa-agent bug-detection` runs the team's tests once per bug, against the API started with that bug, and
 reports which bugs the tests caught:
 
 ```
-qa-agent bugs --variants bugs.yaml --stack python
+qa-agent bug-detection --seeded-bugs seeded-bugs.yaml --stack python
 ```
 
 ```yaml
-# bugs.yaml: how to start the API with each planted bug (any team can write its own)
-start: python -m mock_service --bug {bug}
+# seeded-bugs.yaml: how to start the API with each seeded bug (any team can write its own)
+start_with_bug: python -m mock_service --bug {bug}
 bugs: [refund-boundary, wrong-refund-amount, second-cancel-allowed, deleted-still-readable,
        amount-changeable, token-not-checked, status-filter-ignored]
 ```
 
-`bugs.yaml` also names `start_without_bugs` (`python -m mock_service`) and the `environment`
+`seeded-bugs.yaml` also names `start_clean` (`python -m mock_service`) and the `environment`
 env_check uses (default `mock`); the bugs may be a list or a mapping of name to what it changes.
 
-For each bug: start the API (its output in `reports/bugs/<bug>.api.log`), wait until env_check says
+For each bug: start the API (its output in `reports/bug-detection/<bug>.api.log`), wait until env_check says
 ready, run the stack's tests, stop the API and wait for it to exit. A bug is caught when at least one
 test fails; the report (console and `reports/bug-detection.md`) names the cases whose tests failed.
 A missed bug points at the same gap the trace shows: a missed `token-not-checked` means no case
 calls without a token. A clean run with no bug comes first: if it fails, the rate is not measured (a
-failing suite "catches" every bug). If the API is already up, `bugs` refuses (it starts the API
+failing suite "catches" every bug). If the API is already up, `bug-detection` refuses (it starts the API
 itself, once per bug); that check is one env_check try, not the usual retries. It measures and
 exits 0; it is not a gate. On the example it takes about 20 seconds for the Python stack.
 
@@ -981,7 +981,7 @@ docker run --rm -v "$PWD:/project" qa-agent check
 | Push | What |
 |---|---|
 | 3b-1 | Drift check, promote, `--min-coverage`, the SLF4J fix |
-| 3b-2 | Planted bugs in the reference API, `qa-agent bugs`, the example's rate |
+| 3b-2 | Seeded bugs in the reference API, `qa-agent bug-detection`, the example's rate |
 | 3b-3 | The reusable workflow, the two teams |
 | 3b-4 | Petstore |
 | 3b-5 | The Docker image |

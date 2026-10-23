@@ -1,6 +1,6 @@
-# How to start the API under test with each planted bug, one at a time: qa-agent bugs --stack python
-start: python -m mock_service --bug {bug}
-start_without_bugs: python -m mock_service
+# How to start the API under test with each seeded bug, one at a time: qa-agent bug-detection --stack python
+start_with_bug: python -m mock_service --bug {bug}
+start_clean: python -m mock_service
 environment: mock
 bugs:
   refund-boundary: a cancel at exactly 24 hours gets no refund (< instead of <=)

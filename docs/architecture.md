@@ -307,7 +307,7 @@ flowchart TB
 
 | Measure | Question it answers | How |
 |---|---|---|
-| Bug-detection rate (mutation testing) | Do the generated tests catch bugs, not just pass? | The mock service can switch on small planted bugs (a boundary moved, a deleted booking still returned); the share the suite catches |
+| Bug-detection rate (mutation testing) | Do the generated tests catch bugs, not just pass? | The mock service can switch on small seeded bugs (a boundary moved, a deleted booking still returned); the share the suite catches |
 | Reviewer agreement | Can we trust the AI reviewer's comments? | Its comments against the reviewer's decisions in the review sheets; tuning and held-back halves, as in the sibling repository |
 | Endpoint coverage | Is every endpoint and response code tested? | Approved cases against the API description (API → cases) |
 | Criteria coverage | Is every acceptance criterion tested? | Each criterion's approved cases (criteria → cases) |

@@ -14,7 +14,7 @@ from mock_service.errors import ApiError, add_error_handlers
 from mock_service.models import (Booking, BookingList, BookingStatus, BookingUpdate, BookingUpdateAnyAmount,
                                  CancelRequest, CancelResult, ErrorResponse, Health, NewBooking, RefundStatus,
                                  TokenRequest, TokenResponse)
-from mock_service.planted_bugs import checked
+from mock_service.seeded_bugs import checked
 from mock_service.settings import MockSettings
 
 SERVICE_NAME = "bookings"
@@ -36,7 +36,7 @@ def create_bookings_app(settings: Optional[MockSettings] = None) -> FastAPI:
     app = FastAPI(title="AeroAssist bookings (reference API)", version=SERVICE_VERSION,
                   description="A small bookings API that api-qa-agent's frameworks and examples run against.")
     add_error_handlers(app)
-    bug = checked(settings.bug)                  # a planted bug, for qa-agent bugs; none by default
+    bug = checked(settings.bug)                  # a seeded bug, for qa-agent bug-detection; none by default
     store = BookingStore(bug)
     UpdateBody = BookingUpdateAnyAmount if bug == "amount-changeable" else BookingUpdate
     issued_tokens: set[str] = set()

@@ -1,11 +1,11 @@
-"""`qa-agent bugs`: the bug-detection rate. Do the tests catch bugs, or only pass?
+"""`qa-agent bug-detection`: the bug-detection rate. Do the tests catch bugs, or only pass?
 
-    qa-agent bugs --variants bugs.yaml --stack python
+    qa-agent bug-detection --seeded-bugs seeded-bugs.yaml --stack python
 
-bugs.yaml says how to start the API under test with each planted bug, one at a time:
+seeded-bugs.yaml says how to start the API under test with each seeded bug, one at a time:
 
-    start: python -m mock_service --bug {bug}
-    start_without_bugs: python -m mock_service
+    start_with_bug: python -m mock_service --bug {bug}
+    start_clean: python -m mock_service
     environment: mock                       # checked with env_check before each run
     bugs:
       refund-boundary: a cancel at exactly 24 hours gets no refund
@@ -54,8 +54,8 @@ class BugReport:
 
     def as_text(self) -> str:
         total = len(self.runs)
-        lines = [f"qa-agent bugs: {self.stack} · {self.caught} of {total} planted bugs caught "
-                 f"({100 * self.caught / total:.0f}%)" if total else "qa-agent bugs: no bugs listed", ""]
+        lines = [f"qa-agent bug-detection: {self.stack} · {self.caught} of {total} seeded bugs caught "
+                 f"({100 * self.caught / total:.0f}%)" if total else "qa-agent bug-detection: no bugs listed", ""]
         for run in self.runs:
             if run.caught:
                 lines.append(f"  caught  {run.bug:<24} by {', '.join(run.caught_by) or 'a test with no case'}")
@@ -65,7 +65,7 @@ class BugReport:
 
     def as_markdown(self) -> str:
         lines = [f"# Bug-detection rate: {self.stack}", "",
-                 f"{self.caught} of {len(self.runs)} planted bugs caught.", "",
+                 f"{self.caught} of {len(self.runs)} seeded bugs caught.", "",
                  "| Bug | What it changes | Caught | By |", "|---|---|---|---|"]
         for run in self.runs:
             lines.append(f"| `{run.bug}` | {run.description} | {'yes' if run.caught else '**no**'} | "
@@ -73,21 +73,21 @@ class BugReport:
         return "\n".join(lines) + "\n"
 
 
-def measure(project: TeamProject, variants_file: Path, stack: str) -> BugReport:
+def measure(project: TeamProject, seeded_bugs_file: Path, stack: str) -> BugReport:
     if stack not in project.stacks:
         raise SetupError(f"stack '{stack}' is not in qa-agent.yaml (it has: {', '.join(project.stacks)})")
-    variants = _variants(variants_file)
-    folder = project.root / "reports" / "bugs"
+    seeded = _read_seeded_bugs(seeded_bugs_file)
+    folder = project.root / "reports" / "bug-detection"
     folder.mkdir(parents=True, exist_ok=True)
-    if _ready(project, variants["environment"], one_try=_one_try_dependencies(project, folder)):
-        raise SetupError("the API is already up: stop it first, qa-agent bugs starts it once per bug")
-    clean = _run_once(project, variants, stack, "", folder)
+    if _ready(project, seeded["environment"], one_try=_one_try_dependencies(project, folder)):
+        raise SetupError("the API is already up: stop it first, qa-agent bug-detection starts it once per bug")
+    clean = _run_once(project, seeded, stack, "", folder)
     if clean.failed:
         raise SetupError(f"the tests fail with no bug switched on ({', '.join(clean.failed) or 'see the log'}): "
                          "fix that first; a failing suite would 'catch' every bug")
     report = BugReport(stack)
-    for bug, description in variants["bugs"].items():
-        result = _run_once(project, variants, stack, bug, folder)
+    for bug, description in seeded["bugs"].items():
+        result = _run_once(project, seeded, stack, bug, folder)
         report.runs.append(BugRun(bug, description, bool(result.failed) or result.exit_code != 0,
                                   sorted(result.failed, key=natural_order)))
     (project.root / "reports" / "bug-detection.md").write_text(report.as_markdown(), encoding="utf-8")
@@ -100,28 +100,28 @@ class _Outcome:
     failed: list                 # case ids with a failing test
 
 
-def _variants(path: Path) -> dict:
+def _read_seeded_bugs(path: Path) -> dict:
     try:
         data = read_yaml(path)
     except (FileFormatError, OSError) as error:
         raise SetupError(f"{path}: can't be read ({error})") from error
-    if not isinstance(data, dict) or "{bug}" not in str(data.get("start", "")) or not data.get("bugs") \
-            or not data.get("start_without_bugs"):
-        raise SetupError(f"{path}: needs 'start' (a command with {{bug}} in it), 'start_without_bugs' and 'bugs'")
+    if not isinstance(data, dict) or "{bug}" not in str(data.get("start_with_bug", "")) or not data.get("bugs") \
+            or not data.get("start_clean"):
+        raise SetupError(f"{path}: needs 'start_with_bug' (a command with {{bug}} in it), 'start_clean' and 'bugs'")
     bugs = data["bugs"]
     bugs = {str(name): "" for name in bugs} if isinstance(bugs, list) else {str(k): str(v) for k, v in bugs.items()}
-    start = str(data["start"])
-    return {"start": start, "bugs": bugs, "environment": str(data.get("environment") or "mock"),
-            "start_without_bugs": str(data["start_without_bugs"])}
+    start_with_bug = str(data["start_with_bug"])
+    return {"start_with_bug": start_with_bug, "bugs": bugs, "environment": str(data.get("environment") or "mock"),
+            "start_clean": str(data["start_clean"])}
 
 
-def _run_once(project: TeamProject, variants: dict, stack: str, bug: str, folder: Path) -> _Outcome:
-    command = variants["start"].replace("{bug}", bug) if bug else variants["start_without_bugs"]
+def _run_once(project: TeamProject, seeded: dict, stack: str, bug: str, folder: Path) -> _Outcome:
+    command = seeded["start_with_bug"].replace("{bug}", bug) if bug else seeded["start_clean"]
     name = bug or "no-bug"
     with (folder / f"{name}.api.log").open("w") as log:
         api = subprocess.Popen(shlex.split(command), cwd=project.root, stdout=log, stderr=subprocess.STDOUT)
         try:
-            _wait(lambda: _ready(project, variants["environment"]), f"the API ({command}) didn't become ready")
+            _wait(lambda: _ready(project, seeded["environment"]), f"the API ({command}) didn't become ready")
             return _tests(project, stack, folder / name)
         finally:
             api.terminate()                       # the next run starts only once this one has exited

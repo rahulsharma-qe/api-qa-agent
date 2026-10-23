@@ -11,7 +11,7 @@
 # 2. The drift check; start the reference API (unless it is already up); the environment; the tests.
 # 3. Trace: criteria -> cases -> tests -> results, with coverage; fail if an approved case has no test.
 # 4. Promote: the Python tests twice more, then the cases stable enough for regression (listed only).
-# 5. The bug-detection rate: the Python tests once per planted bug in the reference API.
+# 5. The bug-detection rate: the Python tests once per seeded bug in the reference API.
 set -euo pipefail
 cd "$(dirname "$0")"
 example="$(pwd)"
@@ -67,11 +67,11 @@ for run in 2 3; do
 done
 qa-agent promote --runs reports/run1.xml reports/run2.xml reports/run3.xml
 
-echo "== 5. Bug-detection rate (planted bugs, one at a time)"
+echo "== 5. Bug-detection rate (seeded bugs, one at a time)"
 if [[ -n "${mock:-}" ]]; then
   kill "$mock"
   wait "$mock" 2> /dev/null || true
-  qa-agent bugs --stack python
+  qa-agent bug-detection --stack python
 else
-  echo "The reference API was already running: stop it, then run qa-agent bugs --stack python"
+  echo "The reference API was already running: stop it, then run qa-agent bug-detection --stack python"
 fi

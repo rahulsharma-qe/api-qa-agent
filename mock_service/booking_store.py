@@ -25,7 +25,7 @@ class BookingStore:
     def __init__(self, bug: str = ""):
         self._bookings: dict[str, StoredBooking] = {}
         self._lock = threading.Lock()
-        self._bug = bug                          # a planted bug (planted_bugs.py), or ""
+        self._bug = bug                          # a seeded bug (seeded_bugs.py), or ""
 
     def create(self, passenger_name: str, email: str, amount: float, booked_at: Optional[datetime]) -> Booking:
         with self._lock:
@@ -48,7 +48,7 @@ class BookingStore:
         with self._lock:
             stored = self._stored(pnr)
             changes = {"passenger_name": passenger_name, "email": email}
-            if amount is not None:                   # only with the planted bug 'amount-changeable'
+            if amount is not None:                   # only with the seeded bug 'amount-changeable'
                 changes["amount"] = amount
             booking = stored.booking.model_copy(update=changes)
             self._bookings[pnr] = replace(stored, booking=booking)

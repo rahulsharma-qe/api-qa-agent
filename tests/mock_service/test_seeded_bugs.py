@@ -1,11 +1,11 @@
-"""Each planted bug changes exactly the behaviour it names; with none, the API is correct."""
+"""Each seeded bug changes exactly the behaviour it names; with none, the API is correct."""
 
 import pytest
 from fastapi.testclient import TestClient
 
 from mock_service.__main__ import main
 from mock_service.bookings_app import create_bookings_app
-from mock_service.planted_bugs import BUGS, UnknownBug
+from mock_service.seeded_bugs import BUGS, UnknownBug
 from mock_service.settings import MockSettings
 
 BOOKED = "2026-01-15T10:00:00Z"
@@ -81,7 +81,7 @@ def test_status_filter_ignored():
 def test_every_bug_has_a_test_here_and_an_unknown_one_is_refused(capsys):
     assert set(BUGS) == {"refund-boundary", "wrong-refund-amount", "second-cancel-allowed", "deleted-still-readable",
                          "amount-changeable", "token-not-checked", "status-filter-ignored"}
-    with pytest.raises(UnknownBug, match="no planted bug 'typo'"):
+    with pytest.raises(UnknownBug, match="no seeded bug 'typo'"):
         create_bookings_app(MockSettings(bug="typo"))
     assert main(["--bug", "typo"]) == 2
     assert "use one of: refund-boundary" in capsys.readouterr().out

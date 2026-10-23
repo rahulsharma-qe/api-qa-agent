@@ -9,7 +9,7 @@
     qa-agent trace --results reports/junit.xml       criteria -> cases -> tests -> results, and coverage
     qa-agent promote --runs r1 r2 r3 [--apply]       stable functional cases -> regression; a person applies it
     qa-agent suite TC010 functional --by --reason    a person moves a case between suites, on the record
-    qa-agent bugs --variants bugs.yaml --stack python   the bug-detection rate: planted bugs, one at a time
+    qa-agent bug-detection --seeded-bugs seeded-bugs.yaml --stack python   the bug-detection rate: seeded bugs, one at a time
 
 Exit codes: 0 done (no errors), 1 errors found, 2 the project or an input can't be read.
 """
@@ -21,7 +21,7 @@ from typing import Optional
 
 from qa_agent import __version__
 from qa_agent.api_model import ApiModel, ApiModelError, load_api_model, save_api_model
-from qa_agent.bugs import measure
+from qa_agent.bug_detection import measure
 from qa_agent.case_import import import_cases
 from qa_agent.cases import CaseFormatError
 from qa_agent.checks import check_project, plural
@@ -122,11 +122,11 @@ def _parser() -> argparse.ArgumentParser:
     move.add_argument("--reason", required=True, help="why, in a few words")
     move.set_defaults(run=run_suite)
 
-    bugs = commands.add_parser("bugs", help="the bug-detection rate: run the tests once per planted bug")
-    bugs.add_argument("--variants", type=Path, default=Path("bugs.yaml"),
-                      help="how to start the API with each bug (default: bugs.yaml)")
-    bugs.add_argument("--stack", choices=["python", "restassured"], required=True)
-    bugs.set_defaults(run=run_bugs)
+    detection = commands.add_parser("bug-detection", help="the bug-detection rate: run the tests once per seeded bug")
+    detection.add_argument("--seeded-bugs", type=Path, default=Path("seeded-bugs.yaml"),
+                           help="how to start the API with each seeded bug (default: seeded-bugs.yaml)")
+    detection.add_argument("--stack", choices=["python", "restassured"], required=True)
+    detection.set_defaults(run=run_bug_detection)
     return parser
 
 
@@ -230,10 +230,10 @@ def run_suite(args) -> int:
     return DONE
 
 
-def run_bugs(args) -> int:
+def run_bug_detection(args) -> int:
     project = TeamProject.load(args.project)
-    variants = args.variants if args.variants.is_absolute() else project.root / args.variants
-    print(measure(project, variants, args.stack).as_text())
+    seeded_bugs = args.seeded_bugs if args.seeded_bugs.is_absolute() else project.root / args.seeded_bugs
+    print(measure(project, seeded_bugs, args.stack).as_text())
     print("\nWritten: reports/bug-detection.md")
     return DONE
 

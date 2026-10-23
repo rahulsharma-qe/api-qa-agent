@@ -1,4 +1,4 @@
-"""Planted bugs: small slips a developer makes, switched on one at a time, so `qa-agent bugs` can
+"""Seeded bugs: small slips a developer makes, switched on one at a time, so `qa-agent bug-detection` can
 measure whether a suite catches bugs or only passes.
 
 Off unless asked:  python -m mock_service --bug refund-boundary   (or MOCK_BUG=refund-boundary).
@@ -17,11 +17,11 @@ BUGS = {
 
 
 class UnknownBug(ValueError):
-    """Not one of the planted bugs."""
+    """Not one of the seeded bugs."""
 
 
 def checked(name: str) -> str:
     """The bug's name, or '' for none; an unknown name is refused with the list."""
     if name and name not in BUGS:
-        raise UnknownBug(f"no planted bug '{name}' (use one of: {', '.join(BUGS)})")
+        raise UnknownBug(f"no seeded bug '{name}' (use one of: {', '.join(BUGS)})")
     return name or ""

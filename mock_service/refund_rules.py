@@ -22,7 +22,7 @@ class CancelledBeforeBooked(ValueError):
 
 def decide_refund(booked_at: datetime, cancelled_at: datetime, amount: float,
                   exactly_24_hours_counts: bool = True) -> RefundDecision:
-    """exactly_24_hours_counts=False is the planted bug 'refund-boundary' (< instead of <=)."""
+    """exactly_24_hours_counts=False is the seeded bug 'refund-boundary' (< instead of <=)."""
     elapsed = cancelled_at - booked_at
     if elapsed < timedelta(0):
         raise CancelledBeforeBooked("is earlier than booked_at")

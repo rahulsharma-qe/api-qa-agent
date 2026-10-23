@@ -3,7 +3,7 @@
     python -m mock_service                          bookings on :8000, notifications on :8001
     python -m mock_service --only bookings          one service (stop it to see env_check say "not ready")
     python -m mock_service --export-openapi mock_service/openapi.json
-    python -m mock_service --bug refund-boundary    one planted bug switched on (for qa-agent bugs)
+    python -m mock_service --bug refund-boundary    one seeded bug switched on (for qa-agent bug-detection)
 """
 
 import argparse
@@ -14,7 +14,7 @@ from pathlib import Path
 
 from mock_service.bookings_app import create_bookings_app
 from mock_service.notifications_app import create_notifications_app
-from mock_service.planted_bugs import BUGS, UnknownBug, checked
+from mock_service.seeded_bugs import BUGS, UnknownBug, checked
 from mock_service.settings import MockSettings
 
 SERVICES = {"bookings": (create_bookings_app, 8000), "notifications": (create_notifications_app, 8001)}
@@ -30,7 +30,7 @@ def main(argv=None) -> int:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--only", choices=sorted(SERVICES), help="run one service instead of both")
     parser.add_argument("--export-openapi", metavar="PATH", help="write the OpenAPI description and exit")
-    parser.add_argument("--bug", metavar="NAME", help=f"switch on one planted bug: {', '.join(BUGS)}")
+    parser.add_argument("--bug", metavar="NAME", help=f"switch on one seeded bug: {', '.join(BUGS)}")
     args = parser.parse_args(argv)
 
     if args.export_openapi:
@@ -48,7 +48,7 @@ def main(argv=None) -> int:
         return 2
     settings = replace(settings, bug=bug)
     if bug:
-        print(f"planted bug switched on: {bug} ({BUGS[bug]})")
+        print(f"seeded bug switched on: {bug} ({BUGS[bug]})")
     names = [args.only] if args.only else list(SERVICES)
     servers = []
     for name in names:

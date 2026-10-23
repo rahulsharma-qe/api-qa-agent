@@ -276,16 +276,16 @@ itself; the reviewer can set Suite there.)
 
 ## 9. Do the tests catch bugs?
 
-The reference API can switch on one planted bug at a time (`python -m mock_service --bug
-refund-boundary`). `bugs.yaml` says how to start it with each; `qa-agent bugs` runs the tests once
+The reference API can switch on one seeded bug at a time (`python -m mock_service --bug
+refund-boundary`). `seeded-bugs.yaml` says how to start it with each; `qa-agent bug-detection` runs the tests once
 with no bug (they must pass), then once per bug:
 
 ```bash
-qa-agent bugs --stack python          # with the reference API stopped: it starts it once per bug
+qa-agent bug-detection --stack python          # with the reference API stopped: it starts it once per bug
 ```
 
 ```
-qa-agent bugs: python · 5 of 7 planted bugs caught (71%)
+qa-agent bug-detection: python · 5 of 7 seeded bugs caught (71%)
 
   caught  refund-boundary          by TC002
   caught  wrong-refund-amount      by TC002, TC040
