@@ -1014,8 +1014,8 @@ approves, never writes test code, and never decides scope.
 
 | The team has | What happens |
 |---|---|
-| Acceptance criteria and an API description, no cases | `qa-agent draft` drafts a case for each gap the trace finds, in batches (`--max`) |
-| A requirement in plain words only (a story, a document) | `qa-agent draft criteria` splits it into acceptance criteria as drafts; a person approves them; then `draft` |
+| Acceptance criteria and an API description, no cases | `qa-agent draft cases` drafts a case for each gap the trace finds, in batches (`--max`) |
+| A requirement in plain words only (a story, a document) | `qa-agent draft criteria` splits it into acceptance criteria as drafts; a person approves them; then `draft cases` |
 | A requirement, and no API yet | Later: criteria and manual cases (`manual_steps`), turned into steps once the API exists |
 
 A requirement never becomes an API description: without a real one (OpenAPI or curl) there are no
@@ -1027,8 +1027,8 @@ draft can be a question (`QUESTION: refund at exactly 24 hours?`) for a person t
 | Command | What it does | Model calls |
 |---|---|---|
 | `qa-agent draft criteria <requirement file>` | Acceptance criteria drafted from plain words, each with the line it came from | One |
-| `qa-agent draft --plan` | The gaps, the calls and the estimated cost | None |
-| `qa-agent draft [--max 10]` | A draft case for each gap, up to `--max` | One per gap |
+| `qa-agent draft cases --plan` | The gaps, the calls and the estimated cost | None |
+| `qa-agent draft cases [--max 10]` | A draft case for each gap, up to `--max` | One per gap |
 
 Settings in `qa-agent.yaml`: `ai: {provider, model}` (or `recorded: <folder>`), optional prices
 per million tokens. The key comes only from the environment.
@@ -1042,14 +1042,14 @@ per million tokens. The key comes only from the environment.
 | G3 | `source: ai-draft · <model> · gap <AC-3>` is written by code |
 | G4 | A value the model can't source is `TBD`; `check` makes it an error, so the case can't be approved or generated |
 | G5 | Only operations in `api/api.yaml` (today's `check` already refuses others) |
-| G6 | Drafts are only added; no case a person wrote is changed |
+| G6 | Drafts go to their own files (`cases/<area>-drafts.yaml`); no file a person wrote is touched, its comments included |
 | G7 | The same gap drafted again adds nothing (known by its source) |
 | G8 | Sent to the model: the criterion, the operation's structure, one or two approved cases as examples; redacted first (emails, tokens, keys, secret values) |
 | G9 | Every call logged to `reports/ai-audit-log.jsonl`: what was sent, the reply, tokens, cost |
 | G10 | A reply that isn't the case format is refused with the reason; nothing is written |
 
 The same holds for criteria: a drafted criterion is `draft` until a person approves it in the review
-sheet's Criteria tab, and the trace and `draft` count only approved criteria.
+sheet's Criteria tab, and the trace and `draft cases` count only approved criteria.
 
 ### 11.4 Measured, with a real model
 
@@ -1066,7 +1066,7 @@ On the bookings example:
 | Push | What |
 |---|---|
 | 6-1 | The model (anthropic, openai, recorded), redaction, the audit log; `core/` removed |
-| 6-2 | Gaps, prompts, reading replies, guardrails, `qa-agent draft`, the `TBD` rule |
+| 6-2 | Gaps, prompts, reading replies, guardrails, `qa-agent draft cases`, the `TBD` rule |
 | 6-3 | `qa-agent draft criteria`, criteria review status, the Criteria tab |
 | 6-4 | The example from a requirement in plain words, with recorded replies (hand-written until a real model records them) |
 | 6-5 | Replies recorded from a real model; 11.4 measured |
@@ -1083,3 +1083,22 @@ On the bookings example:
 | `session.py` | `AiSession.ask(name, system, user)`: redact, call, log. The only way the AI layer calls a model |
 
 A wrong or missing setting says what to add; a missing key names the environment variable.
+
+### 11.7 As built: drafting cases (6-2)
+
+| Part | What |
+|---|---|
+| `qa_agent/gaps.py` | The gaps, from the trace's own counting (`trace.api_items`): a criterion with no case, an operation with the response codes no case expects, a call without a token (once per service). A case waiting for review covers what it tests; a rejected one covers nothing |
+| `qa_agent/ai/prompts.py` | The rules and the reply's shape (YAML, one to three cases, `TBD` for a value it can't source, `cases: []` and a reason when the gap can't be tested). The prompt gives: the gap, every criterion, the service's operations (method, path, codes, required body fields), up to two approved cases for the style, and `ai/rules.md` when the team has one |
+| `qa_agent/drafting.py` | `--plan` (no call) and `draft_cases`: one call per gap through `AiSession`, then the reply checked: fences stripped, YAML read, `id`/`review`/`source`/`suite` dropped and set by code, the cases parsed by the case format, criteria and operations checked against the project. Any failure refuses the whole reply, with the reason; nothing is written for it |
+| `check` | `TBD` anywhere in a step's request or expectations is an error, so `review apply` refuses to approve the case |
+
+- **Where drafts go.** A draft's area is the first part of its first step's path: `/bookings/{pnr}/cancel`
+  gives `cases/bookings-drafts.yaml`. Writing into a person's case file would rewrite it and drop
+  its comments, so drafts keep to their own files (G6); the review sheet, `check` and the trace read
+  them like any other.
+- **One gap at a time.** A gap already drafted (by its `source.gap`, whatever its review status) is
+  skipped; one over `--max` is listed for next time. If the model can't be reached, the run stops
+  there, keeps what it drafted, names the gaps left and exits 2.
+- **Exit codes.** 0 drafted; 1 a reply was refused; 2 no `ai:` settings, no key, or the model unreachable.
+
