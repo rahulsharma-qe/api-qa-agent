@@ -165,3 +165,17 @@ def test_a_case_that_ends_in_a_refusal_or_checks_the_response_is_not_hollow(make
     assert _hollow_warnings(make_project, refused) == []
     checked = '[{request: {method: GET, path: /bookings/search}, expect: {status: 200, exists: [bookings]}}]'
     assert _hollow_warnings(make_project, checked) == []
+
+
+def test_tbd_anywhere_in_a_step_is_an_error_so_the_case_cant_be_approved(make_project):
+    report, _, text = findings(make_project({"api/api.yaml": API, "acceptance-criteria.yaml": CRITERIA, "cases/b.yaml": """
+        feature: B
+        cases:
+          - id: TC1
+            title: t
+            criteria: [AC-1]
+            steps:
+              - request: {method: GET, path: /bookings/search, query: {status: TBD}}
+                expect: {status: 200, fields: {count: 3}}
+        """}))
+    assert report.has_errors and "TC1 step 1: has TBD, a value still to confirm" in text

@@ -132,6 +132,9 @@ def _case_findings(case: Case, case_file: CaseFile, project: TeamProject, api: O
         where = f" step {number}"
         if not step.expect:
             found.append((ERROR, f"{where}: checks nothing. Fix: add expect (at least a status)"))
+        if _has_tbd([step.request.path, step.request.query, step.request.headers, step.request.body, step.expect]):
+            found.append((ERROR, f"{where}: has TBD, a value still to confirm. Fix: replace TBD with the value "
+                                 "the API should give (see the case's notes)"))
         found += _value_findings(step, where, captured, columns, case.data_file)
         if api is not None:
             found += _api_findings(step, where, api, step.request.service or project.main_service)
@@ -141,6 +144,17 @@ def _case_findings(case: Case, case_file: CaseFile, project: TeamProject, api: O
                                "is wrong (a wrong amount, a missing field). Fix: add fields, exists or types to "
                                "the step that matters"))
     return found
+
+
+def _has_tbd(value: Any) -> bool:
+    """TBD anywhere in a step: a value a drafter (a person or the AI layer) couldn't confirm."""
+    if isinstance(value, str):
+        return re.search(r"\bTBD\b", value) is not None
+    if isinstance(value, dict):
+        return any(_has_tbd(key) or _has_tbd(item) for key, item in value.items())
+    if isinstance(value, (list, tuple)):
+        return any(_has_tbd(item) for item in value)
+    return False
 
 
 def _is_hollow(steps: list[Step]) -> bool:
