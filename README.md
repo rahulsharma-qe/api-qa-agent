@@ -26,7 +26,7 @@ testing AI agents themselves.
 | Bug-detection rate | **Built**: the reference API can switch on one of seven planted bugs; `qa-agent bugs` runs the tests once per bug and says which bugs they catch, and by which cases |
 | Many teams ([`teams/`](teams/)) | **Built**: a reusable CI workflow a team calls in one job, with its stack and environment; two teams (pytest, REST Assured) use it, each building only its own stack |
 | External APIs ([`examples/external-apis/`](examples/external-apis/)) | **Built**: Swagger Petstore from its own OpenAPI and a team's Excel sheet, in both stacks; its Docker image on every change, the public server by hand. It found a real gap: Petstore accepts a pet with no name |
-| A Docker image for qa-agent ([`Dockerfile`](Dockerfile)) | **Built**: qa-agent with no Python install, built straight from this repository; the tool only, so tests run where they always run |
+| A Docker image for qa-agent ([`Dockerfile`](Dockerfile)) | **Built**: qa-agent with no Python install, published with each release ([`ghcr.io/rahulsharma-qe/qa-agent`](https://github.com/rahulsharma-qe/api-qa-agent/pkgs/container/qa-agent)) or built from this repository; the tool only, so tests run where they always run |
 | Cucumber on REST Assured | Later |
 | User-interface tests, in their own repository (`playwright-qa-agent`) | Later |
 | Jira and wiki; results back to TestRail, Zephyr or Xray | Later |
@@ -92,10 +92,13 @@ both stacks, and the trace. A new team starts with `qa-agent init my-team --stac
 ### Run with Docker (no Python install)
 
 ```bash
-docker build -t qa-agent https://github.com/rahulsharma-qe/api-qa-agent.git
 cd your-team-project
-docker run --rm -v "$PWD:/project" qa-agent check
+docker run --rm -v "$PWD:/project" ghcr.io/rahulsharma-qe/qa-agent:0.3.0 check
 ```
+
+A version number keeps every run the same; `:latest` follows each release. Or build the image
+yourself: `docker build -t qa-agent https://github.com/rahulsharma-qe/api-qa-agent.git`, then use
+`qa-agent` in place of the image name.
 
 In the image: `init`, `import`, `check`, `review`, `generate`, `trace`, `promote`, `track`. Your
 tests run where they always run (pytest or Maven), since they call your API.

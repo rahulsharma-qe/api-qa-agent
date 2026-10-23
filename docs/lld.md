@@ -955,7 +955,7 @@ docker run --rm -v "$PWD:/project" qa-agent check
 |---|---|
 | The tool only: `init`, `import`, `check`, `review`, `generate`, `trace`, `promote`, `track` | Tests call the team's API. Inside a container `localhost` is the container, so reaching an API on the team's machine needs a different network setting on each system. Tests run where they always run |
 | No Java in the image | Java teams already have a JDK and the Maven wrapper; the tool's commands work on their projects all the same |
-| Built from the GitHub URL; publishing to the GitHub Container Registry later, with Releases | The first command in the README always works; a registry name would fail until the package is published and public |
+| Published to the GitHub Container Registry with each release (from `v0.3.0`); built from the GitHub URL too | The README showed the registry name only once the package was published and public, so its first command always works |
 | Runs as root by default; Linux users add `--user "$(id -u):$(id -g)"` | A fixed non-root user can't write a mounted folder owned by another id on Linux. Docker Desktop (macOS, Windows) maps ownership itself |
 | `.dockerignore` lets in only what the install needs | A small build context, no tests or examples in the image; a test checks that everything `pyproject.toml` needs is let in and copied |
 
