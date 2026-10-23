@@ -44,7 +44,7 @@ cases:
       format: gherkin
       file: existing/cancel.feature
       scenario: Cancelling twice tells the passenger it is already cancelled
-    steps_text:
+    manual_steps:
       - Given a booking that has been cancelled
       - When the passenger cancels it again
       - Then they are told it is already cancelled, and nothing changes

@@ -92,14 +92,14 @@ cases/bookings.yaml
   warning  TC005 step 1: the body leaves out required email. Fine for a negative test; otherwise add them
 
 cases/cancellation-scenarios.yaml
-  info     TC041: needs steps (it has only steps_text). It is kept and traced, and can't be generated until it has steps
+  info     TC041: needs steps (it has manual steps only). It is kept and traced, and can't be generated until it has steps
 
 cases/cancellation.yaml
-  info     TC006: needs steps (it has only steps_text). It is kept and traced, and can't be generated until it has steps
+  info     TC006: needs steps (it has manual steps only). It is kept and traced, and can't be generated until it has steps
 
 cases/refunds.yaml
-  info     TC020: needs steps (it has only steps_text). It is kept and traced, and can't be generated until it has steps
-  info     TC021: needs steps (it has only steps_text). It is kept and traced, and can't be generated until it has steps
+  info     TC020: needs steps (it has manual steps only). It is kept and traced, and can't be generated until it has steps
+  info     TC021: needs steps (it has manual steps only). It is kept and traced, and can't be generated until it has steps
 
 0 errors · 2 warnings · 4 notes
 ```

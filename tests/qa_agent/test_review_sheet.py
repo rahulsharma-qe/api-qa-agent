@@ -22,7 +22,7 @@ cases:
   - id: TC2
     title: In words
     criteria: [AC-1]
-    steps_text: [Make a booking]
+    manual_steps: [Make a booking]
   - id: TC3
     title: Broken
     criteria: [AC-9]
@@ -32,7 +32,7 @@ cases:
   - id: TC4
     title: Done already
     criteria: [AC-1]
-    steps_text: [x]
+    manual_steps: [x]
     review: {status: rejected, comment: no}
 """
 
@@ -75,9 +75,9 @@ def test_rows_are_in_id_order_and_a_case_in_words_shows_its_expected_result(make
     root = make_project({"cases/b.yaml": """
         feature: B
         cases:
-          - {id: TC10, title: ten, steps_text: [Open it]}
-          - {id: TC9, title: nine, steps_text: [Open it, "Expected: it opens"]}
-          - {id: TC2, title: two, steps_text: [Given x, Then it is refused]}
+          - {id: TC10, title: ten, manual_steps: [Open it]}
+          - {id: TC9, title: nine, manual_steps: [Open it, "Expected: it opens"]}
+          - {id: TC2, title: two, manual_steps: [Given x, Then it is refused]}
         """})
     sheet = root / "review/cases.xlsx"
     export_review_sheet(TeamProject.load(root), sheet)

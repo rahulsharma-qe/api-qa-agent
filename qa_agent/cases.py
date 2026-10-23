@@ -37,7 +37,7 @@ NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 ROW_VALUE = re.compile(r"^\{\{\s*row\.[^{}]+\}\}$")       # {{row.expected_status}}: a value from the data file
 RESERVED_NAMES = ("unique", "row")
 
-CASE_KEYS = ("id", "title", "criteria", "priority", "track", "tags", "data", "source", "steps", "steps_text",
+CASE_KEYS = ("id", "title", "criteria", "priority", "track", "tags", "data", "source", "steps", "manual_steps",
              "notes", "review")
 STEP_KEYS = ("name", "request", "expect", "capture")
 REQUEST_KEYS = ("method", "path", "query", "headers", "body", "service", "auth")
@@ -111,19 +111,21 @@ class Case:
     data: Optional[str] = None
     source: dict = field(default_factory=dict)
     steps: list = field(default_factory=list)
-    steps_text: list = field(default_factory=list)
+    manual_steps: list = field(default_factory=list)
     notes: str = ""
     review: Review = field(default_factory=Review)
 
     def fingerprint(self) -> str:
         """A hash of what the test does (id, steps, data). Editing any of it after approval shows up."""
+        # The keys here are the names the format had when approvals began (steps_text, not manual_steps):
+        # renaming a field in the file must not change the fingerprint of a case already approved.
         content = {"id": self.id, "steps": [step.to_dict() for step in self.steps], "data": self.data,
-                   "steps_text": self.steps_text}
+                   "steps_text": self.manual_steps}
         return hashlib.sha256(json.dumps(content, sort_keys=True, default=str).encode()).hexdigest()[:12]
 
     @property
     def needs_steps(self) -> bool:
-        return not self.steps and bool(self.steps_text)
+        return not self.steps and bool(self.manual_steps)
 
     @property
     def is_approved(self) -> bool:
@@ -142,8 +144,8 @@ class Case:
                 data[key] = getattr(self, key)
         if self.steps:
             data["steps"] = [step.to_dict() for step in self.steps]
-        if self.steps_text:
-            data["steps_text"] = self.steps_text
+        if self.manual_steps:
+            data["manual_steps"] = self.manual_steps
         data["review"] = self.review.to_dict()
         return data
 
@@ -205,7 +207,7 @@ def _parse_case(entry: Any, number: int, problems: list[str]) -> Optional[Case]:
         problems.append(f"{case_id}: track '{track}' (use {' or '.join(TRACKS)})")
     steps = [_parse_step(raw, f"{case_id} step {index}", problems)
              for index, raw in enumerate(_as_list(entry.get("steps"), f"{case_id}: 'steps'", problems), start=1)]
-    steps_text = entry.get("steps_text") or []
+    manual_steps = entry.get("manual_steps") or []
     return Case(
         id=case_id, title=str(entry.get("title", "")),
         criteria=[str(item) for item in _as_list(entry.get("criteria"), f"{case_id}: 'criteria'", problems)],
@@ -214,7 +216,7 @@ def _parse_case(entry: Any, number: int, problems: list[str]) -> Optional[Case]:
         data=str(entry["data"]) if entry.get("data") else None,
         source=entry.get("source") if isinstance(entry.get("source"), dict) else {},
         steps=[step for step in steps if step is not None],
-        steps_text=[steps_text] if isinstance(steps_text, str) else [str(line) for line in steps_text],
+        manual_steps=[manual_steps] if isinstance(manual_steps, str) else [str(line) for line in manual_steps],
         notes=str(entry.get("notes") or ""),
         review=_parse_review(entry.get("review"), case_id, problems))
 

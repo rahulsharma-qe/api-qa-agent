@@ -45,7 +45,7 @@ def test_the_manual_layout_keeps_the_steps_in_words(tmp_path):
                     'TC20,Late cancel,A booking made two days ago,"1. Cancel it 2. Open the refund status",'
                     "Status is no_refund,Low,AC-5\n", encoding="utf-8")
     case = read_sheet_cases(path, "existing/refunds.csv").features[0].cases[0]
-    assert case["steps_text"] == ["Before: A booking made two days ago", "Cancel it", "Open the refund status",
+    assert case["manual_steps"] == ["Before: A booking made two days ago", "Cancel it", "Open the refund status",
                                   "Expected: Status is no_refund"]
     assert (case["priority"], case["criteria"], case["source"]["format"]) == ("P3", ["AC-5"], "csv-manual")
     assert "steps" not in case

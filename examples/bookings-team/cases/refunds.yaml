@@ -11,7 +11,7 @@ cases:
       file: existing/manual_cases.xlsx
       sheet: Refunds
       row: 2
-    steps_text:
+    manual_steps:
       - 'Before: A booking made two days ago'
       - Cancel the booking
       - Open its refund status
@@ -28,7 +28,7 @@ cases:
       file: existing/manual_cases.xlsx
       sheet: Refunds
       row: 3
-    steps_text:
+    manual_steps:
       - 'Before: An active booking'
       - Open its refund status
       - 'Expected: The status is not_cancelled'

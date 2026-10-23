@@ -27,7 +27,7 @@ def test_check_exits_0_without_errors_and_1_with_them(make_project, capsys):
           - {id: TC1, title: t, criteria: [AC-1], steps: [{request: {method: GET, path: /x}, expect: {status: 200}}]}
         """})
     assert main(["--project", str(good), "check"]) == 0
-    (good / "cases/a.yaml").write_text("feature: A\ncases:\n  - {id: TC1, title: t, criteria: [AC-7], steps_text: [x]}\n")
+    (good / "cases/a.yaml").write_text("feature: A\ncases:\n  - {id: TC1, title: t, criteria: [AC-7], manual_steps: [x]}\n")
     assert main(["--project", str(good), "check"]) == 1
     assert "criterion AC-7 is not in criteria.yaml" in capsys.readouterr().out
 

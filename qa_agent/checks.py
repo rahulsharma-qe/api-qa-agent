@@ -118,10 +118,10 @@ def _case_findings(case: Case, case_file: CaseFile, project: TeamProject, api: O
     if case.review.status == "rejected":
         return []
     found: list[tuple[str, str]] = []
-    if not case.steps and not case.steps_text:
-        found.append((ERROR, ": has no steps. Fix: add steps (or steps_text for steps still in words)"))
+    if not case.steps and not case.manual_steps:
+        found.append((ERROR, ": has no steps. Fix: add steps (or manual_steps for steps still written in words)"))
     if case.needs_steps:
-        found.append((INFO, ": needs steps (it has only steps_text). It is kept and traced, and can't be "
+        found.append((INFO, ": needs steps (it has manual steps only). It is kept and traced, and can't be "
                             "generated until it has steps"))
     if case.changed_after_approval:
         found.append((WARNING, ": changed after it was approved. Review it again; until then it is not generated"))

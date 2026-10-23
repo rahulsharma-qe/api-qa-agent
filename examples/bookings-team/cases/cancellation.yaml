@@ -86,7 +86,7 @@ cases:
     priority: P2
     track: functional
     tags: [refund]
-    steps_text:
+    manual_steps:
       - Make a booking.
       - Cancel it one hour later.
       - Read its refund status; it is refunded, for the full amount.

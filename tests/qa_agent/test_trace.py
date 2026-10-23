@@ -40,7 +40,7 @@ cases:
   - id: TC10
     title: In words
     criteria: [AC-2]
-    steps_text: [List them]
+    manual_steps: [List them]
 """
 BOTH = "team: t\nservice: bookings\nstacks: [python, restassured]\n"
 

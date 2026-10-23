@@ -23,7 +23,7 @@ def test_an_id_already_in_the_project_is_skipped_unless_overwrite(make_project):
     root = make_project({"existing/booking_api.csv": CSV, "cases/old.yaml": """
         feature: Old
         cases:
-          - {id: TC1, title: kept, steps_text: [x], review: {status: approved}}
+          - {id: TC1, title: kept, manual_steps: [x], review: {status: approved}}
         """})
     project = TeamProject.load(root)
     summary = import_cases(project, [root / "existing/booking_api.csv"])

@@ -72,6 +72,14 @@ def test_an_approved_case_edited_afterwards_is_no_longer_approved():
 
 
 def test_a_case_in_words_only_needs_steps():
-    data = {"feature": "x", "cases": [{"id": "TC1", "title": "t", "steps_text": "Make a booking. Cancel it."}]}
+    data = {"feature": "x", "cases": [{"id": "TC1", "title": "t", "manual_steps": "Make a booking. Cancel it."}]}
     case = parse_case_file(data, Path("x.yaml")).cases[0]
-    assert case.needs_steps and case.steps_text == ["Make a booking. Cancel it."]
+    assert case.needs_steps and case.manual_steps == ["Make a booking. Cancel it."]
+
+
+def test_renaming_a_field_keeps_every_approval():
+    """Fingerprints taken before a field was renamed (steps_text -> manual_steps) still match: a rename in
+    the case format must not send approved cases back to review."""
+    data = {"feature": "x", "cases": [{"id": "TC1", "title": "t", "manual_steps": ["Make a booking", "Cancel it"]}]}
+    cases = parse_case_file(data, Path("x.yaml")).cases
+    assert [case.fingerprint() for case in cases] == ["d0b0821d2e7f"]

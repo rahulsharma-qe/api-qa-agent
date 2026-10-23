@@ -131,7 +131,7 @@ def import_review_sheet(project: TeamProject, path: Path) -> ReviewImportResult:
 
 def readable_steps(case: Case) -> str:
     if case.needs_steps:
-        return "\n".join(line for line in case.steps_text if not _is_expected(line))
+        return "\n".join(line for line in case.manual_steps if not _is_expected(line))
     lines = []
     for number, step in enumerate(case.steps, start=1):
         request = step.request
@@ -152,7 +152,7 @@ def readable_steps(case: Case) -> str:
 
 def readable_expectations(case: Case) -> str:
     if case.needs_steps:
-        expected = [re.sub(r"^Expected:\s*", "", line) for line in case.steps_text if _is_expected(line)]
+        expected = [re.sub(r"^Expected:\s*", "", line) for line in case.manual_steps if _is_expected(line)]
         return "\n".join(expected + ["(in words: needs steps)"]) if expected else \
             "(in words: needs steps; no expected result written)"
     lines = []

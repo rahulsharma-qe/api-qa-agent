@@ -11,7 +11,7 @@ generates feature files in the same phrasing, so a feature file can go both ways
     And "refund_amount" is 250              (a JSON value: 250, true, "text")
     And I remember "pnr" as "pnr"           (a name, then a path in the response)
 
-Any other scenario is kept in words (steps_text): traced, "needs steps". A Scenario Outline's
+Any other scenario is kept in words (manual_steps): traced, "needs steps". A Scenario Outline's
 Examples become the case's data file, and <column> becomes {{row.column}}.
 """
 
@@ -103,7 +103,7 @@ def _case(scenario: dict, background: list, source: str, result: ImportResult) -
     all_steps = background + scenario["steps"]
     steps = _runnable_steps(all_steps, scenario["outline"])
     if steps is None:
-        case["steps_text"] = [f"{step['keyword']} {step['text']}" for step in all_steps]
+        case["manual_steps"] = [f"{step['keyword']} {step['text']}" for step in all_steps]
         result.notes.append(f"{source}, '{scenario['name']}': not in the fixed phrasing; kept in words (needs steps)")
         return case
     case["steps"] = steps

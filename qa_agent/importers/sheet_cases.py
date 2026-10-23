@@ -7,7 +7,7 @@ API layout, one row per step (a case's later rows may leave Case ID empty):
 
 Manual layout, one row per case, steps in words:
     ID | Title | Preconditions | Steps | Expected Result | Priority | Criteria
-    -> a case with steps_text: kept and traced, "needs steps" until a person (or the AI layer) writes them.
+    -> a case with manual_steps: kept and traced, "needs steps" until a person (or the AI layer) writes them.
     A row with no ID gets the project's next free id on import.
 
 Each Excel sheet is one feature (its cases go to cases/<sheet name>.yaml); a CSV file is one feature.
@@ -186,7 +186,7 @@ def _manual_layout(rows, columns, layout, source_name, sheet_name, where, result
         lines += _step_lines(_cell(row, columns, "steps"))
         if _cell(row, columns, "expected"):
             lines.append(f"Expected: {_cell(row, columns, 'expected')}")
-        case["steps_text"] = lines
+        case["manual_steps"] = lines
         feature.cases.append(case)
     return feature
 

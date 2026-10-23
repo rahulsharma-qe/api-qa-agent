@@ -95,7 +95,7 @@ def test_criteria_steps_and_review_rules(make_project):
           - id: TC2
             title: unknown criterion, words only
             criteria: [AC-9]
-            steps_text: [Make a booking]
+            manual_steps: [Make a booking]
           - id: TC3
             title: no steps at all
             criteria: [AC-1]

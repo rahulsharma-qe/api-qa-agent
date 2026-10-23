@@ -57,5 +57,5 @@ def test_any_other_scenario_is_kept_in_words(tmp_path):
     result = read_feature_file(path, "existing/cancel.feature")
     words = result.features[0].cases[1]
     assert words["id"] is None                       # the project's next free id, on import
-    assert words["steps_text"][-3:] == ["Given a cancelled booking", "When it is cancelled again", "Then it is refused"]
+    assert words["manual_steps"][-3:] == ["Given a cancelled booking", "When it is cancelled again", "Then it is refused"]
     assert "steps" not in words and "kept in words" in result.notes[0]
