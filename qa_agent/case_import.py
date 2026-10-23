@@ -63,7 +63,7 @@ def import_cases(project: TeamProject, paths: list[Path], into: Optional[Path] =
         result = read_existing_cases(path, project.relative(path))
         summary.notes += result.notes
         read += result.features
-    next_id = _id_maker(project, files, read)
+    next_id = id_maker(project, files, read)
     sources = {_source_key(case.source): case.id for case_file in files.values() for case in case_file.cases
                if case.source}
     for feature in read:
@@ -92,7 +92,7 @@ def _source_key(source) -> str:
     return json.dumps(source or {}, sort_keys=True)
 
 
-def _id_maker(project: TeamProject, files: dict, read: list):
+def id_maker(project: TeamProject, files: dict, read: list):
     """The next free id with the project's prefix: after TC041 comes TC042, whatever order files came in."""
     prefix = project.case_id_prefix
     pattern = re.compile(rf"^{re.escape(prefix)}-?(\d+)$", re.IGNORECASE)

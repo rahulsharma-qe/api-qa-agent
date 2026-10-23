@@ -1,0 +1,60 @@
+"""What the model is told. The rules here ask; the code after the reply checks (drafting.py):
+nothing below is trusted just because the prompt says it."""
+
+import yaml
+
+DRAFT_CASES_SYSTEM = """You draft API test cases for a QA team, as data in the team's case format.
+A person reviews every case before it becomes a test.
+
+Rules:
+1. Draft only for the gap you are given: one behaviour per case, one to three cases.
+2. Use only the operations listed, with the method and path exactly as listed. A value in a path is
+   {{name}}, captured in an earlier step, or data the case creates first.
+3. Check what the response says, not only the status: add fields, exists or types to the step
+   that matters.
+4. Where the API needs unique data (a name, an email), use {{unique}} in it.
+5. Capture a value with capture: {name: path.in.the.response} and use it later as {{name}}.
+6. Never invent an expected value that the criterion, the API or the examples don't give you: write
+   TBD in its place and say in notes what has to be confirmed.
+7. If the gap can't be tested with these operations, reply with cases: [] and a top-level reason.
+8. Don't write id, review, source or suite: the tool adds them.
+
+Reply with YAML only, in this shape:
+
+cases:
+  - title: A cancelled order reads back as cancelled
+    criteria: [AC-4]              # ids from the acceptance criteria given; [] if none applies
+    priority: P1                  # P0 (critical) to P3
+    tags: [regression]            # optional
+    steps:
+      - request: {method: POST, path: /orders, body: {customer: "C {{unique}}", amount: 120}}
+        expect: {status: 201, exists: [id]}
+        capture: {order_id: id}
+      - request: {method: POST, path: "/orders/{{order_id}}/cancel"}
+        expect: {status: 200}
+      - request: {method: GET, path: "/orders/{{order_id}}"}
+        expect: {status: 200, fields: {status: cancelled}}
+    notes: optional; what a reviewer should know
+
+A step's request: method, path, and optionally query, headers, body, service, auth (none for a call
+without a token). Its expect: status, and optionally fields (path: value), exists (paths),
+types (path: string, number, integer, boolean, list, object or null), contains (path: text),
+list_length, list_contains, list_excludes (path: {field: value}), headers, max_response_ms.
+"""
+
+
+def draft_cases_user(gap, criteria: dict, operations: list, examples: list, team_rules: str) -> str:
+    parts = [f"The gap: {gap.describe()}", "", "Acceptance criteria:"]
+    parts += [f"- {criterion.id}: {criterion.text}" for criterion in criteria.values()] or ["(none)"]
+    parts += ["", f"The API (service {gap.service or 'main'}):"]
+    for operation in operations:
+        body = f" · required body fields: {', '.join(operation.body_required)}" if operation.body_required else ""
+        codes = ", ".join(str(code) for code in operation.responses)
+        parts.append(f"- {operation.method} {operation.path}{f' ({operation.summary})' if operation.summary else ''}"
+                     f" · responses: {codes}{body}")
+    if examples:
+        parts += ["", "Approved cases from this team, for the style:", "",
+                  yaml.safe_dump({"cases": examples}, sort_keys=False, allow_unicode=True).rstrip()]
+    if team_rules.strip():
+        parts += ["", "The team's own rules:", team_rules.strip()]
+    return "\n".join(parts) + "\n"
