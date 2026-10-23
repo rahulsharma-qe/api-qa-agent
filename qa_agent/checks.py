@@ -136,7 +136,20 @@ def _case_findings(case: Case, case_file: CaseFile, project: TeamProject, api: O
         if api is not None:
             found += _api_findings(step, where, api, step.request.service or project.main_service)
         captured |= set(step.capture)
+    if _is_hollow(case.steps):
+        found.append((WARNING, ": checks only status codes and ends in success: it passes even when the response "
+                               "is wrong (a wrong amount, a missing field). Fix: add fields, exists or types to "
+                               "the step that matters"))
     return found
+
+
+def _is_hollow(steps: list[Step]) -> bool:
+    """Every step checks only a status (or a time), and the last one expects success: a wrong answer passes.
+    A case that ends in a refusal or a 404 is not hollow: that status is the point of it."""
+    if not steps or any(set(step.expect) - {"status", "within_ms"} for step in steps):
+        return False
+    last = steps[-1].expect.get("status")
+    return isinstance(last, int) and 200 <= last < 300
 
 
 def _criteria_findings(case: Case, criteria: dict) -> list[tuple[str, str]]:

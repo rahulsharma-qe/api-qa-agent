@@ -550,6 +550,7 @@ The fixed Gherkin phrasing, the same one phase 3c generates (so a feature file c
 |---|---|
 | The case file doesn't match the format; two cases share an id | Error |
 | A step has no expectation | Error |
+| Every step checks only a status and the case ends in success (2xx): a wrong answer passes | Warning: add `fields`, `exists` or `types` (a case that ends in a refusal or a 404 is not flagged: that status is its point) |
 | `{{name}}` used before it is captured; `{{row.x}}` with no data file, or no column `x` | Error |
 | The method and path are not in `api/api.yaml` | Error |
 | The expected status is not one the API documents for that operation | Warning |

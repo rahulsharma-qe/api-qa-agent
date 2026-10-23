@@ -138,3 +138,30 @@ def test_the_report_reads_by_file_with_counts(make_project):
     report, _, _ = findings(make_project({"api/api.yaml": API, "criteria.yaml": CRITERIA, "cases/b.yaml": CASES}))
     assert report.as_text().splitlines()[0] == "qa-agent check: t · 1 case in 1 file"
     assert report.as_text().splitlines()[-1] == "No findings."
+
+
+def _hollow_warnings(make_project, steps: str) -> list[str]:
+    report, _, _ = findings(make_project({"api/api.yaml": API, "criteria.yaml": CRITERIA, "cases/b.yaml": f"""
+        feature: B
+        cases:
+          - id: TC1
+            title: t
+            criteria: [AC-1]
+            steps: {steps}
+        """}))
+    return [f.message for f in report.findings if f.level == WARNING and "only status codes" in f.message]
+
+
+def test_a_case_that_checks_only_status_codes_and_ends_in_success_is_hollow(make_project):
+    create = '{request: {method: POST, path: /bookings, body: {passenger_name: "A {{unique}}", email: a@b.c}}, ' \
+             'expect: {status: 201}, capture: {pnr: pnr}}'
+    read = '{request: {method: GET, path: "/bookings/{{pnr}}"}, expect: {status: 200, within_ms: 2000}}'
+    warnings = _hollow_warnings(make_project, f"[{create}, {read}]")
+    assert len(warnings) == 1 and "Fix: add fields, exists or types" in warnings[0]
+
+
+def test_a_case_that_ends_in_a_refusal_or_checks_the_response_is_not_hollow(make_project):
+    refused = '[{request: {method: POST, path: /bookings, body: {passenger_name: x}}, expect: {status: 422}}]'
+    assert _hollow_warnings(make_project, refused) == []
+    checked = '[{request: {method: GET, path: /bookings/search}, expect: {status: 200, exists: [bookings]}}]'
+    assert _hollow_warnings(make_project, checked) == []
