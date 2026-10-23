@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-from qa_agent.api_model import ApiModel, ApiModelError, load_api_model
+from qa_agent.api_model import ApiModel, ApiModelError, Operation, load_api_model
 from qa_agent.cases import Case, load_case_file
 from qa_agent.data_files import DataFileError, rows
 from qa_agent.project import TeamProject
@@ -159,7 +159,7 @@ def build_trace(project: TeamProject, result_paths: Optional[list] = None) -> Tr
                                  for name, label in written[framework].items() if name not in expected_names)
     report.rows = _rows(cases, criteria, tests_by_case, outcomes, project)
     report.coverage = [_criteria_coverage(criteria, cases)]
-    api = _api(project)
+    api = read_api(project)
     if api is None:
         report.coverage.append(Coverage("Operations", 0, 0, note="no api/api.yaml: qa-agent import api <file>"))
     else:
@@ -238,7 +238,7 @@ def _criteria_coverage(criteria: dict, cases: list) -> Coverage:
     return Coverage("Criteria", len(criteria) - len(missing), len(criteria), missing)
 
 
-def _api(project: TeamProject) -> Optional[ApiModel]:
+def read_api(project: TeamProject) -> Optional[ApiModel]:
     if not project.api_model_path.is_file():
         return None
     try:
@@ -247,7 +247,19 @@ def _api(project: TeamProject) -> Optional[ApiModel]:
         return None
 
 
-def _api_coverage(api: ApiModel, approved: list, project: TeamProject, report: TraceReport) -> list:
+@dataclass
+class ApiItem:
+    """One thing the API coverage counts: an operation, or one of its response codes."""
+    label: str
+    covered: bool
+    service: str = ""
+    operation: Optional[Operation] = None
+    code: Optional[int] = None
+
+
+def api_items(api: ApiModel, approved: list, project: TeamProject) -> tuple[list, list, list]:
+    """(operations, response codes, not tested): what the coverage counts, and what approved cases call.
+    401 counts once per service (its item has no operation); 422 only where the operation takes a body."""
     called: dict = {}          # (service, method, path) -> statuses expected by approved steps
     for case in approved:
         for step in case.steps:
@@ -256,24 +268,31 @@ def _api_coverage(api: ApiModel, approved: list, project: TeamProject, report: T
             if operation is not None:
                 called.setdefault((service, operation.method, operation.path), set()).update(
                     _statuses(step.expect.get("status"), case, project))
-    operations, codes, services_with_401 = [], [], {}
+    operations, codes, not_tested, services_with_401 = [], [], [], {}
     for service, service_operations in sorted(api.services.items()):
         for operation in service_operations:
             label = f"{operation.method} {operation.path}" + ("" if service == project.main_service else f" ({service})")
             if operation.not_tested:
-                report.not_tested.append(f"{label}: {operation.not_tested}")
+                not_tested.append(f"{label}: {operation.not_tested}")
                 continue
             statuses = called.get((service, operation.method, operation.path))
-            operations.append((label, statuses is not None))
+            operations.append(ApiItem(label, statuses is not None, service, operation))
             for code in operation.responses:
                 if code == 401:
                     services_with_401.setdefault(service, False)
                     services_with_401[service] |= 401 in (statuses or set())
                 elif code != 422 or operation.method in TAKES_A_BODY:
-                    codes.append((f"{label} {code}", code in (statuses or set())))
+                    codes.append(ApiItem(f"{label} {code}", code in (statuses or set()), service, operation, code))
     for service, seen in services_with_401.items():
-        codes.append((f"401 ({service}, any operation)", seen))
-    return [_coverage("Operations", operations), _coverage("Response codes", codes)]
+        codes.append(ApiItem(f"401 ({service}, any operation)", seen, service, None, 401))
+    return operations, codes, not_tested
+
+
+def _api_coverage(api: ApiModel, approved: list, project: TeamProject, report: TraceReport) -> list:
+    operations, codes, not_tested = api_items(api, approved, project)
+    report.not_tested += not_tested
+    return [_coverage("Operations", [(item.label, item.covered) for item in operations]),
+            _coverage("Response codes", [(item.label, item.covered) for item in codes])]
 
 
 def _coverage(name: str, items: list) -> Coverage:
