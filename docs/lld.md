@@ -963,7 +963,7 @@ docker run --rm -v "$PWD:/project" qa-agent check
   package), `WORKDIR /project`, `ENTRYPOINT ["qa-agent"]`.
 - CI job `docker-image`: builds the image, runs `check`, `generate --check` and `trace --check` on the
   example inside it, then `init` a new project and checks the files belong to the runner's user.
-- Publishing: a version tag (`v0.3.0`) runs `.github/workflows/release.yml`: it checks the tag matches
+- Publishing: a version tag (such as `v0.4.0`) runs `.github/workflows/release.yml`: it checks the tag matches
   qa-agent's version, builds the image, checks `qa-agent --version` inside it, and pushes
   `ghcr.io/rahulsharma-qe/qa-agent:<version>` and `:latest`. The image's source label links the
   package to this repository; the package is made public once, by hand.
@@ -976,7 +976,25 @@ docker run --rm -v "$PWD:/project" qa-agent check
   (new endpoints with no cases), at the risk of cases written only to reach the number.
 - The team `pom.xml` gets `slf4j-nop` 1.7.36 (test scope), so Java runs don't print the SLF4J warning.
 
-### 10.8 Build order
+### 10.8 Renamed in v0.4.0
+
+Commands, flags, case fields and files, old name to new. Fingerprints keep the names from approval
+time (one mapping in `cases.py`, pinned by tests), so no approved case went back to review.
+
+| Before | Now | Why |
+|---|---|---|
+| `steps_text` | `manual_steps` | The steps of a manual test case |
+| `within_ms` | `max_response_ms` | Says what the number is |
+| a case's `data` | `data_file` | Says what the value is |
+| `track`, `qa-agent track` | `suite`, `qa-agent suite` | Functional and regression are suites |
+| `qa-agent bugs`, `bugs.yaml`, `--variants`, planted bugs | `qa-agent bug-detection`, `seeded-bugs.yaml`, `--seeded-bugs`, seeded bugs (`start_with_bug`, `start_clean`) | Fault seeding is the QA term; `bugs` read like a bug list |
+| `qa-agent review import` | `qa-agent review apply` | No clash with `qa-agent import` |
+| `stacks: [python, restassured]`, `--stack` | `frameworks: [pytest, restassured]`, `--framework` | A team picks a test framework; python is a language |
+| `criteria.yaml` | `acceptance-criteria.yaml` | Says what it holds |
+| the trace report | titled "Traceability matrix" | The QA name for it; the command stays `trace` |
+| `mock_service`, environment `mock` | `demo_api`, environment `demo` | It is the API the examples test, not a mock |
+
+### 10.9 Build order
 
 | Push | What |
 |---|---|

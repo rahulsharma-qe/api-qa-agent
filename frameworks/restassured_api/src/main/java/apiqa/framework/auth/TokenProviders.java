@@ -35,7 +35,7 @@ public final class TokenProviders {
         }
     }
 
-    /** A value from {@code <name>_env} (an environment variable), or a plain {@code <name>} (a demo only). */
+    /** A value from {@code <name>_env} (an environment variable), or a plain {@code <name>} (the demo API only). */
     private static String secret(Map<String, Object> auth, String name, String environment) {
         Object variable = auth.get(name + "_env");
         if (variable != null) {

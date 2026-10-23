@@ -1,4 +1,4 @@
-# A version tag (v0.3.0) publishes qa-agent's Docker image to the GitHub Container Registry:
+# A version tag (such as v0.4.0) publishes qa-agent's Docker image to the GitHub Container Registry:
 # ghcr.io/rahulsharma-qe/qa-agent:<version> and :latest. The tag must match qa-agent's version.
 # The release notes are written on GitHub (Releases -> Draft a new release -> the same tag).
 name: Release

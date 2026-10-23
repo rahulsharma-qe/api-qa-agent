@@ -93,7 +93,7 @@ both frameworks, and the trace. A new team starts with `qa-agent init my-team --
 
 ```bash
 cd your-team-project
-docker run --rm -v "$PWD:/project" ghcr.io/rahulsharma-qe/qa-agent:0.3.0 check
+docker run --rm -v "$PWD:/project" ghcr.io/rahulsharma-qe/qa-agent:0.4.0 check
 ```
 
 A version number keeps every run the same; `:latest` follows each release. Or build the image
