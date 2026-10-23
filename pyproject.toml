@@ -24,6 +24,8 @@ qa-agent = "qa_agent.cli:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+anthropic = ["anthropic>=0.40"]   # the AI layer with ai.provider anthropic
+openai = ["openai>=1.40"]         # the AI layer with ai.provider openai
 
 [tool.setuptools.packages.find]
 include = ["demo_api*", "env_check*", "qa_agent*"]

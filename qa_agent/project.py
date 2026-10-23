@@ -6,7 +6,7 @@
     cases/*.yaml                the cases, one file per feature
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from qa_agent.yaml_files import FileFormatError, read_yaml
@@ -32,6 +32,7 @@ class TeamProject:
     main_service: str
     frameworks: tuple[str, ...]
     case_id_prefix: str = "TC"          # an imported case with no id gets the next free one: TC042
+    ai: dict = field(default_factory=dict, compare=False, hash=False)   # the AI layer's settings (qa_agent/ai)
 
     @classmethod
     def load(cls, root: Path) -> "TeamProject":
@@ -47,8 +48,11 @@ class TeamProject:
         problems += [f"unknown framework '{framework}' (use {' or '.join(FRAMEWORKS)})" for framework in frameworks if framework not in FRAMEWORKS]
         if problems:
             raise SetupError(f"{config_path}: " + "; ".join(problems))
+        ai = config.get("ai") or {}
+        if not isinstance(ai, dict):
+            raise SetupError(f"{config_path}: 'ai' should be a mapping (provider, model or recorded)")
         return cls(Path(root), str(config["team"]), str(config["service"]), tuple(frameworks),
-                   str(config.get("case_id_prefix") or "TC"))
+                   str(config.get("case_id_prefix") or "TC"), dict(ai))
 
     @property
     def api_model_path(self) -> Path:
