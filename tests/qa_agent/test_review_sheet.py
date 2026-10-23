@@ -38,7 +38,7 @@ cases:
 
 
 def exported(make_project):
-    root = make_project({"criteria.yaml": CRITERIA, "cases/bookings.yaml": CASES})
+    root = make_project({"acceptance-criteria.yaml": CRITERIA, "cases/bookings.yaml": CASES})
     project = TeamProject.load(root)
     sheet = root / "review/cases.xlsx"
     return project, sheet, export_review_sheet(project, sheet)
@@ -68,7 +68,7 @@ def test_export_lists_cases_to_review_with_readable_locked_steps(make_project):
     second = {name: cell.value for name, cell in zip(header, rows[3])}
     assert (second["ID"], second["Expected"]) == ("TC2", "(in words: needs steps; no expected result written)")
     third = {name: cell.value for name, cell in zip(header, rows[4])}
-    assert "criterion AC-9 is not in criteria.yaml" in third["Check findings"]
+    assert "criterion AC-9 is not in acceptance-criteria.yaml" in third["Check findings"]
 
 
 def test_rows_are_in_id_order_and_a_case_in_words_shows_its_expected_result(make_project):
@@ -125,7 +125,7 @@ def test_a_decision_needs_a_reviewer_and_a_send_back_needs_a_comment(make_projec
 
 
 def test_the_commands_and_their_exit_codes(make_project, capsys):
-    root = make_project({"criteria.yaml": CRITERIA, "cases/bookings.yaml": CASES})
+    root = make_project({"acceptance-criteria.yaml": CRITERIA, "cases/bookings.yaml": CASES})
     assert main(["--project", str(root), "review", "apply"]) == 2                  # no sheet yet
     assert main(["--project", str(root), "review", "export"]) == 0
     decide(root / "review/cases.xlsx", {"TC3": {"Decision": "Reject", "Reviewer": "qa-lead", "Comment": "dup"}})

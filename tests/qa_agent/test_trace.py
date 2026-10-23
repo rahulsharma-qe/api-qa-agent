@@ -46,7 +46,7 @@ BOTH = "team: t\nservice: bookings\nframeworks: [pytest, restassured]\n"
 
 
 def project_with_tests(make_project):
-    root = make_project({"api/api.yaml": API, "criteria.yaml": CRITERIA, "cases/bookings.yaml": CASES,
+    root = make_project({"api/api.yaml": API, "acceptance-criteria.yaml": CRITERIA, "cases/bookings.yaml": CASES,
                          "data/reads.csv": "pnr,status\nAB12CD,200\nNOPE99,404\n"}, config=BOTH)
     case_file = load_case_file(root / "cases/bookings.yaml")
     for case in case_file.cases[:2]:

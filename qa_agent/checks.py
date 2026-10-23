@@ -72,7 +72,7 @@ def check_project(project: TeamProject) -> CheckReport:
     report = CheckReport(project.team)
     criteria = project.read_criteria()
     if not project.criteria_path.is_file():
-        report.findings.append(Finding(INFO, "", "", "No criteria.yaml: the criteria rules are skipped"))
+        report.findings.append(Finding(INFO, "", "", "No acceptance-criteria.yaml: the criteria rules are skipped"))
     api = _api_model(project, report)
     for path in project.case_files():
         file_name = project.relative(path)
@@ -157,7 +157,7 @@ def _criteria_findings(case: Case, criteria: dict) -> list[tuple[str, str]]:
         return []
     if not case.criteria:
         return [(WARNING, ": linked to no criterion. Fix: add criteria: [AC-…] so it can be traced")]
-    return [(ERROR, f": criterion {item} is not in criteria.yaml. Fix: correct the id, or add the criterion")
+    return [(ERROR, f": criterion {item} is not in acceptance-criteria.yaml. Fix: correct the id, or add the criterion")
             for item in case.criteria if item not in criteria]
 
 

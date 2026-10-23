@@ -1,8 +1,9 @@
 """A team's project: where each of its files lives. Every command starts here.
 
-    qa-agent.yaml       team: bookings · service: bookings · frameworks: [pytest] · case_id_prefix: TC (optional)
-    api/api.yaml        the API model          criteria.yaml   the acceptance criteria
-    cases/*.yaml        the cases, one file per feature
+    qa-agent.yaml               team: bookings · service: bookings · frameworks: [pytest] · case_id_prefix: TC (optional)
+    api/api.yaml                the API model
+    acceptance-criteria.yaml    the acceptance criteria
+    cases/*.yaml                the cases, one file per feature
 """
 
 from dataclasses import dataclass
@@ -15,7 +16,7 @@ FRAMEWORKS = ("pytest", "restassured")
 
 
 class SetupError(Exception):
-    """The project can't be read: a missing or malformed qa-agent.yaml or criteria.yaml."""
+    """The project can't be read: a missing or malformed qa-agent.yaml or acceptance-criteria.yaml."""
 
 
 @dataclass(frozen=True)
@@ -55,7 +56,7 @@ class TeamProject:
 
     @property
     def criteria_path(self) -> Path:
-        return self.root / "criteria.yaml"
+        return self.root / "acceptance-criteria.yaml"
 
     @property
     def cases_dir(self) -> Path:
@@ -72,7 +73,7 @@ class TeamProject:
             return str(path)
 
     def read_criteria(self) -> dict[str, Criterion]:
-        """Every criterion by id. Empty when the project has no criteria.yaml."""
+        """Every criterion by id. Empty when the project has no acceptance-criteria.yaml."""
         if not self.criteria_path.is_file():
             return {}
         data = _read(self.criteria_path) or {}

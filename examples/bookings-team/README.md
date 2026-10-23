@@ -14,7 +14,7 @@ and the team's existing cases to tests in both frameworks and the trace.
 | `qa-agent.yaml` | The team, its main service, its frameworks |
 | `api/source/` | What the team brought: the OpenAPI description, and two curl commands with a sample response |
 | `api/api.yaml` | The API model, imported from those sources |
-| `criteria.yaml` | Six acceptance criteria of the bookings and cancellation feature |
+| `acceptance-criteria.yaml` | Six acceptance criteria of the bookings and cancellation feature |
 | `existing/` | The team's cases as they were, in four formats: Excel in the API layout, Excel in the manual layout, a Postman collection, a Gherkin feature |
 | `cases/bookings.yaml`, `cases/cancellation.yaml` | Cases written directly in the case format |
 | `cases/bookings-api.yaml`, `cases/refunds.yaml`, `cases/bookings-smoke.yaml`, `cases/cancellation-scenarios.yaml` | The cases imported from `existing/`, one file per feature |

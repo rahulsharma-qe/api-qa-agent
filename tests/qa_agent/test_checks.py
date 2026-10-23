@@ -27,12 +27,12 @@ def findings(project_root):
 
 
 def test_a_good_case_has_no_findings(make_project):
-    report, _, _ = findings(make_project({"api/api.yaml": API, "criteria.yaml": CRITERIA, "cases/b.yaml": CASES}))
+    report, _, _ = findings(make_project({"api/api.yaml": API, "acceptance-criteria.yaml": CRITERIA, "cases/b.yaml": CASES}))
     assert report.findings == [] and not report.has_errors and len(report.cases) == 1
 
 
 def test_values_used_before_capture_and_data_columns(make_project, tmp_path):
-    root = make_project({"api/api.yaml": API, "criteria.yaml": CRITERIA, "data/rows.csv": "amount,status\n1,201\n",
+    root = make_project({"api/api.yaml": API, "acceptance-criteria.yaml": CRITERIA, "data/rows.csv": "amount,status\n1,201\n",
                          "cases/b.yaml": """
         feature: B
         cases:
@@ -64,7 +64,7 @@ def test_values_used_before_capture_and_data_columns(make_project, tmp_path):
 
 
 def test_the_api_rules(make_project):
-    _, _, text = findings(make_project({"api/api.yaml": API, "criteria.yaml": CRITERIA, "cases/b.yaml": """
+    _, _, text = findings(make_project({"api/api.yaml": API, "acceptance-criteria.yaml": CRITERIA, "cases/b.yaml": """
         feature: B
         cases:
           - id: TC1
@@ -85,7 +85,7 @@ def test_the_api_rules(make_project):
 
 
 def test_criteria_steps_and_review_rules(make_project):
-    report, keys, text = findings(make_project({"criteria.yaml": CRITERIA, "cases/b.yaml": """
+    report, keys, text = findings(make_project({"acceptance-criteria.yaml": CRITERIA, "cases/b.yaml": """
         feature: B
         cases:
           - id: TC1
@@ -109,7 +109,7 @@ def test_criteria_steps_and_review_rules(make_project):
         """}))
     assert (WARNING, "TC1", "TC1") in keys and "TC1: linked to no criterion" in text
     assert "TC1 step 1: checks nothing" in text
-    assert "TC2: criterion AC-9 is not in criteria.yaml" in text
+    assert "TC2: criterion AC-9 is not in acceptance-criteria.yaml" in text
     assert (INFO, "TC2", "TC2") in keys and "TC2: needs steps" in text
     assert (ERROR, "TC3", "TC3") in keys and "TC3: has no steps" in text
     assert "TC4: changed after it was approved" in text
@@ -117,7 +117,7 @@ def test_criteria_steps_and_review_rules(make_project):
 
 
 def test_a_rejected_case_is_left_alone(make_project):
-    report, _, _ = findings(make_project({"criteria.yaml": CRITERIA, "cases/b.yaml": """
+    report, _, _ = findings(make_project({"acceptance-criteria.yaml": CRITERIA, "cases/b.yaml": """
         feature: B
         cases:
           - {id: TC1, title: t, steps: [{request: {method: GET, path: /x}}], review: {status: rejected}}
@@ -131,17 +131,17 @@ def test_a_broken_file_and_an_id_in_two_files_are_errors(make_project):
     assert "TC1: the id is also used in cases/a.yaml" in text
     assert "TC9: priority 'P7'" in text
     assert report.has_errors
-    assert "No criteria.yaml: the criteria rules are skipped" in text
+    assert "No acceptance-criteria.yaml: the criteria rules are skipped" in text
 
 
 def test_the_report_reads_by_file_with_counts(make_project):
-    report, _, _ = findings(make_project({"api/api.yaml": API, "criteria.yaml": CRITERIA, "cases/b.yaml": CASES}))
+    report, _, _ = findings(make_project({"api/api.yaml": API, "acceptance-criteria.yaml": CRITERIA, "cases/b.yaml": CASES}))
     assert report.as_text().splitlines()[0] == "qa-agent check: t · 1 case in 1 file"
     assert report.as_text().splitlines()[-1] == "No findings."
 
 
 def _hollow_warnings(make_project, steps: str) -> list[str]:
-    report, _, _ = findings(make_project({"api/api.yaml": API, "criteria.yaml": CRITERIA, "cases/b.yaml": f"""
+    report, _, _ = findings(make_project({"api/api.yaml": API, "acceptance-criteria.yaml": CRITERIA, "cases/b.yaml": f"""
         feature: B
         cases:
           - id: TC1

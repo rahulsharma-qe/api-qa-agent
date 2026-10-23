@@ -22,6 +22,6 @@ qa-agent trace --results target/surefire-reports
 |---|---|
 | `qa-agent.yaml` | The team, its main service, its framework |
 | `api/source/openapi.json`, `api/api.yaml` | The reference API's OpenAPI description, imported |
-| `criteria.yaml` | The team's four acceptance criteria |
+| `acceptance-criteria.yaml` | The team's four acceptance criteria |
 | `cases/` | Its four cases, approved in `review/cases.xlsx` |
 | `src/test/java/generated/` | The generated tests |

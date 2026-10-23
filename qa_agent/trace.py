@@ -225,7 +225,7 @@ def _rows(cases: list, criteria: dict, tests_by_case: dict, outcomes: dict, proj
 
 def _criteria_coverage(criteria: dict, cases: list) -> Coverage:
     if not criteria:
-        return Coverage("Criteria", 0, 0, note="no criteria.yaml")
+        return Coverage("Criteria", 0, 0, note="no acceptance-criteria.yaml")
     missing = []
     for criterion in criteria:
         linked = [case for case in cases if criterion in case.criteria]

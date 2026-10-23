@@ -21,7 +21,7 @@ def test_import_api_writes_the_model_and_merges_a_second_source(make_project, ca
 
 
 def test_check_exits_0_without_errors_and_1_with_them(make_project, capsys):
-    good = make_project({"criteria.yaml": CRITERIA, "cases/a.yaml": """
+    good = make_project({"acceptance-criteria.yaml": CRITERIA, "cases/a.yaml": """
         feature: A
         cases:
           - {id: TC1, title: t, criteria: [AC-1], steps: [{request: {method: GET, path: /x}, expect: {status: 200}}]}
@@ -29,7 +29,7 @@ def test_check_exits_0_without_errors_and_1_with_them(make_project, capsys):
     assert main(["--project", str(good), "check"]) == 0
     (good / "cases/a.yaml").write_text("feature: A\ncases:\n  - {id: TC1, title: t, criteria: [AC-7], manual_steps: [x]}\n")
     assert main(["--project", str(good), "check"]) == 1
-    assert "criterion AC-7 is not in criteria.yaml" in capsys.readouterr().out
+    assert "criterion AC-7 is not in acceptance-criteria.yaml" in capsys.readouterr().out
 
 
 def test_a_folder_that_is_not_a_project_is_a_setup_problem(tmp_path, capsys):

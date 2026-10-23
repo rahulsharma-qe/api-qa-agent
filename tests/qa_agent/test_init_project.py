@@ -18,7 +18,7 @@ TEMPLATES = REPO / "qa_agent" / "project_templates"
 def test_a_python_project_has_everything_and_its_starter_test(tmp_path, capsys):
     root = tmp_path / "bookings-team"
     assert main(["init", str(root), "--framework", "pytest"]) == 0
-    for name in ("qa-agent.yaml", "api/api.yaml", "criteria.yaml", "cases/bookings.yaml", "config/environments.yaml",
+    for name in ("qa-agent.yaml", "api/api.yaml", "acceptance-criteria.yaml", "cases/bookings.yaml", "config/environments.yaml",
                  "config/dependencies.yaml", "existing/api_cases_template.xlsx", "requirements.txt", "pytest.ini",
                  ".github/workflows/api-tests.yml", ".gitignore", "README.md", "tests/generated/test_bookings.py"):
         assert (root / name).is_file(), name

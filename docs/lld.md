@@ -432,7 +432,7 @@ bookings-team/
   qa-agent.yaml                 team: bookings · service: bookings · frameworks: [pytest] · case_id_prefix: TC
   api/api.yaml                  the API model (imported from OpenAPI or curl, or written by hand)
   api/source/                   what the team brought: openapi.json, *.curl with a sample response
-  criteria.yaml                 acceptance criteria: id and text
+  acceptance-criteria.yaml                 acceptance criteria: id and text
   existing/                     the team's own cases, as they are: Excel, CSV, Postman, .feature
   cases/cancellation.yaml       the cases of one feature, in one file: the source of truth
   data/                         data files for data-driven cases
@@ -555,7 +555,7 @@ The fixed Gherkin phrasing, the same one phase 3c generates (so a feature file c
 | The method and path are not in `api/api.yaml` | Error |
 | The expected status is not one the API documents for that operation | Warning |
 | A required body field (from the API model) is missing | Warning (a negative test may leave it out on purpose) |
-| A criterion id not in `criteria.yaml`; a case with no criterion | Error · Warning |
+| A criterion id not in `acceptance-criteria.yaml`; a case with no criterion | Error · Warning |
 | Changed after approval (fingerprint) | Warning: "review again" |
 | Only `manual_steps` | Info: "needs steps" |
 | No `api/api.yaml` | Info: the rules that need the API are skipped, and say so |
@@ -664,7 +664,7 @@ In REST Assured (`src/test/java/generated/CancellationTest.java`):
 qa-agent trace --results reports/junit.xml target/surefire-reports
 ```
 
-Reads `criteria.yaml`, the cases, the generated tests (the files in each framework's generated folder)
+Reads `acceptance-criteria.yaml`, the cases, the generated tests (the files in each framework's generated folder)
 and JUnit XML results (files or folders: pytest's `--junitxml` and Maven Surefire both write it;
 other XML is skipped), prints the coverage, and writes `reports/trace.md` (for a pull request) and
 `reports/trace.xlsx` (a Trace sheet and a Coverage sheet):
@@ -685,7 +685,7 @@ to test (drafting cases for the gaps is the AI layer's job, phase 6).
 
 | Coverage | Rule |
 |---|---|
-| Criteria | Each criterion in `criteria.yaml` has at least one approved case |
+| Criteria | Each criterion in `acceptance-criteria.yaml` has at least one approved case |
 | Operations | Each operation in `api/api.yaml` has at least one approved case. An operation not meant to be tested is marked `not_tested: <reason>` there (`/test/reset`; a health check env_check already calls) and listed with its reason, not counted |
 | Response codes | Each documented code of each operation is expected by at least one approved step. 401 counts once per service (one call without a token is enough); 422 counts only for operations that take input |
 | Cases to tests | Each approved case has at least one test; a test with no case is listed |
@@ -753,7 +753,7 @@ cases render in both:
 | Shows | Files |
 |---|---|
 | API import from OpenAPI and from curl | `api/source/openapi.json`, `api/source/cancel_booking.curl` → `api/api.yaml` |
-| Criteria | `criteria.yaml`: six criteria of the bookings and cancellation feature, one (AC-6) deliberately without a case |
+| Criteria | `acceptance-criteria.yaml`: six criteria of the bookings and cancellation feature, one (AC-6) deliberately without a case |
 | Every importer | `existing/booking_cases.xlsx` (API layout), `existing/manual_cases.xlsx`, `existing/bookings.postman_collection.json`, `existing/cancel.feature` |
 | Check findings | One imported case with an undocumented status, one that needs steps |
 | Review | `review/cases.xlsx` filled in: approvals, one Changes needed, one Reject |
