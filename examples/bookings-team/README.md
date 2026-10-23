@@ -232,7 +232,7 @@ Not tested      on purpose: GET /health-check: env_check calls it before every r
 Results         pytest 12 passed · restassured 12 passed
 ```
 
-It also writes `reports/trace.md` (for a pull request) and `reports/trace.xlsx`: every criterion,
+It also writes the traceability matrix, `reports/trace.md` (for a pull request) and `reports/trace.xlsx`: every criterion,
 its cases with their review status, each case's tests in both frameworks, and the latest result per
 framework.
 

@@ -667,7 +667,7 @@ qa-agent trace --results reports/junit.xml target/surefire-reports
 Reads `acceptance-criteria.yaml`, the cases, the generated tests (the files in each framework's generated folder)
 and JUnit XML results (files or folders: pytest's `--junitxml` and Maven Surefire both write it;
 other XML is skipped), prints the coverage, and writes `reports/trace.md` (for a pull request) and
-`reports/trace.xlsx` (a Trace sheet and a Coverage sheet):
+`reports/trace.xlsx` (a Traceability matrix sheet and a Coverage sheet): the traceability matrix,
 
 | Criterion | Case | Title | Review | Suite | Tests | Latest result |
 |---|---|---|---|---|---|---|

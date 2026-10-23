@@ -95,7 +95,7 @@ class TraceReport:
                 self.below_floor.append(f"{item.name} {item.percent:.0f}% (floor {minimum:.0f}%)")
 
     def as_markdown(self) -> str:
-        lines = [f"# Trace: {self.team}", "", "| Coverage | Covered | Missing |", "|---|---|---|"]
+        lines = [f"# Traceability matrix: {self.team}", "", "| Coverage | Covered | Missing |", "|---|---|---|"]
         for item in self.coverage:
             lines.append(f"| {item.name} | {item.note or f'{item.covered} of {item.total}'} | "
                          f"{', '.join(item.missing) or '-'} |")
@@ -113,7 +113,7 @@ class TraceReport:
         from openpyxl.styles import Alignment, Font
         book = Workbook()
         matrix = book.active
-        matrix.title = "Trace"
+        matrix.title = "Traceability matrix"
         matrix.append(["Criterion", "Case", "Title", "Review", "Suite", "Tests", "Latest result"])
         for row in self.rows:
             matrix.append([row.criterion, row.case_id, row.title, row.review, row.suite, "\n".join(row.tests),
