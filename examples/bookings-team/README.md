@@ -2,16 +2,16 @@
 
 This folder has exactly the shape of a team's own repository. It shows every `qa-agent` feature
 against the reference API (`python -m mock_service`), with what each command printed: from the API
-and the team's existing cases to tests in both stacks and the trace.
+and the team's existing cases to tests in both frameworks and the trace.
 
 ```bash
-./run_all.sh                  # every step from the inputs, both stacks' tests, the trace (what CI runs)
-./run_all.sh --python-only    # the same, without Java
+./run_all.sh                  # every step from the inputs, both frameworks' tests, the trace (what CI runs)
+./run_all.sh --pytest-only    # the same, without Java
 ```
 
 | File | What it is |
 |---|---|
-| `qa-agent.yaml` | The team, its main service, its stacks |
+| `qa-agent.yaml` | The team, its main service, its frameworks |
 | `api/source/` | What the team brought: the OpenAPI description, and two curl commands with a sample response |
 | `api/api.yaml` | The API model, imported from those sources |
 | `criteria.yaml` | Six acceptance criteria of the bookings and cancellation feature |
@@ -22,7 +22,7 @@ and the team's existing cases to tests in both stacks and the trace.
 | `review/cases.xlsx` | The review sheet, filled in by the reviewer |
 | `config/` | Environments and dependencies, read by env_check and the frameworks |
 | `tests/generated/`, `src/test/java/generated/` | The tests `qa-agent generate` wrote from the approved cases, in pytest and in REST Assured |
-| `pytest.ini`, `pom.xml`, `mvnw` | How each stack runs here, as `qa-agent init` makes them |
+| `pytest.ini`, `pom.xml`, `mvnw` | How each framework runs here, as `qa-agent init` makes them |
 | `run_all.sh` | Every step, from the inputs to the trace |
 
 ## 1. The API
@@ -157,11 +157,11 @@ not generated: TC005: changes needed
 not generated: TC006: needs steps
 ...
 not generated: TC042: rejected
-python: 9 tests · restassured: 9 tests
+pytest: 9 tests · restassured: 9 tests
 ```
 
 Only approved, unchanged cases become tests: one test file per case file, one test per case, in
-each stack (`stacks: [python, restassured]`). The same case reads like this in each:
+each framework (`frameworks: [pytest, restassured]`). The same case reads like this in each:
 
 ```python
 @pytest.mark.functional
@@ -229,12 +229,12 @@ Operations      5 of 8   missing: POST /auth/token, GET /bookings, GET /bookings
 Response codes  9 of 19   missing: POST /auth/token 200, POST /auth/token 422, GET /bookings 200, POST /bookings 422, PUT /bookings/{pnr} 404, DELETE /bookings/{pnr} 404, POST /bookings/{pnr}/cancel 422, GET /bookings/{pnr}/refund 200, GET /bookings/{pnr}/refund 404, 401 (bookings, any operation)
 Cases to tests  9 of 9
 Not tested      on purpose: GET /health-check: env_check calls it before every run; POST /test/reset: a test-only route; it resets the data; GET /health-check (notifications): env_check calls it before every run
-Results         python 12 passed · restassured 12 passed
+Results         pytest 12 passed · restassured 12 passed
 ```
 
 It also writes `reports/trace.md` (for a pull request) and `reports/trace.xlsx`: every criterion,
-its cases with their review status, each case's tests in both stacks, and the latest result per
-stack.
+its cases with their review status, each case's tests in both frameworks, and the latest result per
+framework.
 
 What it says about this example, honestly: the cases cover the booking and cancellation flows well,
 and the gaps are plain. AC-5 has cases only in words, AC-6 has none, nothing calls the token or
@@ -248,7 +248,7 @@ refund-status endpoints, no case sends a request without a token (401), and seve
 ## 8. Promote
 
 New cases start as `functional`. A case joins `regression` once it is stable: passed in three runs,
-every data row, in every stack with results.
+every data row, in every framework with results.
 
 ```bash
 qa-agent promote --runs reports/run1.xml reports/run2.xml reports/run3.xml
@@ -281,11 +281,11 @@ refund-boundary`). `seeded-bugs.yaml` says how to start it with each; `qa-agent 
 with no bug (they must pass), then once per bug:
 
 ```bash
-qa-agent bug-detection --stack python          # with the reference API stopped: it starts it once per bug
+qa-agent bug-detection --framework pytest          # with the reference API stopped: it starts it once per bug
 ```
 
 ```
-qa-agent bug-detection: python · 5 of 7 seeded bugs caught (71%)
+qa-agent bug-detection: pytest · 5 of 7 seeded bugs caught (71%)
 
   caught  refund-boundary          by TC002
   caught  wrong-refund-amount      by TC002, TC040

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Every qa-agent step on this example, from its inputs, then both stacks' tests and the trace.
+# Every qa-agent step on this example, from its inputs, then both frameworks' tests and the trace.
 # CI runs it; so can you, after pip install -e . -e frameworks/python_api at the repository's root.
 #
-#   ./run_all.sh                 both stacks (the REST Assured framework installed once:
+#   ./run_all.sh                 both frameworks (the REST Assured framework installed once:
 #                                cd frameworks/restassured_api && ./mvnw -q install -DskipTests)
-#   ./run_all.sh --python-only   no Java needed
+#   ./run_all.sh --pytest-only   no Java needed
 #
 # 1. In a scratch copy: import the API and the team's existing cases again, apply the filled review
 #    sheet, generate; everything must come out exactly as committed.
@@ -15,8 +15,8 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 example="$(pwd)"
-stacks="python restassured"
-[[ "${1:-}" == "--python-only" ]] && stacks="python"
+frameworks="pytest restassured"
+[[ "${1:-}" == "--pytest-only" ]] && frameworks="pytest"
 
 echo "== 1. Rebuild from the inputs, in a scratch copy, and compare"
 scratch="$(mktemp -d)"
@@ -48,11 +48,11 @@ if ! python -m env_check --env mock > /dev/null 2>&1; then
 fi
 python -m env_check --env mock
 results=()
-if [[ " $stacks " == *" python "* ]]; then
+if [[ " $frameworks " == *" pytest "* ]]; then
   python -m pytest -q --junitxml=reports/junit.xml
   results+=(reports/junit.xml)
 fi
-if [[ " $stacks " == *" restassured "* ]]; then
+if [[ " $frameworks " == *" restassured "* ]]; then
   ./mvnw -q -B test
   results+=(target/surefire-reports)
 fi
@@ -71,7 +71,7 @@ echo "== 5. Bug-detection rate (seeded bugs, one at a time)"
 if [[ -n "${mock:-}" ]]; then
   kill "$mock"
   wait "$mock" 2> /dev/null || true
-  qa-agent bug-detection --stack python
+  qa-agent bug-detection --framework pytest
 else
-  echo "The reference API was already running: stop it, then run qa-agent bug-detection --stack python"
+  echo "The reference API was already running: stop it, then run qa-agent bug-detection --framework pytest"
 fi

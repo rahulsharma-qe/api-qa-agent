@@ -1,4 +1,4 @@
-"""qa-agent init: a project that works on day one, in either stack."""
+"""qa-agent init: a project that works on day one, in either framework."""
 
 import os
 from pathlib import Path
@@ -17,13 +17,13 @@ TEMPLATES = REPO / "qa_agent" / "project_templates"
 
 def test_a_python_project_has_everything_and_its_starter_test(tmp_path, capsys):
     root = tmp_path / "bookings-team"
-    assert main(["init", str(root), "--stack", "python"]) == 0
+    assert main(["init", str(root), "--framework", "pytest"]) == 0
     for name in ("qa-agent.yaml", "api/api.yaml", "criteria.yaml", "cases/bookings.yaml", "config/environments.yaml",
                  "config/dependencies.yaml", "existing/api_cases_template.xlsx", "requirements.txt", "pytest.ini",
                  ".github/workflows/api-tests.yml", ".gitignore", "README.md", "tests/generated/test_bookings.py"):
         assert (root / name).is_file(), name
     project = TeamProject.load(root)
-    assert (project.team, project.stacks) == ("bookings-team", ("python",))
+    assert (project.team, project.frameworks) == ("bookings-team", ("pytest",))
     starter = load_case_file(root / "cases/bookings.yaml").cases[0]
     assert starter.is_approved and starter.review.by == "qa-agent init"
     compile((root / "tests/generated/test_bookings.py").read_text(), "test_bookings.py", "exec")
@@ -33,7 +33,7 @@ def test_a_python_project_has_everything_and_its_starter_test(tmp_path, capsys):
 
 def test_a_rest_assured_project_has_its_pom_and_maven_wrapper(tmp_path):
     root = tmp_path / "payments"
-    assert main(["init", str(root), "--stack", "restassured", "--team", "Payments Team", "--service", "payments"]) == 0
+    assert main(["init", str(root), "--framework", "restassured", "--team", "Payments Team", "--service", "payments"]) == 0
     pom = (root / "pom.xml").read_text()
     assert "<artifactId>payments-team-api-tests</artifactId>" in pom
     assert "<artifactId>restassured-api-framework</artifactId>" in pom
@@ -41,12 +41,12 @@ def test_a_rest_assured_project_has_its_pom_and_maven_wrapper(tmp_path):
     assert (root / "src/test/java/generated/BookingsTest.java").is_file()
     assert "payments:" in (root / "config/environments.yaml").read_text()
     workflow = (root / ".github/workflows/api-tests.yml").read_text()
-    assert "qa-agent-team.yml@main" in workflow and "stack: restassured" in workflow and "name: payments-team" in workflow
+    assert "qa-agent-team.yml@main" in workflow and "framework: restassured" in workflow and "name: payments-team" in workflow
 
 
 def test_the_empty_sheet_is_in_the_layout_the_importer_reads(tmp_path):
     root = tmp_path / "team"
-    main(["init", str(root), "--stack", "python"])
+    main(["init", str(root), "--framework", "pytest"])
     sheet = root / "existing/api_cases_template.xlsx"
     book = load_workbook(sheet)
     book["Bookings"].append(["TC002", "List bookings", "AC-1", "P2", "", 1, "GET", "/bookings", None, 200, None, None])
@@ -57,7 +57,7 @@ def test_the_empty_sheet_is_in_the_layout_the_importer_reads(tmp_path):
 
 def test_init_needs_an_empty_folder(tmp_path, capsys):
     (tmp_path / "x.txt").write_text("mine")
-    assert main(["init", str(tmp_path), "--stack", "python"]) == 2
+    assert main(["init", str(tmp_path), "--framework", "pytest"]) == 2
     assert "is not empty" in capsys.readouterr().err
 
 

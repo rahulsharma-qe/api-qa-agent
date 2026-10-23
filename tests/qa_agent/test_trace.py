@@ -42,7 +42,7 @@ cases:
     criteria: [AC-2]
     manual_steps: [List them]
 """
-BOTH = "team: t\nservice: bookings\nstacks: [python, restassured]\n"
+BOTH = "team: t\nservice: bookings\nframeworks: [pytest, restassured]\n"
 
 
 def project_with_tests(make_project):
@@ -82,11 +82,11 @@ def test_the_matrix_lists_every_criterion_and_case_with_its_tests(make_project):
     rows = [(row.criterion, row.case_id, row.review) for row in report.rows]
     assert rows == [("AC-1", "TC1", "approved"), ("AC-2", "TC2", "approved"), ("AC-2", "TC10", "draft (needs steps)"),
                     ("AC-3", "", "-")]
-    assert report.rows[0].tests == ["python: test_bookings.py::test_tc1_make_one",
+    assert report.rows[0].tests == ["pytest: test_bookings.py::test_tc1_make_one",
                                     "restassured: BookingsTest.java::tc1MakeOne"]
 
 
-def test_results_come_from_junit_per_stack_with_a_run_per_data_row(make_project, tmp_path):
+def test_results_come_from_junit_per_framework_with_a_run_per_data_row(make_project, tmp_path):
     project = project_with_tests(make_project)
     python = junit(tmp_path / "junit.xml", [("test_tc1_make_one", ""), ("test_tc2_read_by_status[0]", ""),
                                             ("test_tc2_read_by_status[1]", "<failure message='x'/>")])
@@ -96,9 +96,9 @@ def test_results_come_from_junit_per_stack_with_a_run_per_data_row(make_project,
     (surefire / "testng-results.xml").write_text("<testng-results/>")
     report = build_trace(project, [python, surefire])
     results = {row.case_id: row.result for row in report.rows if row.case_id}
-    assert results["TC1"] == "python passed 1/1 · restassured skipped"
-    assert results["TC2"] == "python failed 1/2 · restassured not run"
-    assert report.results_read == {"python": {"passed": 2, "failed": 1}, "restassured": {"skipped": 1}}
+    assert results["TC1"] == "pytest passed 1/1 · restassured skipped"
+    assert results["TC2"] == "pytest failed 1/2 · restassured not run"
+    assert report.results_read == {"pytest": {"passed": 2, "failed": 1}, "restassured": {"skipped": 1}}
 
 
 def test_a_missing_test_and_a_test_without_a_case_are_listed_and_check_fails(make_project, capsys):
@@ -108,7 +108,7 @@ def test_a_missing_test_and_a_test_without_a_case_are_listed_and_check_fails(mak
     python.write_text(python.read_text() + "\n\ndef test_tc9_left_over(api):\n    pass\n")
     report = build_trace(project)
     assert report.missing_tests == ["TC1 (restassured)", "TC2 (restassured)"]
-    assert report.orphan_tests == ["python: test_bookings.py::test_tc9_left_over"]
+    assert report.orphan_tests == ["pytest: test_bookings.py::test_tc9_left_over"]
     assert main(["--project", str(project.root), "trace"]) == 0
     assert main(["--project", str(project.root), "trace", "--check"]) == 1
     assert (project.root / "reports/trace.md").is_file() and (project.root / "reports/trace.xlsx").is_file()

@@ -1,6 +1,6 @@
 # {{ team }}: API tests
 
-Made with `qa-agent init`: a working project on {{ "pytest" if stack == "python" else "REST Assured and TestNG" }},
+Made with `qa-agent init`: a working project on {{ "pytest" if framework == "pytest" else "REST Assured and TestNG" }},
 against the reference API to start with. It has one starter case (TC001), approved so the project
 runs on day one: replace it with your own.
 
@@ -8,7 +8,7 @@ runs on day one: replace it with your own.
 
 ```bash
 pip install "api-qa-agent @ git+https://github.com/rahulsharma-qe/api-qa-agent.git"   # qa-agent, env_check, the reference API
-{% if stack == "python" %}
+{% if framework == "pytest" %}
 pip install -r requirements.txt            # the framework
 {% else %}
 # once, in a clone of api-qa-agent, until the framework is published:
@@ -16,8 +16,8 @@ pip install -r requirements.txt            # the framework
 {% endif %}
 python -m mock_service &                   # the reference API (your environment replaces it)
 python -m env_check --env mock             # is the environment ready?
-{{ "pytest --junitxml=reports/junit.xml" if stack == "python" else "./mvnw test" }}
-qa-agent trace --results {{ "reports/junit.xml" if stack == "python" else "target/surefire-reports" }}
+{{ "pytest --junitxml=reports/junit.xml" if framework == "pytest" else "./mvnw test" }}
+qa-agent trace --results {{ "reports/junit.xml" if framework == "pytest" else "target/surefire-reports" }}
 ```
 
 ## Bring your own
@@ -28,16 +28,16 @@ qa-agent import cases existing/api_cases_template.xlsx   # or your Excel, CSV, P
 qa-agent check                                       # what to fix before review
 qa-agent review export                               # review/cases.xlsx: approve, send back, reject
 qa-agent review apply
-qa-agent generate                                    # approved cases -> {{ "tests/generated" if stack == "python" else "src/test/java/generated" }}
+qa-agent generate                                    # approved cases -> {{ "tests/generated" if framework == "pytest" else "src/test/java/generated" }}
 ```
 
 | File | What it is |
 |---|---|
-| `qa-agent.yaml` | The team, its main service, its stack |
+| `qa-agent.yaml` | The team, its main service, its framework |
 | `api/api.yaml` | The API model |
 | `criteria.yaml` | The acceptance criteria |
 | `cases/` | The cases, one file per feature |
 | `existing/api_cases_template.xlsx` | An empty sheet in the API layout, to write cases in Excel |
 | `config/` | Environments and what the tests depend on |
-| `{{ "tests/generated/" if stack == "python" else "src/test/java/generated/" }}` | The generated tests: never edited by hand |
+| `{{ "tests/generated/" if framework == "pytest" else "src/test/java/generated/" }}` | The generated tests: never edited by hand |
 | `.github/workflows/api-tests.yml` | CI: environment ready, generated tests up to date, tests, trace |

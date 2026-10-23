@@ -14,13 +14,13 @@ from pathlib import Path
 @dataclass
 class Results:
     outcomes: dict = field(default_factory=dict)      # test name -> ["passed", "failed", ...]
-    counts: dict = field(default_factory=dict)        # stack -> {"passed": n, ...}
+    counts: dict = field(default_factory=dict)        # framework -> {"passed": n, ...}
 
     def for_names(self, names: list) -> list:
         return [outcome for name in names for outcome in self.outcomes.get(name, [])]
 
     @property
-    def stacks(self) -> set:
+    def frameworks(self) -> set:
         return set(self.counts)
 
 
@@ -45,7 +45,7 @@ def read_results(paths: list) -> Results:
             else:
                 outcome = "passed"
             results.outcomes.setdefault(name, []).append(outcome)
-            stack = "python" if name.startswith("test_") else "restassured"
-            counts = results.counts.setdefault(stack, {})
+            framework = "pytest" if name.startswith("test_") else "restassured"
+            counts = results.counts.setdefault(framework, {})
             counts[outcome] = counts.get(outcome, 0) + 1
     return results

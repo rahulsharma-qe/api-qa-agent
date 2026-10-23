@@ -1,15 +1,15 @@
 """qa-agent: the command line.
 
-    qa-agent init my-team --stack python             a working project, on day one (or --stack restassured)
+    qa-agent init my-team --framework pytest             a working project, on day one (or --framework restassured)
     qa-agent import api api/source/openapi.json      the API description -> api/api.yaml
     qa-agent import cases existing/cases.xlsx        the team's cases (Excel, CSV, Postman, Gherkin)
     qa-agent check                                   the cases, checked with rules
     qa-agent review export | apply                   a person decides on each case, in Excel
-    qa-agent generate                                approved cases -> tests, for every stack
+    qa-agent generate                                approved cases -> tests, for every framework
     qa-agent trace --results reports/junit.xml       criteria -> cases -> tests -> results, and coverage
     qa-agent promote --runs r1 r2 r3 [--apply]       stable functional cases -> regression; a person applies it
     qa-agent suite TC010 functional --by --reason    a person moves a case between suites, on the record
-    qa-agent bug-detection --seeded-bugs seeded-bugs.yaml --stack python   the bug-detection rate: seeded bugs, one at a time
+    qa-agent bug-detection --seeded-bugs seeded-bugs.yaml --framework pytest   the bug-detection rate: seeded bugs, one at a time
 
 Exit codes: 0 done (no errors), 1 errors found, 2 the project or an input can't be read.
 """
@@ -60,7 +60,7 @@ def _parser() -> argparse.ArgumentParser:
 
     init = commands.add_parser("init", help="a new team project that runs on day one")
     init.add_argument("folder", type=Path, help="a new or empty folder")
-    init.add_argument("--stack", required=True, choices=["python", "restassured"])
+    init.add_argument("--framework", required=True, choices=["pytest", "restassured"])
     init.add_argument("--team", default="", help="the team's name (default: the folder's name)")
     init.add_argument("--service", default="bookings", help="the main service's name (default: bookings)")
     init.set_defaults(run=run_init)
@@ -92,7 +92,7 @@ def _parser() -> argparse.ArgumentParser:
     apply.add_argument("--sheet", type=Path, default=Path("review/cases.xlsx"))
     apply.set_defaults(run=review_import)
 
-    write = commands.add_parser("generate", help="approved cases -> tests for every stack; exit 1 if a case "
+    write = commands.add_parser("generate", help="approved cases -> tests for every framework; exit 1 if a case "
                                                   "can't be written")
     write.add_argument("--check", action="store_true",
                        help="write nothing; exit 1 if the generated tests don't match the approved cases (CI)")
@@ -125,14 +125,14 @@ def _parser() -> argparse.ArgumentParser:
     detection = commands.add_parser("bug-detection", help="the bug-detection rate: run the tests once per seeded bug")
     detection.add_argument("--seeded-bugs", type=Path, default=Path("seeded-bugs.yaml"),
                            help="how to start the API with each seeded bug (default: seeded-bugs.yaml)")
-    detection.add_argument("--stack", choices=["python", "restassured"], required=True)
+    detection.add_argument("--framework", choices=["pytest", "restassured"], required=True)
     detection.set_defaults(run=run_bug_detection)
     return parser
 
 
 def run_init(args) -> int:
-    result = init_project(args.folder, args.stack, args.team, args.service)
-    print(result.as_text(args.stack))
+    result = init_project(args.folder, args.framework, args.team, args.service)
+    print(result.as_text(args.framework))
     return DONE
 
 
@@ -233,7 +233,7 @@ def run_suite(args) -> int:
 def run_bug_detection(args) -> int:
     project = TeamProject.load(args.project)
     seeded_bugs = args.seeded_bugs if args.seeded_bugs.is_absolute() else project.root / args.seeded_bugs
-    print(measure(project, seeded_bugs, args.stack).as_text())
+    print(measure(project, seeded_bugs, args.framework).as_text())
     print("\nWritten: reports/bug-detection.md")
     return DONE
 

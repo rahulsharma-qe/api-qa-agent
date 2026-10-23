@@ -1,4 +1,4 @@
 # A team's project for qa-agent. Every command reads this first.
 team: bookings
 service: bookings            # the main service: a step without `service:` calls it
-stacks: [python, restassured]
+frameworks: [pytest, restassured]

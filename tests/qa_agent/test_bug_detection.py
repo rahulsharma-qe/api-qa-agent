@@ -25,7 +25,7 @@ def project(make_project):
 def stand_in(monkeypatch, already_up=False, failing=None):
     started = []
 
-    def run_once(project, seeded, stack, bug, folder):
+    def run_once(project, seeded, framework, bug, folder):
         started.append(seeded["start_with_bug"].replace("{bug}", bug) if bug else seeded["start_clean"])
         return bug_detection._Outcome(1 if (failing or {}).get(bug) else 0, (failing or {}).get(bug, []))
     monkeypatch.setattr(bug_detection, "_run_once", run_once)
@@ -35,7 +35,7 @@ def stand_in(monkeypatch, already_up=False, failing=None):
 
 def test_a_clean_run_first_then_one_run_per_bug_and_the_rate(project, monkeypatch):
     started = stand_in(monkeypatch, failing={"refund-boundary": ["TC002", "TC040"]})
-    report = bug_detection.measure(project, project.root / "seeded-bugs.yaml", "python")
+    report = bug_detection.measure(project, project.root / "seeded-bugs.yaml", "pytest")
     assert started == ["python -m mock_service", "python -m mock_service --bug refund-boundary",
                        "python -m mock_service --bug token-not-checked"]
     assert (report.caught, len(report.runs)) == (1, 2)
@@ -50,15 +50,15 @@ def test_a_clean_run_first_then_one_run_per_bug_and_the_rate(project, monkeypatc
 def test_a_suite_that_fails_with_no_bug_is_not_measured(project, monkeypatch):
     stand_in(monkeypatch, failing={"": ["TC001"]})
     with pytest.raises(SetupError, match=r"fail with no bug switched on \(TC001\)"):
-        bug_detection.measure(project, project.root / "seeded-bugs.yaml", "python")
+        bug_detection.measure(project, project.root / "seeded-bugs.yaml", "pytest")
 
 
 def test_an_api_already_up_or_a_bad_seeded_bugs_file_is_a_setup_problem(project, monkeypatch, capsys):
     stand_in(monkeypatch, already_up=True)
-    assert main(["--project", str(project.root), "bug-detection", "--stack", "python"]) == 2
+    assert main(["--project", str(project.root), "bug-detection", "--framework", "pytest"]) == 2
     assert "the API is already up" in capsys.readouterr().err
     (project.root / "seeded-bugs.yaml").write_text("start_with_bug: python -m mock_service\nstart_clean: x\nbugs: [x]\n")
     with pytest.raises(SetupError, match="a command with {bug} in it"):
-        bug_detection.measure(project, project.root / "seeded-bugs.yaml", "python")
-    with pytest.raises(SetupError, match="stack 'restassured' is not in qa-agent.yaml"):
+        bug_detection.measure(project, project.root / "seeded-bugs.yaml", "pytest")
+    with pytest.raises(SetupError, match="framework 'restassured' is not in qa-agent.yaml"):
         bug_detection.measure(project, project.root / "seeded-bugs.yaml", "restassured")

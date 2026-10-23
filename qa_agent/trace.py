@@ -10,7 +10,7 @@ layer's job. `--check` fails only when an approved case has no test.
     Operations      each operation in api/api.yaml has one (not_tested: <reason> leaves it out)
     Response codes  each documented code of each operation is expected by an approved step;
                     401 counts once per service, 422 only where the operation takes a body
-    Cases -> tests  each approved case has its test in every stack
+    Cases -> tests  each approved case has its test in every framework
 """
 
 import re
@@ -28,7 +28,7 @@ from qa_agent.review_sheet import natural_order
 
 TAKES_A_BODY = ("POST", "PUT", "PATCH")
 FLOORED = ("Criteria", "Operations")
-TEST_NAME = {"python": re.compile(r"^def (test_\w+)\(", re.MULTILINE),
+TEST_NAME = {"pytest": re.compile(r"^def (test_\w+)\(", re.MULTILINE),
              "restassured": re.compile(r"^\s+public void (\w+)\(", re.MULTILINE)}
 
 
@@ -71,14 +71,14 @@ class TraceReport:
     missing_tests: list = field(default_factory=list)     # "TC001 (restassured)"
     below_floor: list = field(default_factory=list)       # "Operations 62% (floor 80%)", with --min-coverage
     orphan_tests: list = field(default_factory=list)
-    results_read: dict = field(default_factory=dict)      # stack -> {"passed": n, ...}
+    results_read: dict = field(default_factory=dict)      # framework -> {"passed": n, ...}
 
     def as_text(self) -> str:
         lines = [f"qa-agent trace: {self.team}", ""] + [item.as_line() for item in self.coverage]
         if self.not_tested:
             lines.append(f"{'Not tested':<15} on purpose: " + "; ".join(self.not_tested))
-        lines.append(f"{'Results':<15} " + (" · ".join(f"{stack} " + ", ".join(f"{n} {kind}" for kind, n in counts.items())
-                                                     for stack, counts in self.results_read.items())
+        lines.append(f"{'Results':<15} " + (" · ".join(f"{framework} " + ", ".join(f"{n} {kind}" for kind, n in counts.items())
+                                                     for framework, counts in self.results_read.items())
                                             or "none given (--results reports/junit.xml target/surefire-reports)"))
         if self.missing_tests:
             lines.append(f"{'No test':<15} " + ", ".join(self.missing_tests) + ": run qa-agent generate")
@@ -140,7 +140,7 @@ def build_trace(project: TeamProject, result_paths: Optional[list] = None) -> Tr
     cases = sorted((case for path in project.case_files() for case in load_case_file(path).cases),
                    key=lambda case: natural_order(case.id))
     approved = [case for case in cases if case.is_approved]
-    written = {stack: _written_tests(project, stack) for stack in project.stacks}
+    written = {framework: _written_tests(project, framework) for framework in project.frameworks}
     results = read_results(result_paths or [])
     report.results_read = results.counts
     outcomes = results.outcomes
@@ -148,15 +148,15 @@ def build_trace(project: TeamProject, result_paths: Optional[list] = None) -> Tr
     tests_by_case = {}
     for case in approved:
         tests_by_case[case.id] = []
-        for stack in project.stacks:
-            for name in RENDERERS[stack].test_names(case):
+        for framework in project.frameworks:
+            for name in RENDERERS[framework].test_names(case):
                 expected_names.add(name)
-                if name in written[stack]:
-                    tests_by_case[case.id].append(f"{stack}: {written[stack][name]}")
+                if name in written[framework]:
+                    tests_by_case[case.id].append(f"{framework}: {written[framework][name]}")
                 else:
-                    report.missing_tests.append(f"{case.id} ({stack})")
-    report.orphan_tests = sorted(f"{stack}: {label}" for stack in project.stacks
-                                 for name, label in written[stack].items() if name not in expected_names)
+                    report.missing_tests.append(f"{case.id} ({framework})")
+    report.orphan_tests = sorted(f"{framework}: {label}" for framework in project.frameworks
+                                 for name, label in written[framework].items() if name not in expected_names)
     report.rows = _rows(cases, criteria, tests_by_case, outcomes, project)
     report.coverage = [_criteria_coverage(criteria, cases)]
     api = _api(project)
@@ -170,25 +170,25 @@ def build_trace(project: TeamProject, result_paths: Optional[list] = None) -> Tr
     return report
 
 
-def _written_tests(project: TeamProject, stack: str) -> dict:
-    """Test name -> 'file::name', for every test in the stack's generated folder."""
-    renderer = RENDERERS[stack]
+def _written_tests(project: TeamProject, framework: str) -> dict:
+    """Test name -> 'file::name', for every test in the framework's generated folder."""
+    renderer = RENDERERS[framework]
     folder = project.root / renderer.output_dir
     found = {}
-    for path in sorted(folder.glob("*.py" if stack == "python" else "*.java")) if folder.is_dir() else []:
+    for path in sorted(folder.glob("*.py" if framework == "pytest" else "*.java")) if folder.is_dir() else []:
         text = path.read_text(encoding="utf-8")
         if not text.startswith(renderer.header_mark):
             continue
-        for name in TEST_NAME[stack].findall(text):        # data providers return Object[][], not void
+        for name in TEST_NAME[framework].findall(text):        # data providers return Object[][], not void
             found[name] = f"{path.name}::{name}"
     return found
 
 
 def _result(case: Case, project: TeamProject, outcomes: dict) -> str:
-    """Per stack: 'python passed 3/3 · restassured not run'. A data-driven case has a run per row."""
+    """Per framework: 'pytest passed 3/3 · restassured not run'. A data-driven case has a run per row."""
     labels = []
-    for stack in project.stacks:
-        seen = [outcome for name in RENDERERS[stack].test_names(case) for outcome in outcomes.get(name, [])]
+    for framework in project.frameworks:
+        seen = [outcome for name in RENDERERS[framework].test_names(case) for outcome in outcomes.get(name, [])]
         if not seen:
             label = "not run"
         elif "failed" in seen:
@@ -197,7 +197,7 @@ def _result(case: Case, project: TeamProject, outcomes: dict) -> str:
             label = "skipped"
         else:
             label = f"passed {seen.count('passed')}/{len(seen)}"
-        labels.append(f"{stack} {label}" if len(project.stacks) > 1 else label)
+        labels.append(f"{framework} {label}" if len(project.frameworks) > 1 else label)
     return " · ".join(labels)
 
 

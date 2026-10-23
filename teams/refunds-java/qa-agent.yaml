@@ -1,5 +1,5 @@
 # The team's project for qa-agent. Every command reads this first.
 team: refunds-java
 service: bookings            # the main service: a step without `service:` calls it
-stacks: [restassured]
+frameworks: [restassured]
 case_id_prefix: TC                # a case imported without an id gets the next free one: TC002, TC003, ...

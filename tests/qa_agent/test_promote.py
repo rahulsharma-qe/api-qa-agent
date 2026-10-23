@@ -38,8 +38,8 @@ def test_only_cases_that_passed_every_run_are_ready_and_nothing_changes_without_
     project, runs = project_with_runs(make_project, tmp_path)
     result = promote(project, runs)
     assert result.ready == ["TC1"]
-    assert result.not_yet == ["TC2: failed in run 2 (python)"]
-    assert result.look_at == ["TC3 (regression): failed in run 2 (python)"]
+    assert result.not_yet == ["TC2: failed in run 2 (pytest)"]
+    assert result.look_at == ["TC3 (regression): failed in run 2 (pytest)"]
     assert load_case_file(project.cases_dir / "bookings.yaml").cases[0].suite == "functional"
 
 
@@ -48,7 +48,7 @@ def test_apply_moves_them_keeps_the_approval_and_records_why(make_project, tmp_p
     promote(project, runs, apply=True)
     case = load_case_file(project.cases_dir / "bookings.yaml").cases[0]
     assert case.suite == "regression" and case.is_approved
-    assert "promoted to regression: passed in 3 runs (python)" in case.notes
+    assert "promoted to regression: passed in 3 runs (pytest)" in case.notes
 
 
 def test_fewer_than_three_runs_is_not_stability(make_project, tmp_path, capsys):

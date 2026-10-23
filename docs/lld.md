@@ -376,7 +376,7 @@ Maven Surefire 3.5. Built and tested in CI with `actions/setup-java`.
 | `platform` | Install the reference API, env_check and qa-agent; their tests, including the OpenAPI drift test and qa-agent's own; `qa-agent check` on the example project; start both services and check their health |
 | `python-framework` | Install the mock and the framework; start both services in the background; `python -m env_check --env mock`; every test with plain `pytest`; then the examples with Allure, evidence, one retry and JUnit; build the single-file Allure report; keep the reports and the evidence |
 | `restassured-framework` | Java 17 with the Maven cache; start the reference API; `python -m env_check --env mock`; `./mvnw test` with evidence and one retry (the framework's own tests, then every example); build the single-file Allure report; keep the reports and the evidence |
-| `qa-agent` | Install both frameworks; the example project end to end with `run_all.sh` (rebuilt from its inputs and compared, both stacks' generated tests, the trace); a new project from `qa-agent init` runs, in each stack; keep the trace (section 9.12) |
+| `qa-agent` | Install both frameworks; the example project end to end with `run_all.sh` (rebuilt from its inputs and compared, both frameworks' generated tests, the trace); a new project from `qa-agent init` runs, in each framework; keep the trace (section 9.12) |
 
 The two Python jobs run on Python 3.11 and 3.12, on every push and pull request. No API key anywhere.
 
@@ -395,7 +395,7 @@ The two Python jobs run on Python 3.11 and 3.12, on every push and pull request.
 | First version | Now |
 |---|---|
 | `docs/architecture.md` (its design decisions) | In [`docs/history/first-version.md`](history/first-version.md); the new design took its place |
-| `adapters/`, `examples/`, `tests/test_engine.py` (its engine, five stack renderers, sample service and test) | Removed when phase 1 ended; in the git history. The reference stacks are on the later list |
+| `adapters/`, `examples/`, `tests/test_engine.py` (its engine, five framework renderers, sample service and test) | Removed when phase 1 ended; in the git history. The reference frameworks are on the later list |
 | `requirements.txt` | Removed: `pip install -e .` installs the reference API and env_check |
 | `core/` (its language-model steps) | Kept until phase 6 reworks it into the AI layer |
 
@@ -429,7 +429,7 @@ What `qa-agent init` creates, and what every other command reads. The same shape
 
 ```
 bookings-team/
-  qa-agent.yaml                 team: bookings · service: bookings · stacks: [python] · case_id_prefix: TC
+  qa-agent.yaml                 team: bookings · service: bookings · frameworks: [pytest] · case_id_prefix: TC
   api/api.yaml                  the API model (imported from OpenAPI or curl, or written by hand)
   api/source/                   what the team brought: openapi.json, *.curl with a sample response
   criteria.yaml                 acceptance criteria: id and text
@@ -438,8 +438,8 @@ bookings-team/
   data/                         data files for data-driven cases
   review/cases.xlsx             the review sheet
   config/environments.yaml  config/dependencies.yaml
-  tests/generated/              Python stack: generated, never edited by hand
-  src/test/java/generated/      REST Assured stack: generated, never edited by hand
+  tests/generated/              Python framework: generated, never edited by hand
+  src/test/java/generated/      REST Assured framework: generated, never edited by hand
   reports/                      trace.md, trace.xlsx (not committed)
 ```
 
@@ -597,7 +597,7 @@ steps in Steps and its expected result in words (a manual sheet's Expected Resul
 One renderer per framework: a small Python class that writes each step the way a person uses that
 framework, and a Jinja2 template for the file around the tests (`qa_agent/renderers/templates/`).
 Only approved cases with a matching fingerprint are written; one test file per case file, one test
-per case, in every stack the project lists. Same cases, same files, every time.
+per case, in every framework the project lists. Same cases, same files, every time.
 
 The case TC003 (`cases/cancellation.yaml`), in pytest (`tests/generated/test_cancellation.py`):
 
@@ -650,7 +650,7 @@ In REST Assured (`src/test/java/generated/CancellationTest.java`):
 | Bodies | Python dicts, one field per line when long | `Map.of` (`Map.ofEntries` past ten fields), `List.of`, one field per line when long |
 
 - The test's name starts with the case id (`test_tc003_…`, `tc003…`): that is how `trace` finds it.
-- A value a framework can't express is refused for that stack with the reason, never written wrong:
+- A value a framework can't express is refused for that framework with the reason, never written wrong:
   a `null` in a body can't go in Java's `Map.of`. `generate` then exits 1.
 - The output folders belong to qa-agent. A generated file whose cases are no longer approved is
   removed; a file qa-agent didn't write (no generated header) is left alone, and reported.
@@ -664,7 +664,7 @@ In REST Assured (`src/test/java/generated/CancellationTest.java`):
 qa-agent trace --results reports/junit.xml target/surefire-reports
 ```
 
-Reads `criteria.yaml`, the cases, the generated tests (the files in each stack's generated folder)
+Reads `criteria.yaml`, the cases, the generated tests (the files in each framework's generated folder)
 and JUnit XML results (files or folders: pytest's `--junitxml` and Maven Surefire both write it;
 other XML is skipped), prints the coverage, and writes `reports/trace.md` (for a pull request) and
 `reports/trace.xlsx` (a Trace sheet and a Coverage sheet):
@@ -677,7 +677,7 @@ other XML is skipped), prints the coverage, and writes `reports/trace.md` (for a
 
 A data-driven case shows a run per row (`passed 3/3`). A case under two criteria is listed under
 both; a case under none is listed under "(no criterion)". A generated test whose case is no longer
-approved, and an approved case with no test in a stack, are listed too.
+approved, and an approved case with no test in a framework, are listed too.
 
 Then the coverage lines, and lists of what is missing. Only approved cases count; a case in words
 or a draft is listed, not counted. Coverage is measured and reported; qa-agent doesn't decide what
@@ -697,7 +697,7 @@ phase 3b if teams want one.
 ### 9.9 `qa-agent init`
 
 ```
-qa-agent init bookings-team --stack python        # or --stack restassured
+qa-agent init bookings-team --framework pytest        # or --framework restassured
 ```
 
 Creates the project of 9.1, in a new or empty folder, already working: environments pointing at
@@ -739,7 +739,7 @@ qa_agent/
   init_project.py              project_templates/common/, python/, restassured/
   data_files.py  yaml_files.py
 tests/qa_agent/                one test file per module; no network
-examples/bookings-team/        a team's project, committed: every feature, both stacks
+examples/bookings-team/        a team's project, committed: every feature, both frameworks
 ```
 
 New dependencies (installed with `pip install -e .`): `jinja2` (templates) and `openpyxl`
@@ -747,7 +747,7 @@ New dependencies (installed with `pip install -e .`): `jinja2` (templates) and `
 
 ### 9.11 The working example: `examples/bookings-team/`
 
-A committed team project for the reference API, with `stacks: [python, restassured]` so the same
+A committed team project for the reference API, with `frameworks: [pytest, restassured]` so the same
 cases render in both:
 
 | Shows | Files |
@@ -762,13 +762,13 @@ cases render in both:
 
 A script, `examples/bookings-team/run_all.sh`, rebuilds the example from its inputs in a scratch
 copy (import, check, review apply with the filled sheet, generate), compares the result with what
-is committed, then starts the reference API if it isn't up, runs both stacks' tests and the trace
-`--check`. `--python-only` leaves Java out. CI runs it; so do the tests, in Python.
+is committed, then starts the reference API if it isn't up, runs both frameworks' tests and the trace
+`--check`. `--pytest-only` leaves Java out. CI runs it; so do the tests, in Python.
 
 ### 9.12 CI
 
 A new job, `qa-agent`: `./mvnw install` of the REST Assured framework, then `run_all.sh` (both
-stacks), then `qa-agent init --stack python` and `--stack restassured` in empty folders, and each new
+frameworks), then `qa-agent init --framework pytest` and `--framework restassured` in empty folders, and each new
 project's tests pass against the reference API: the day-one promise, checked on every build. The
 trace is kept as a build artifact. qa-agent's own tests run in the `platform` job, with the
 others.
@@ -795,7 +795,7 @@ shows the utility on many teams and on an API this repository didn't write.
 | `trace --min-coverage` | Is coverage above the team's floor? | Every build, if the team sets one |
 | Promote | Which functional cases are stable enough for regression? | When the team chooses; a person applies it |
 | Bug-detection rate (`qa-agent bug-detection`) | Do the tests catch bugs, or only pass? | When the team chooses; in CI for the example |
-| The reusable workflow and two teams | Does it scale to many teams and both stacks with one line of CI each? | Every build |
+| The reusable workflow and two teams | Does it scale to many teams and both frameworks with one line of CI each? | Every build |
 | Swagger Petstore | Does it work on an API this repository didn't write? | Every build (its Docker image); the public server on demand |
 | Docker image | Can a team start without installing Python packages? | Built in CI |
 
@@ -809,7 +809,7 @@ runs it, and so does `run_all.sh`.
 ### 10.2 Promote: `qa-agent promote`
 
 The regression suite. A functional case joins it when it is stable: it passed in every run given,
-in every stack, and at least three runs were given.
+in every framework, and at least three runs were given.
 
 ```
 pytest --junitxml=reports/run1.xml     (three runs: run1, run2, run3)
@@ -819,8 +819,8 @@ qa-agent promote --runs ... --apply
 
 | Case | Becomes |
 |---|---|
-| Functional, approved, passed in every run and every stack | Listed as ready; `--apply` sets `suite: regression` in its case file |
-| Failed or skipped in any run, or not run in a stack | Listed with the reason; stays functional |
+| Functional, approved, passed in every run and every framework | Listed as ready; `--apply` sets `suite: regression` in its case file |
+| Failed or skipped in any run, or not run in a framework | Listed with the reason; stays functional |
 | Already regression and failed in a run | Listed: "look at this" (never demoted by the tool) |
 
 - Without `--apply` it only lists: a person decides. The suite is not in the fingerprint, so the
@@ -853,7 +853,7 @@ The reference API can switch on small seeded bugs, one at a time:
 reports which bugs the tests caught:
 
 ```
-qa-agent bug-detection --seeded-bugs seeded-bugs.yaml --stack python
+qa-agent bug-detection --seeded-bugs seeded-bugs.yaml --framework pytest
 ```
 
 ```yaml
@@ -867,20 +867,20 @@ bugs: [refund-boundary, wrong-refund-amount, second-cancel-allowed, deleted-stil
 env_check uses (default `mock`); the bugs may be a list or a mapping of name to what it changes.
 
 For each bug: start the API (its output in `reports/bug-detection/<bug>.api.log`), wait until env_check says
-ready, run the stack's tests, stop the API and wait for it to exit. A bug is caught when at least one
+ready, run the framework's tests, stop the API and wait for it to exit. A bug is caught when at least one
 test fails; the report (console and `reports/bug-detection.md`) names the cases whose tests failed.
 A missed bug points at the same gap the trace shows: a missed `token-not-checked` means no case
 calls without a token. A clean run with no bug comes first: if it fails, the rate is not measured (a
 failing suite "catches" every bug). If the API is already up, `bug-detection` refuses (it starts the API
 itself, once per bug); that check is one env_check try, not the usual retries. It measures and
-exits 0; it is not a gate. On the example it takes about 20 seconds for the Python stack.
+exits 0; it is not a gate. On the example it takes about 20 seconds for the Python framework.
 
 ### 10.4 Two teams, and the reusable workflow
 
 `teams/` holds two small team projects, each made with `qa-agent init` and exactly the shape of a
 standalone team repository:
 
-| Team | Stack | Its cases |
+| Team | Framework | Its cases |
 |---|---|---|
 | `teams/bookings-python/` | pytest | create, read, update, delete a booking |
 | `teams/refunds-java/` | REST Assured | cancel, the 24-hour refund rule, refund status |
@@ -893,7 +893,7 @@ jobs:
   api-tests:
     uses: rahulsharma-qe/api-qa-agent/.github/workflows/qa-agent-team.yml@main
     with:
-      stack: python                 # or restassured
+      framework: pytest                 # or restassured
       environment: mock             # an environment in config/environments.yaml
       start-reference-api: true     # only for the reference API
 ```
@@ -903,7 +903,7 @@ and keeps the reports as an artifact named after the team. Its other inputs: `pr
 team's folder in its repository), `name`, `platform-ref` (the api-qa-agent branch or tag that
 qa-agent and the framework come from, so a team pins a version) and `platform-from-checkout` (only
 inside this repository, so its teams test the platform's current code). Each team builds only its
-own stack: Java and the Maven framework only for `restassured`.
+own framework: Java and the Maven framework only for `restassured`.
 
 - In this repository, `teams.yml` calls it once per team; the workflow `init` writes is this one call.
 - The teams were made with `qa-agent init`; each was then given the reference API's OpenAPI
@@ -916,7 +916,7 @@ own stack: Java and the Maven framework only for `restassured`.
 ### 10.5 Swagger Petstore: someone else's API
 
 `examples/external-apis/petstore/`: a team project for Swagger Petstore (each external API gets a folder under `examples/external-apis/`) (its OpenAPI 3 description, cases in
-an Excel sheet in the API layout, reviewed, generated in both stacks, traced).
+an Excel sheet in the API layout, reviewed, generated in both frameworks, traced).
 
 | Where it runs | How | When |
 |---|---|---|
@@ -932,7 +932,7 @@ checked against the public server first, call by call: no expected result is gue
 - `config/environments.yaml` has `local` and `public`, no auth; `config/dependencies.yaml` checks
   `GET /store/inventory`, since Petstore has no health endpoint (env_check's `path` setting).
 - Six cases in `existing/petstore_cases.xlsx` (API layout), imported, reviewed by the team's lead.
-  Five are approved and generated in both stacks. TC106 (a pet without a name is refused) is held
+  Five are approved and generated in both frameworks. TC106 (a pet without a name is refused) is held
   back with "changes needed": Petstore accepts it with 200, against its own OpenAPI (name required,
   422 documented). A real finding on someone else's API, and the review step deciding what the build
   does about it.

@@ -4,18 +4,18 @@
 #     api-tests:
 #       uses: rahulsharma-qe/api-qa-agent/.github/workflows/qa-agent-team.yml@main
 #       with:
-#         stack: python                # or restassured
+#         framework: pytest                # or restassured
 #         environment: mock            # an environment in config/environments.yaml
 #         start-reference-api: true    # only when testing the reference API
 #
 # The environment is ready, the generated tests match the approved cases, the tests, the trace.
-# A team builds only its own stack.
+# A team builds only its own framework.
 name: qa-agent team
 
 on:
   workflow_call:
     inputs:
-      stack:
+      framework:
         description: python or restassured
         required: true
         type: string
@@ -59,7 +59,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - if: inputs.stack == 'restassured'
+      - if: inputs.framework == 'restassured'
         uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -73,7 +73,7 @@ jobs:
           else
             pip install "api-qa-agent @ git+https://github.com/rahulsharma-qe/api-qa-agent.git@${{ inputs.platform-ref }}"
           fi
-      - name: Install the framework (${{ inputs.stack }})
+      - name: Install the framework (${{ inputs.framework }})
         working-directory: .
         run: |
           if [ "${{ inputs.platform-from-checkout }}" = "true" ]; then
@@ -83,7 +83,7 @@ jobs:
             git clone --quiet --depth 1 --branch "${{ inputs.platform-ref }}" \
               https://github.com/rahulsharma-qe/api-qa-agent.git "$platform"
           fi
-          if [ "${{ inputs.stack }}" = "python" ]; then
+          if [ "${{ inputs.framework }}" = "pytest" ]; then
             pip install "$platform/frameworks/python_api"
           else
             (cd "$platform/frameworks/restassured_api" && ./mvnw -q -B install -DskipTests)
@@ -97,7 +97,7 @@ jobs:
         run: qa-agent generate --check
       - name: Tests
         run: |
-          if [ "${{ inputs.stack }}" = "python" ]; then
+          if [ "${{ inputs.framework }}" = "pytest" ]; then
             python -m pytest --env "${{ inputs.environment }}" --junitxml=reports/junit.xml
           else
             ./mvnw -B test -Denv="${{ inputs.environment }}"
@@ -106,7 +106,7 @@ jobs:
         if: always()
         run: |
           results=reports/junit.xml
-          [ "${{ inputs.stack }}" = "restassured" ] && results=target/surefire-reports
+          [ "${{ inputs.framework }}" = "restassured" ] && results=target/surefire-reports
           floor=()
           [ -n "${{ inputs.min-coverage }}" ] && floor=(--min-coverage "${{ inputs.min-coverage }}")
           qa-agent trace --results "$results" --check "${floor[@]}"

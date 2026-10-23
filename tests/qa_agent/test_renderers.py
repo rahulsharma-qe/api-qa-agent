@@ -33,7 +33,7 @@ def cases(data=EVERYTHING):
 
 def test_pytest_code_is_valid_python_and_uses_the_framework_as_a_person_would():
     case_file, found = cases()
-    generated = RENDERERS["python"].render_file("cases/bookings.yaml", case_file, found)
+    generated = RENDERERS["pytest"].render_file("cases/bookings.yaml", case_file, found)
     compile(generated.text, generated.path, "exec")
     assert generated.path == "tests/generated/test_bookings.py"
     text = generated.text
@@ -87,12 +87,12 @@ def test_a_null_in_a_body_is_refused_for_java_with_the_reason():
     case_file, found = cases(data)
     with pytest.raises(RenderError, match="TC1 step 1: a null value"):
         RENDERERS["restassured"].render_file("cases/x.yaml", case_file, found)
-    compile(RENDERERS["python"].render_file("cases/x.yaml", case_file, found).text, "x", "exec")
+    compile(RENDERERS["pytest"].render_file("cases/x.yaml", case_file, found).text, "x", "exec")
 
 
 def test_the_markers_file_registers_the_teams_tags():
     _, found = cases()
-    conftest = RENDERERS["python"].support_files(found)[0]
+    conftest = RENDERERS["pytest"].support_files(found)[0]
     assert conftest.path == "tests/generated/conftest.py"
     assert 'TAGS = ["crud_flow"]' in conftest.text                   # smoke is built in
     compile(conftest.text, conftest.path, "exec")
@@ -100,7 +100,7 @@ def test_the_markers_file_registers_the_teams_tags():
 
 def test_the_test_names_trace_looks_for():
     _, found = cases()
-    assert RENDERERS["python"].test_names(found[0]) == ["test_tc7_everything_the_format_can_say_isnt_it"]
+    assert RENDERERS["pytest"].test_names(found[0]) == ["test_tc7_everything_the_format_can_say_isnt_it"]
     assert RENDERERS["restassured"].test_names(found[0]) == ["tc7EverythingTheFormatCanSayIsntIt"]
 
 

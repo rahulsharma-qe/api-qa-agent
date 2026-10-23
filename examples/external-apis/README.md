@@ -9,6 +9,6 @@ pytest and REST Assured, a run, a trace.
 |---|---|---|---|
 | Swagger Petstore | [`petstore/`](petstore/) | Its official Docker image on every change; the public server by hand | Petstore accepts a pet with no name, against its own OpenAPI |
 
-Adding another: `qa-agent init external-apis/<name> --stack restassured`, its OpenAPI or curl in
+Adding another: `qa-agent init external-apis/<name> --framework restassured`, its OpenAPI or curl in
 `api/source/`, its environments, a safe GET as its readiness check, cases that make and delete
 their own data, and a job in [`external-apis.yml`](../../.github/workflows/external-apis.yml).

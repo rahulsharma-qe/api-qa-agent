@@ -10,7 +10,7 @@ jobs:
   api-tests:
     uses: rahulsharma-qe/api-qa-agent/.github/workflows/qa-agent-team.yml@main
     with:
-      stack: restassured
+      framework: restassured
       environment: mock                 # an environment in config/environments.yaml
       name: refunds-java
       start-reference-api: true         # the reference API; remove it when you test your own environment

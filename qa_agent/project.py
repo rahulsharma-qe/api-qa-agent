@@ -1,6 +1,6 @@
 """A team's project: where each of its files lives. Every command starts here.
 
-    qa-agent.yaml       team: bookings · service: bookings · stacks: [python] · case_id_prefix: TC (optional)
+    qa-agent.yaml       team: bookings · service: bookings · frameworks: [pytest] · case_id_prefix: TC (optional)
     api/api.yaml        the API model          criteria.yaml   the acceptance criteria
     cases/*.yaml        the cases, one file per feature
 """
@@ -11,7 +11,7 @@ from pathlib import Path
 from qa_agent.yaml_files import FileFormatError, read_yaml
 
 CONFIG_FILE = "qa-agent.yaml"
-STACKS = ("python", "restassured")
+FRAMEWORKS = ("pytest", "restassured")
 
 
 class SetupError(Exception):
@@ -29,7 +29,7 @@ class TeamProject:
     root: Path
     team: str
     main_service: str
-    stacks: tuple[str, ...]
+    frameworks: tuple[str, ...]
     case_id_prefix: str = "TC"          # an imported case with no id gets the next free one: TC042
 
     @classmethod
@@ -39,14 +39,14 @@ class TeamProject:
             raise SetupError(f"no {CONFIG_FILE} in {Path(root).resolve()}: run qa-agent in a team's project "
                              f"(or pass --project), or create one with qa-agent init")
         config = _read(config_path)
-        problems = [f"'{key}' is missing" for key in ("team", "service", "stacks") if not config.get(key)]
-        stacks = config.get("stacks") or []
-        if isinstance(stacks, str):
-            stacks = [stacks]
-        problems += [f"unknown stack '{stack}' (use {' or '.join(STACKS)})" for stack in stacks if stack not in STACKS]
+        problems = [f"'{key}' is missing" for key in ("team", "service", "frameworks") if not config.get(key)]
+        frameworks = config.get("frameworks") or []
+        if isinstance(frameworks, str):
+            frameworks = [frameworks]
+        problems += [f"unknown framework '{framework}' (use {' or '.join(FRAMEWORKS)})" for framework in frameworks if framework not in FRAMEWORKS]
         if problems:
             raise SetupError(f"{config_path}: " + "; ".join(problems))
-        return cls(Path(root), str(config["team"]), str(config["service"]), tuple(stacks),
+        return cls(Path(root), str(config["team"]), str(config["service"]), tuple(frameworks),
                    str(config.get("case_id_prefix") or "TC"))
 
     @property

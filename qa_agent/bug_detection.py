@@ -1,6 +1,6 @@
 """`qa-agent bug-detection`: the bug-detection rate. Do the tests catch bugs, or only pass?
 
-    qa-agent bug-detection --seeded-bugs seeded-bugs.yaml --stack python
+    qa-agent bug-detection --seeded-bugs seeded-bugs.yaml --framework pytest
 
 seeded-bugs.yaml says how to start the API under test with each seeded bug, one at a time:
 
@@ -12,7 +12,7 @@ seeded-bugs.yaml says how to start the API under test with each seeded bug, one 
       token-not-checked: a call with no token is let through
 
 First a run with no bug: it must pass, or the rate means nothing (a failing suite "catches" every
-bug). Then, for each bug: start the API with it, wait until env_check says ready, run the stack's
+bug). Then, for each bug: start the API with it, wait until env_check says ready, run the framework's
 tests, stop the API. A bug is caught when at least one test fails; the cases whose tests failed are
 named. Reports: the console and reports/bug-detection.md.
 """
@@ -45,7 +45,7 @@ class BugRun:
 
 @dataclass
 class BugReport:
-    stack: str
+    framework: str
     runs: list = field(default_factory=list)
 
     @property
@@ -54,7 +54,7 @@ class BugReport:
 
     def as_text(self) -> str:
         total = len(self.runs)
-        lines = [f"qa-agent bug-detection: {self.stack} · {self.caught} of {total} seeded bugs caught "
+        lines = [f"qa-agent bug-detection: {self.framework} · {self.caught} of {total} seeded bugs caught "
                  f"({100 * self.caught / total:.0f}%)" if total else "qa-agent bug-detection: no bugs listed", ""]
         for run in self.runs:
             if run.caught:
@@ -64,7 +64,7 @@ class BugReport:
         return "\n".join(lines)
 
     def as_markdown(self) -> str:
-        lines = [f"# Bug-detection rate: {self.stack}", "",
+        lines = [f"# Bug-detection rate: {self.framework}", "",
                  f"{self.caught} of {len(self.runs)} seeded bugs caught.", "",
                  "| Bug | What it changes | Caught | By |", "|---|---|---|---|"]
         for run in self.runs:
@@ -73,21 +73,21 @@ class BugReport:
         return "\n".join(lines) + "\n"
 
 
-def measure(project: TeamProject, seeded_bugs_file: Path, stack: str) -> BugReport:
-    if stack not in project.stacks:
-        raise SetupError(f"stack '{stack}' is not in qa-agent.yaml (it has: {', '.join(project.stacks)})")
+def measure(project: TeamProject, seeded_bugs_file: Path, framework: str) -> BugReport:
+    if framework not in project.frameworks:
+        raise SetupError(f"framework '{framework}' is not in qa-agent.yaml (it has: {', '.join(project.frameworks)})")
     seeded = _read_seeded_bugs(seeded_bugs_file)
     folder = project.root / "reports" / "bug-detection"
     folder.mkdir(parents=True, exist_ok=True)
     if _ready(project, seeded["environment"], one_try=_one_try_dependencies(project, folder)):
         raise SetupError("the API is already up: stop it first, qa-agent bug-detection starts it once per bug")
-    clean = _run_once(project, seeded, stack, "", folder)
+    clean = _run_once(project, seeded, framework, "", folder)
     if clean.failed:
         raise SetupError(f"the tests fail with no bug switched on ({', '.join(clean.failed) or 'see the log'}): "
                          "fix that first; a failing suite would 'catch' every bug")
-    report = BugReport(stack)
+    report = BugReport(framework)
     for bug, description in seeded["bugs"].items():
-        result = _run_once(project, seeded, stack, bug, folder)
+        result = _run_once(project, seeded, framework, bug, folder)
         report.runs.append(BugRun(bug, description, bool(result.failed) or result.exit_code != 0,
                                   sorted(result.failed, key=natural_order)))
     (project.root / "reports" / "bug-detection.md").write_text(report.as_markdown(), encoding="utf-8")
@@ -115,14 +115,14 @@ def _read_seeded_bugs(path: Path) -> dict:
             "start_clean": str(data["start_clean"])}
 
 
-def _run_once(project: TeamProject, seeded: dict, stack: str, bug: str, folder: Path) -> _Outcome:
+def _run_once(project: TeamProject, seeded: dict, framework: str, bug: str, folder: Path) -> _Outcome:
     command = seeded["start_with_bug"].replace("{bug}", bug) if bug else seeded["start_clean"]
     name = bug or "no-bug"
     with (folder / f"{name}.api.log").open("w") as log:
         api = subprocess.Popen(shlex.split(command), cwd=project.root, stdout=log, stderr=subprocess.STDOUT)
         try:
             _wait(lambda: _ready(project, seeded["environment"]), f"the API ({command}) didn't become ready")
-            return _tests(project, stack, folder / name)
+            return _tests(project, framework, folder / name)
         finally:
             api.terminate()                       # the next run starts only once this one has exited
             try:
@@ -132,8 +132,8 @@ def _run_once(project: TeamProject, seeded: dict, stack: str, bug: str, folder: 
                 api.wait()
 
 
-def _tests(project: TeamProject, stack: str, results: Path) -> _Outcome:
-    if stack == "python":
+def _tests(project: TeamProject, framework: str, results: Path) -> _Outcome:
+    if framework == "pytest":
         command = [sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", f"--junitxml={results}.xml"]
         finished = subprocess.run(command, cwd=project.root, capture_output=True, text=True)
         paths = [Path(f"{results}.xml")]
@@ -148,7 +148,7 @@ def _tests(project: TeamProject, stack: str, results: Path) -> _Outcome:
     failed = set()
     for path in project.case_files():
         for case in load_case_file(path).cases:
-            if "failed" in outcomes.for_names(RENDERERS[stack].test_names(case)):
+            if "failed" in outcomes.for_names(RENDERERS[framework].test_names(case)):
                 failed.add(case.id)
     return _Outcome(finished.returncode, sorted(failed))
 

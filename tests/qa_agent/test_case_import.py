@@ -63,7 +63,7 @@ FEATURE = """Feature: Refunds
 def test_a_case_without_an_id_gets_the_next_free_one_whatever_the_order(make_project):
     root = make_project({"existing/smoke.json": POSTMAN, "existing/refunds.feature": FEATURE,
                          "existing/booking_api.csv": CSV.replace("TC2,", "TC041,")},
-                        config="team: t\nservice: bookings\nstacks: [python]\ncase_id_prefix: TC\n")
+                        config="team: t\nservice: bookings\nframeworks: [pytest]\ncase_id_prefix: TC\n")
     project = TeamProject.load(root)
     summary = import_cases(project, [root / "existing/smoke.json", root / "existing/refunds.feature",
                                      root / "existing/booking_api.csv"])

@@ -10,7 +10,7 @@ jobs:
   api-tests:
     uses: rahulsharma-qe/api-qa-agent/.github/workflows/qa-agent-team.yml@main
     with:
-      stack: python
+      framework: pytest
       environment: mock                 # an environment in config/environments.yaml
       name: bookings-python
       start-reference-api: true         # the reference API; remove it when you test your own environment

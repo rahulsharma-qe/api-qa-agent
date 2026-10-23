@@ -1,4 +1,4 @@
-# How to start the API under test with each seeded bug, one at a time: qa-agent bug-detection --stack python
+# How to start the API under test with each seeded bug, one at a time: qa-agent bug-detection --framework pytest
 start_with_bug: python -m mock_service --bug {bug}
 start_clean: python -m mock_service
 environment: mock

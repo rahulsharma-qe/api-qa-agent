@@ -80,7 +80,7 @@ def test_generating_again_gives_the_committed_tests(tmp_path):
 
 def test_the_example_is_built_like_a_project_from_init(tmp_path):
     made = tmp_path / "bookings"
-    assert main(["init", str(made), "--stack", "restassured", "--team", "bookings"]) == 0
+    assert main(["init", str(made), "--framework", "restassured", "--team", "bookings"]) == 0
     for name in ("pom.xml", "mvnw", "mvnw.cmd", ".mvn/wrapper/maven-wrapper.properties"):
         assert (EXAMPLE / name).read_bytes() == (made / name).read_bytes(), name
     assert os.access(EXAMPLE / "run_all.sh", os.X_OK)

@@ -8,6 +8,6 @@ from qa_agent.renderers.common import GeneratedFile, RenderError
 from qa_agent.renderers.python_pytest import PytestRenderer
 from qa_agent.renderers.restassured_testng import RestAssuredRenderer
 
-RENDERERS = {"python": PytestRenderer(), "restassured": RestAssuredRenderer()}
+RENDERERS = {"pytest": PytestRenderer(), "restassured": RestAssuredRenderer()}
 
 __all__ = ["GeneratedFile", "RENDERERS", "RenderError"]

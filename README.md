@@ -24,8 +24,8 @@ testing AI agents themselves.
 | `qa-agent`: tests, trace, new projects | **Built**: approved cases become pytest and REST Assured tests; the trace from criteria to results, with coverage; `init` makes a project that runs on day one |
 | `qa-agent`: every day | **Built**: the drift check (`generate --check`), a coverage floor (`trace --min-coverage`), `promote` stable cases to regression, `suite` to move one back, on the record |
 | Bug-detection rate | **Built**: the reference API can switch on one of seven seeded bugs; `qa-agent bug-detection` runs the tests once per bug and says which bugs they catch, and by which cases |
-| Many teams ([`teams/`](teams/)) | **Built**: a reusable CI workflow a team calls in one job, with its stack and environment; two teams (pytest, REST Assured) use it, each building only its own stack |
-| External APIs ([`examples/external-apis/`](examples/external-apis/)) | **Built**: Swagger Petstore from its own OpenAPI and a team's Excel sheet, in both stacks; its Docker image on every change, the public server by hand. It found a real gap: Petstore accepts a pet with no name |
+| Many teams ([`teams/`](teams/)) | **Built**: a reusable CI workflow a team calls in one job, with its framework and environment; two teams (pytest, REST Assured) use it, each building only its own framework |
+| External APIs ([`examples/external-apis/`](examples/external-apis/)) | **Built**: Swagger Petstore from its own OpenAPI and a team's Excel sheet, in both frameworks; its Docker image on every change, the public server by hand. It found a real gap: Petstore accepts a pet with no name |
 | A Docker image for qa-agent ([`Dockerfile`](Dockerfile)) | **Built**: qa-agent with no Python install, published with each release ([`ghcr.io/rahulsharma-qe/qa-agent`](https://github.com/rahulsharma-qe/api-qa-agent/pkgs/container/qa-agent)) or built from this repository; the tool only, so tests run where they always run |
 | Cucumber on REST Assured | Later |
 | User-interface tests, in their own repository (`playwright-qa-agent`) | Later |
@@ -77,17 +77,17 @@ When a test fails, the report shows the expectation that broke and every request
 the test, in order, with tokens masked. See each framework's README:
 [Python](frameworks/python_api/README.md) and [REST Assured](frameworks/restassured_api/README.md).
 
-And `qa-agent`, from a team's inputs to tests in both stacks and the trace:
+And `qa-agent`, from a team's inputs to tests in both frameworks and the trace:
 
 ```bash
 cd examples/bookings-team
-./run_all.sh --python-only                         # or ./run_all.sh with the Java framework installed
+./run_all.sh --pytest-only                         # or ./run_all.sh with the Java framework installed
 ```
 
 The [example's README](examples/bookings-team/README.md) walks through every step: the API, the
 team's existing cases in four formats, what `check` finds, the review sheet, the generated tests in
-both stacks, and the trace. A new team starts with `qa-agent init my-team --stack python` (or
-`--stack restassured`): a project that runs on day one.
+both frameworks, and the trace. A new team starts with `qa-agent init my-team --framework pytest` (or
+`--framework restassured`): a project that runs on day one.
 
 ### Run with Docker (no Python install)
 
@@ -134,12 +134,12 @@ In Windows PowerShell, write `${PWD}` instead of `$PWD`.
   every call is logged.
 - **An environment problem is not a bug.** env_check stops a run with its own exit code.
 - **Many teams.** Frameworks are versioned libraries; each team works in its own repository and
-  builds only its own stack.
+  builds only its own framework.
 
 ## The first version
 
 This repository started as a smaller pipeline: a language model turned one requirement into test
-cases and data, a second model reviewed them, and the package was rendered into five test stacks,
+cases and data, a second model reviewed them, and the package was rendered into five test frameworks,
 one of which ran. Its design is kept in [`docs/history/first-version.md`](docs/history/first-version.md),
 and its code in the git history.
 

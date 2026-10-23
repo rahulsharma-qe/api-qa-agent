@@ -1,8 +1,8 @@
-"""`qa-agent init`: a team's project that works on day one, in the stack the team chose.
+"""`qa-agent init`: a team's project that works on day one, in the framework the team chose.
 
-    qa-agent init bookings-team --stack python        (or --stack restassured)
+    qa-agent init bookings-team --framework pytest        (or --framework restassured)
 
-It writes the project's files from qa_agent/project_templates (common, then the stack's own), an
+It writes the project's files from qa_agent/project_templates (common, then the framework's own), an
 empty Excel sheet in the API layout, and one starter case. The starter case is approved by
 'qa-agent init', said so in its review, so the first run has a test; the team replaces it with its
 own cases. Then it runs generate.
@@ -19,7 +19,7 @@ from jinja2 import Environment, StrictUndefined
 
 from qa_agent.cases import load_case_file, save_case_file
 from qa_agent.generate import generate
-from qa_agent.project import STACKS, SetupError, TeamProject
+from qa_agent.project import FRAMEWORKS, SetupError, TeamProject
 
 API_LAYOUT = ["Case ID", "Title", "Criteria", "Priority", "Tags", "Step", "Method", "Path", "Body",
               "Expected Status", "Expected Fields", "Capture"]
@@ -43,9 +43,9 @@ class InitResult:
     root: Path
     files: list = field(default_factory=list)
 
-    def as_text(self, stack: str) -> str:
-        test_folder = "tests/generated" if stack == "python" else "src/test/java/generated"
-        run = "pytest" if stack == "python" else "./mvnw test"
+    def as_text(self, framework: str) -> str:
+        test_folder = "tests/generated" if framework == "pytest" else "src/test/java/generated"
+        run = "pytest" if framework == "pytest" else "./mvnw test"
         return "\n".join([f"created {self.root}: {len(self.files)} files, one starter case and its test in "
                           f"{test_folder}", "", "Next:", f"  cd {self.root}",
                           "  python -m mock_service &          # the reference API",
@@ -53,18 +53,18 @@ class InitResult:
                           f"  {run}", "", "Then bring your own API and cases: see README.md"])
 
 
-def init_project(root: Path, stack: str, team: str = "", service: str = "bookings") -> InitResult:
-    if stack not in STACKS:
-        raise SetupError(f"unknown stack '{stack}' (use {' or '.join(STACKS)})")
+def init_project(root: Path, framework: str, team: str = "", service: str = "bookings") -> InitResult:
+    if framework not in FRAMEWORKS:
+        raise SetupError(f"unknown framework '{framework}' (use {' or '.join(FRAMEWORKS)})")
     root = Path(root)
     if root.exists() and any(root.iterdir()):
         raise SetupError(f"{root} is not empty: qa-agent init makes a new project in an empty folder")
     team = team or root.resolve().name
     artifact = re.sub(r"[^a-z0-9]+", "-", team.lower()).strip("-") or "team"
-    values = {"team": team, "service": service, "stack": stack, "artifact": artifact,
+    values = {"team": team, "service": service, "framework": framework, "artifact": artifact,
               "package": artifact.replace("-", "")}
     result = InitResult(root)
-    for part in ("common", stack):
+    for part in ("common", framework):
         _copy(resources.files("qa_agent") / "project_templates" / part, root, values, result)
     _api_layout_sheet(root / "existing" / "api_cases_template.xlsx")
     result.files.append("existing/api_cases_template.xlsx")

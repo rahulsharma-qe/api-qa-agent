@@ -20,7 +20,7 @@ cases:
       - request: {method: GET, path: /bookings}
         expect: {status: 200}
 """
-BOTH = "team: t\nservice: bookings\nstacks: [python, restassured]\n"
+BOTH = "team: t\nservice: bookings\nframeworks: [pytest, restassured]\n"
 
 
 def approved_project(make_project):
@@ -39,7 +39,7 @@ def test_only_approved_cases_become_tests_in_every_stack(make_project):
     java = (project.root / "src/test/java/generated/BookingsTest.java").read_text()
     assert "test_tc1_read_a_booking" in python and "test_tc2" not in python
     assert "tc1ReadABooking" in java and "tc2" not in java
-    assert result.tests == {"python": 1, "restassured": 1}
+    assert result.tests == {"pytest": 1, "restassured": 1}
     assert result.not_generated == ["TC2: not reviewed yet"]
 
 
@@ -73,7 +73,7 @@ def test_the_command_exits_1_when_a_case_cant_be_written(make_project, capsys):
     save_case_file(case_file)
     assert main(["--project", str(project.root), "generate"]) == 1
     out = capsys.readouterr().out
-    assert "problem: restassured: TC1 step 1: a null value" in out and "python: 1 tests · restassured: 0 tests" in out
+    assert "problem: restassured: TC1 step 1: a null value" in out and "pytest: 1 tests · restassured: 0 tests" in out
 
 
 def test_the_drift_check_writes_nothing_and_names_what_is_out_of_date(make_project, capsys):

@@ -18,7 +18,7 @@ PETSTORE = REPO / "examples" / "external-apis" / "petstore"
 
 def test_the_petstore_project_is_whole_and_its_tests_are_up_to_date():
     project = TeamProject.load(PETSTORE)
-    assert project.stacks == ("python", "restassured")
+    assert project.frameworks == ("pytest", "restassured")
     assert not check_project(project).has_errors
     assert not generate(project, check=True).drifted
 

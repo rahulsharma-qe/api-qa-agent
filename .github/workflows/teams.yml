@@ -1,4 +1,4 @@
-# Two teams, two stacks, one line of CI each: the reusable workflow, as a team's own repository
+# Two teams, two frameworks, one line of CI each: the reusable workflow, as a team's own repository
 # would call it (here from this checkout, so the teams test the platform's current code).
 name: Teams
 
@@ -11,7 +11,7 @@ jobs:
   bookings-python:
     uses: ./.github/workflows/qa-agent-team.yml
     with:
-      stack: python
+      framework: pytest
       project-path: teams/bookings-python
       name: bookings-python
       start-reference-api: true
@@ -20,7 +20,7 @@ jobs:
   refunds-java:
     uses: ./.github/workflows/qa-agent-team.yml
     with:
-      stack: restassured
+      framework: restassured
       project-path: teams/refunds-java
       name: refunds-java
       start-reference-api: true

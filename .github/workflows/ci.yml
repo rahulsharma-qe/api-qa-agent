@@ -113,8 +113,8 @@ jobs:
 
   qa-agent:
     # qa-agent end to end on the example team project: rebuilt from its inputs and compared, both
-    # stacks' generated tests run against the reference API, and the trace. Then the day-one promise:
-    # a new project from qa-agent init runs, in each stack.
+    # frameworks' generated tests run against the reference API, and the trace. Then the day-one promise:
+    # a new project from qa-agent init runs, in each framework.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -131,12 +131,12 @@ jobs:
       - name: Install the REST Assured framework (the generated Java tests use it)
         working-directory: frameworks/restassured_api
         run: ./mvnw -q -B install -DskipTests
-      - name: Every step on the example, both stacks, and the trace
+      - name: Every step on the example, both frameworks, and the trace
         run: examples/bookings-team/run_all.sh
-      - name: A new project from qa-agent init runs, in each stack
+      - name: A new project from qa-agent init runs, in each framework
         run: |
-          qa-agent init "$RUNNER_TEMP/python-team" --stack python
-          qa-agent init "$RUNNER_TEMP/java-team" --stack restassured
+          qa-agent init "$RUNNER_TEMP/python-team" --framework pytest
+          qa-agent init "$RUNNER_TEMP/java-team" --framework restassured
           python -m mock_service > "$RUNNER_TEMP/mock_service.log" 2>&1 &
           cd "$RUNNER_TEMP/python-team"
           python -m env_check --env mock
@@ -171,7 +171,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/new"
           cd "$RUNNER_TEMP/new"
-          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/project" qa-agent init my-team --stack python
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/project" qa-agent init my-team --framework pytest
           test "$(stat -c %u my-team/qa-agent.yaml)" = "$(id -u)"
           cd my-team
           docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/project" qa-agent check

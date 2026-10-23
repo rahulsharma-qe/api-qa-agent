@@ -8,7 +8,7 @@ import pytest
 
 @pytest.fixture
 def make_project(tmp_path):
-    def make(files: dict[str, str], config: str = "team: t\nservice: bookings\nstacks: [python]\n") -> Path:
+    def make(files: dict[str, str], config: str = "team: t\nservice: bookings\nframeworks: [pytest]\n") -> Path:
         (tmp_path / "qa-agent.yaml").write_text(config, encoding="utf-8")
         for name, text in files.items():
             path = tmp_path / name

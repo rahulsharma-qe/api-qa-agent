@@ -1,4 +1,4 @@
-"""`qa-agent generate`: approved cases -> tests, for every stack in qa-agent.yaml.
+"""`qa-agent generate`: approved cases -> tests, for every framework in qa-agent.yaml.
 
 Only a case that is approved and unchanged since (its fingerprint matches) becomes code. The output
 folders belong to qa-agent: a generated file whose cases are no longer approved is removed; a file
@@ -24,7 +24,7 @@ class GenerateResult:
     unchanged: list = field(default_factory=list)
     removed: list = field(default_factory=list)
     left_alone: list = field(default_factory=list)    # files in the output folder qa-agent didn't write
-    tests: dict = field(default_factory=dict)         # stack -> number of tests
+    tests: dict = field(default_factory=dict)         # framework -> number of tests
     not_generated: list = field(default_factory=list) # "TC005: changes needed"
     problems: list = field(default_factory=list)      # cases a framework can't express
     out_of_date: list = field(default_factory=list)   # --check: files that differ, are missing or left over
@@ -46,7 +46,7 @@ class GenerateResult:
         lines += [f"left alone {path} (not written by qa-agent)" for path in self.left_alone]
         lines += [f"not generated: {item}" for item in self.not_generated]
         lines += [f"problem: {item}" for item in self.problems]
-        lines.append(" · ".join(f"{stack}: {count} tests" for stack, count in self.tests.items()) or "no stacks")
+        lines.append(" · ".join(f"{framework}: {count} tests" for framework, count in self.tests.items()) or "no frameworks")
         return "\n".join(lines)
 
 
@@ -56,8 +56,8 @@ def generate(project: TeamProject, check: bool = False) -> GenerateResult:
     left_out = sorted((case for case_file in case_files for case in case_file.cases if not case.is_approved),
                       key=lambda case: natural_order(case.id))
     result.not_generated = [f"{case.id}: {_why_not(case)}" for case in left_out]
-    for stack in project.stacks:
-        renderer = RENDERERS[stack]
+    for framework in project.frameworks:
+        renderer = RENDERERS[framework]
         expected, approved_everywhere, count = {}, [], 0
         for case_file in case_files:
             cases = []
@@ -65,7 +65,7 @@ def generate(project: TeamProject, check: bool = False) -> GenerateResult:
                 try:
                     renderer.render_file(project.relative(case_file.path), case_file, [case])
                 except RenderError as error:
-                    result.problems.append(f"{stack}: {error}")
+                    result.problems.append(f"{framework}: {error}")
                     continue
                 cases.append(case)
             if cases:
@@ -77,7 +77,7 @@ def generate(project: TeamProject, check: bool = False) -> GenerateResult:
             for generated in renderer.support_files(approved_everywhere):
                 expected[generated.path] = generated.text
         (_compare if check else _write)(project, renderer, expected, result)
-        result.tests[stack] = count
+        result.tests[framework] = count
     return result
 
 

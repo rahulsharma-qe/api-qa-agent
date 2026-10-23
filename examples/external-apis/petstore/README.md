@@ -30,7 +30,7 @@ qa-agent trace --results reports/junit.xml target/surefire-reports
 3. The team's cases, in the API layout of `existing/petstore_cases.xlsx`, imported:
    `qa-agent import cases existing/petstore_cases.xlsx`. Each case makes its own pet or order (fixed
    ids, a unique name) and deletes it, so it never depends on anyone else's data.
-4. Reviewed in `review/cases.xlsx` by the team's lead, then generated in both stacks.
+4. Reviewed in `review/cases.xlsx` by the team's lead, then generated in both frameworks.
 
 ## What it found
 

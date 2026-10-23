@@ -38,10 +38,10 @@ def test_a_folder_that_is_not_a_project_is_a_setup_problem(tmp_path, capsys):
 
 
 def test_a_bad_project_file_is_a_setup_problem(make_project, capsys):
-    root = make_project({}, config="team: t\nstacks: [cobol]\n")
+    root = make_project({}, config="team: t\nframeworks: [cobol]\n")
     assert main(["--project", str(root), "check"]) == 2
     err = capsys.readouterr().err
-    assert "'service' is missing" in err and "unknown stack 'cobol'" in err
+    assert "'service' is missing" in err and "unknown framework 'cobol'" in err
 
 
 def test_a_missing_api_file_is_a_setup_problem(make_project, capsys):

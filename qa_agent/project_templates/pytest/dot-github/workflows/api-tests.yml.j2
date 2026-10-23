@@ -1,5 +1,5 @@
 # The team's API tests on every change, with the platform's reusable workflow: the environment is
-# ready, the generated tests match the approved cases, the tests ({{ "pytest" if stack == "python" else "REST Assured" }}), the trace.
+# ready, the generated tests match the approved cases, the tests ({{ "pytest" if framework == "pytest" else "REST Assured" }}), the trace.
 name: API tests
 
 on:
@@ -10,7 +10,7 @@ jobs:
   api-tests:
     uses: rahulsharma-qe/api-qa-agent/.github/workflows/qa-agent-team.yml@main
     with:
-      stack: python
+      framework: pytest
       environment: mock                 # an environment in config/environments.yaml
       name: {{ artifact }}
       start-reference-api: true         # the reference API; remove it when you test your own environment

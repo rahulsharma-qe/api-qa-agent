@@ -22,8 +22,8 @@ agent, `playwright-qa-agent`, is a separate repository that depends on it.
    missing; a person approves cases and data in a review file before anything becomes a test.
 4. **Two suites.** New work is *functional*; a case that passes and stays stable is promoted to
    *regression*, which runs on every build with no AI and no API key.
-5. **Many teams, many stacks, many environments.** Each team works in its own repository and builds
-   only its own stack; any number of environments and services per team.
+5. **Many teams, many frameworks, many environments.** Each team works in its own repository and builds
+   only its own framework; any number of environments and services per team.
 6. **Safe for regulated organisations.** Only the API's structure is sent to a model, after
    redaction; the model can run inside the organisation's own cloud; every call is logged.
 7. **The AI's work is measured.** The bug-detection rate of the generated suite (seeded bugs caught), agreement of the AI
@@ -256,7 +256,7 @@ flowchart TB
   linkStyle default stroke:#94a3b8,stroke-width:2px
 ```
 
-- **A team builds only its own stack.** A Python team never installs Java; a Java team never
+- **A team builds only its own framework.** A Python team never installs Java; a Java team never
   installs the Python framework.
 - **Teams don't affect each other:** separate repositories, separate CI, separate results.
 - **Frameworks are versioned.** A team pins a version and upgrades when it chooses.
@@ -264,7 +264,7 @@ flowchart TB
   drift check keeps it in step with the approved cases.
 - **Organisation defaults, team overrides that can only tighten them** (for example, an
   environment marked read-only stays read-only).
-- **One line joins a team's CI:** the reusable workflow, with the stack and the environment as
+- **One line joins a team's CI:** the reusable workflow, with the framework and the environment as
   inputs. Teams on Jenkins or GitLab follow the same four steps from the guide.
 - In this repository, `teams/<team>/` folders play the team repositories: each has exactly the
   shape of a standalone team repository.
@@ -324,8 +324,8 @@ flowchart TB
 | Review in an Excel sheet | Testers and analysts already work in sheets; a record of who approved what; CI can check it | An importer and exporter for the sheet |
 | Allure for people, JUnit XML for CI | One readable report (steps, requests, responses, history) in both frameworks; CI still reads JUnit | Allure's command-line tool to build the HTML |
 | Retry once, shown separately | Flaky tests don't block a build, and a retry never hides a failure | A second run on failure |
-| TestNG with REST Assured | The stack most QA teams already run: groups, `testng.xml` suites, data providers, listeners | Not the default in developer teams (JUnit 5) |
-| Frameworks as libraries; teams in their own repositories | Teams independent; each builds one stack | Versions to publish and maintain |
+| TestNG with REST Assured | The framework most QA teams already run: groups, `testng.xml` suites, data providers, listeners | Not the default in developer teams (JUnit 5) |
+| Frameworks as libraries; teams in their own repositories | Teams independent; each builds one framework | Versions to publish and maintain |
 | env_check as a separate tool | One tool for every framework; can become its own service later | Another small tool to keep |
 | Cucumber on top of REST Assured | One Java client, not two; the plain-English feature files analysts read | Cucumber waits for REST Assured (phase 3c) |
 | `setup-python` in CI before a Docker image | Less to build and keep now | A Java team needs Python to run `qa-agent` until the image exists |
