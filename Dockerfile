@@ -8,6 +8,8 @@
 # they always run (pytest or Maven): they call your API, and inside a container "localhost" is the
 # container, not your machine.
 FROM python:3.12-slim
+LABEL org.opencontainers.image.source="https://github.com/rahulsharma-qe/api-qa-agent" \
+      org.opencontainers.image.description="qa-agent: test cases as data, reviewed by a person, turned into API tests"
 
 WORKDIR /opt/qa-agent
 COPY pyproject.toml README.md LICENSE ./

@@ -1,0 +1,34 @@
+# A version tag (v0.3.0) publishes qa-agent's Docker image to the GitHub Container Registry:
+# ghcr.io/rahulsharma-qe/qa-agent:<version> and :latest. The tag must match qa-agent's version.
+# The release notes are written on GitHub (Releases -> Draft a new release -> the same tag).
+name: Release
+
+on:
+  push:
+    tags: [ "v*" ]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  docker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: The tag matches qa-agent's version
+        run: |
+          version="$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          test "${GITHUB_REF_NAME#v}" = "$version" || { echo "tag $GITHUB_REF_NAME, but pyproject.toml says $version"; exit 1; }
+      - name: Build the image and check it runs
+        run: |
+          docker build -t qa-agent .
+          docker run --rm qa-agent --version | grep -qx "qa-agent ${GITHUB_REF_NAME#v}"
+      - name: Publish it
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/qa-agent"
+          for tag in "${GITHUB_REF_NAME#v}" latest; do
+            docker tag qa-agent "$image:$tag"
+            docker push "$image:$tag"
+          done

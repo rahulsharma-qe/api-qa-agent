@@ -963,8 +963,11 @@ docker run --rm -v "$PWD:/project" qa-agent check
   package), `WORKDIR /project`, `ENTRYPOINT ["qa-agent"]`.
 - CI job `docker-image`: builds the image, runs `check`, `generate --check` and `trace --check` on the
   example inside it, then `init` a new project and checks the files belong to the runner's user.
-- Later: publishing (a version tag, then the package made public), and tests in the image for teams
-  whose API runs in the same Docker network.
+- Publishing: a version tag (`v0.3.0`) runs `.github/workflows/release.yml`: it checks the tag matches
+  qa-agent's version, builds the image, checks `qa-agent --version` inside it, and pushes
+  `ghcr.io/rahulsharma-qe/qa-agent:<version>` and `:latest`. The image's source label links the
+  package to this repository; the package is made public once, by hand.
+- Later: tests in the image for teams whose API runs in the same Docker network.
 
 ### 10.7 Smaller items
 
