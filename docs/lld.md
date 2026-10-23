@@ -397,7 +397,7 @@ The two Python jobs run on Python 3.11 and 3.12, on every push and pull request.
 | `docs/architecture.md` (its design decisions) | In [`docs/history/first-version.md`](history/first-version.md); the new design took its place |
 | `adapters/`, `examples/`, `tests/test_engine.py` (its engine, five framework renderers, sample service and test) | Removed when phase 1 ended; in the git history. The reference frameworks are on the later list |
 | `requirements.txt` | Removed: `pip install -e .` installs the reference API and env_check |
-| `core/` (its language-model steps) | Kept until phase 6 reworks it into the AI layer |
+| `core/` (its language-model steps) | Removed in phase 6: the AI layer (`qa_agent/ai/`) replaces it |
 
 ## 9. Phase 3a: cases, importers, the review sheet, generated tests, trace, init
 

@@ -120,7 +120,6 @@ In Windows PowerShell, write `${PWD}` instead of `$PWD`.
 | [`examples/external-apis/`](examples/external-apis/) | qa-agent and both frameworks on APIs this repository didn't write; first, Swagger Petstore |
 | [`.github/workflows/qa-agent-team.yml`](.github/workflows/qa-agent-team.yml) | The reusable workflow a team's CI calls: environment ready, generated tests up to date, tests, trace |
 | [`docs/`](docs/) | The design: [high-level](docs/architecture.md) and [low-level](docs/lld.md) |
-| `core/` | The first version's language-model steps (case and data drafting, a review step); reworked into the AI layer later |
 
 ## Design choices
 
