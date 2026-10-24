@@ -60,7 +60,7 @@ class ReviewImportResult:
 
     def as_text(self) -> str:
         lines = [f"applied  {line}" for line in self.applied] + [f"refused  {line}" for line in self.refused]
-        lines.append(f"{len(self.applied)} decisions applied, {len(self.refused)} refused")
+        lines.append(f"{plural(len(self.applied), 'decision')} applied, {len(self.refused)} refused")
         return "\n".join(lines)
 
 
