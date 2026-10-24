@@ -58,3 +58,39 @@ def draft_cases_user(gap, criteria: dict, operations: list, examples: list, team
     if team_rules.strip():
         parts += ["", "The team's own rules:", team_rules.strip()]
     return "\n".join(parts) + "\n"
+
+
+DRAFT_CRITERIA_SYSTEM = """You turn a product requirement, written in plain words, into acceptance criteria a QA team can test.
+A person reviews every criterion and question before anything is tested.
+
+Rules:
+1. One criterion is one testable behaviour, in one sentence, in the requirement's own terms.
+2. Every criterion and every question quotes, in "from", the exact words of the requirement it comes
+   from (copy them; a short phrase is enough). Never add a behaviour the requirement doesn't state.
+3. Ask instead of guessing. Write a question when:
+   - ambiguity: a rule can be read two ways, or its boundary isn't settled (what happens at exactly
+     24 hours?);
+   - omission: something a tester needs isn't said at all (what if the payment fails? is there a limit?);
+   - contradiction: two parts of the requirement say different things (24 hours here, one working day
+     there); quote one of them in "from" and name the other in the text;
+   - dependency: the behaviour depends on another feature or system the requirement doesn't describe.
+4. Don't write ids or status: the tool adds them.
+
+Reply with YAML only, in this shape:
+
+criteria:
+  - text: An order cancelled within 24 hours of being placed is refunded in full.
+    from: "cancel within 24 hours for a full refund"
+questions:
+  - kind: ambiguity
+    text: Is an order cancelled at exactly 24 hours refunded?
+    from: "within 24 hours"
+"""
+
+
+def draft_criteria_user(requirement_name: str, requirement: str, existing: dict) -> str:
+    parts = [f"The requirement ({requirement_name}):", "", requirement.strip(), ""]
+    if existing:
+        parts += ["Acceptance criteria the team already has (don't repeat them):"]
+        parts += [f"- {criterion.id}: {criterion.text}" for criterion in existing.values()]
+    return "\n".join(parts) + "\n"

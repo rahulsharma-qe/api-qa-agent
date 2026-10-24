@@ -10,6 +10,7 @@
     qa-agent promote --runs r1 r2 r3 [--apply]       stable functional cases -> regression; a person applies it
     qa-agent suite TC010 functional --by --reason    a person moves a case between suites, on the record
     qa-agent bug-detection --seeded-bugs seeded-bugs.yaml --framework pytest   the bug-detection rate: seeded bugs, one at a time
+    qa-agent draft criteria requirements/x.md        the AI layer: criteria and questions from a requirement in plain words
     qa-agent draft cases [--plan] [--max 10]         the AI layer: a draft case per coverage gap, for a person to review
 
 Exit codes: 0 done (no errors), 1 errors found, 2 the project or an input can't be read.
@@ -25,9 +26,10 @@ from qa_agent.api_model import ApiModel, ApiModelError, load_api_model, save_api
 from qa_agent.bug_detection import measure
 from qa_agent.case_import import import_cases
 from qa_agent.cases import CaseFormatError
-from qa_agent.ai.models import ModelSetupError
+from qa_agent.ai.models import ModelError, ModelSetupError
 from qa_agent.ai.session import AiSession
 from qa_agent.checks import check_project, plural
+from qa_agent.criteria_drafting import draft_criteria
 from qa_agent.drafting import DEFAULT_MAX, draft_cases, plan
 from qa_agent.generate import generate
 from qa_agent.init_project import init_project
@@ -135,6 +137,9 @@ def _parser() -> argparse.ArgumentParser:
 
     drafting = commands.add_parser("draft", help="the AI layer: drafts for a person to review").add_subparsers(
         title="draft", metavar="<what>")
+    criteria = drafting.add_parser("criteria", help="acceptance criteria and questions from a requirement in plain words")
+    criteria.add_argument("requirement", type=Path, help="a text or markdown file: a story, a part of a spec")
+    criteria.set_defaults(run=run_draft_criteria)
     cases = drafting.add_parser("cases", help="a draft case for each coverage gap (criteria, operations, codes)")
     cases.add_argument("--plan", action="store_true", help="list the gaps, the calls and an estimate; call no model")
     cases.add_argument("--max", type=int, default=DEFAULT_MAX, help=f"at most this many gaps (default: {DEFAULT_MAX})")
@@ -263,6 +268,17 @@ def run_draft_cases(args) -> int:
     print(report.as_text())
     if report.stopped:
         return SETUP_PROBLEM
+    return FINDINGS if report.refused else DONE
+
+
+def run_draft_criteria(args) -> int:
+    project = TeamProject.load(args.project)
+    try:
+        report = draft_criteria(project, AiSession.for_project(project), args.requirement)
+    except ModelError as error:
+        print(f"qa-agent: the model couldn't be reached: {error}", file=sys.stderr)
+        return SETUP_PROBLEM
+    print(report.as_text())
     return FINDINGS if report.refused else DONE
 
 
