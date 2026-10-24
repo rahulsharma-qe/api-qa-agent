@@ -1,6 +1,10 @@
 """`qa-agent draft criteria <requirement>`: acceptance criteria and questions, drafted from plain words.
 
     qa-agent draft criteria requirements/cancellation.md
+    qa-agent draft criteria - --ref PROJ-123          the text from stdin (pasted, or piped from a tool)
+
+--ref names where the requirement lives (a ticket, a page): the criteria point back to it, and the
+next run with the same ref finds what changed. Without it, the file's path is the name.
 
 One model call. The reply is checked item by item before anything is written:
 
@@ -19,6 +23,7 @@ person approves each criterion and answers each question in the review sheet.
 """
 
 import re
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -52,12 +57,37 @@ class CriteriaDraftReport:
         return "\n".join(lines)
 
 
-def draft_criteria(project: TeamProject, session: AiSession, requirement_path: Path) -> CriteriaDraftReport:
-    if not requirement_path.is_file():
-        raise SetupError(f"no requirement at {requirement_path}")
-    requirement = requirement_path.read_text(encoding="utf-8")
-    name = project.relative(requirement_path)
-    reply = session.ask(f"draft criteria {requirement_path.stem}", DRAFT_CRITERIA_SYSTEM,
+@dataclass
+class Requirement:
+    text: str
+    name: str          # what the criteria point back to: the ref (PROJ-123), else the file's path
+    short: str         # for the model call's name: the ref, else the file's name without .md
+
+
+def read_requirement(project: TeamProject, where: str, ref: str = "", stdin=None) -> Requirement:
+    """where is a file, or - for stdin (which needs a ref: there is no other name to point back to)."""
+    ref = ref.strip()
+    if where == "-":
+        if not ref:
+            raise SetupError("reading from stdin needs --ref (the ticket or page it came from, e.g. --ref PROJ-123): "
+                             "the criteria point back to it")
+        text = (stdin or sys.stdin).read()
+    else:
+        path = Path(where)
+        if not path.is_file():
+            raise SetupError(f"no requirement at {where}")
+        text = path.read_text(encoding="utf-8")
+    if not text.strip():
+        raise SetupError(f"the requirement {ref or where} is empty")
+    if ref:
+        return Requirement(text, ref, ref)
+    return Requirement(text, project.relative(Path(where)), Path(where).stem)
+
+
+def draft_criteria(project: TeamProject, session: AiSession, source: Requirement) -> CriteriaDraftReport:
+    requirement, name = source.text, source.name
+    reply = session.ask(f"draft criteria {source.short}",
+                        DRAFT_CRITERIA_SYSTEM,
                         draft_criteria_user(name, requirement, project.read_all_criteria()), max_tokens=3000)
     report = CriteriaDraftReport()
     items = _read_reply(reply)

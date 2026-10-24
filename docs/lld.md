@@ -1028,6 +1028,7 @@ to settle, as in a requirement review.
 | Command | What it does | Model calls |
 |---|---|---|
 | `qa-agent draft criteria <requirement file>` | Acceptance criteria drafted from plain words, each with the line it came from | One |
+| `qa-agent draft criteria - --ref PROJ-123` | The same, the requirement pasted or piped in; the criteria point back to the ref | One |
 | `qa-agent draft cases --plan` | The gaps, the calls and the estimated cost | None |
 | `qa-agent draft cases [--max 10]` | A draft case for each gap, up to `--max` | One per gap |
 | `qa-agent draft cases --redo TC045 [TC048]` | A new draft for an AI draft a reviewer rejected or sent back, using the comment | One per case |
@@ -1132,4 +1133,21 @@ qa-agent draft criteria requirements/cancellation.md
 | Asked again: `already redone as TC051`, no model call | Safe to re-run |
 | The gap is found with the sent-back drafts left out. If another case covers it now, nothing is redone and the message says to reject the old one in the review sheet | Two drafts for one criterion, both sent back: the first redo covers the criterion, so the second isn't drafted twice |
 | A refused reply leaves the old draft as the reviewer left it | Nothing changes unless something better was written |
+
+**A requirement from where it lives.** Requirements change in a ticket or a page, not in a folder of
+files, so a file is not needed:
+
+```
+qa-agent draft criteria - --ref PROJ-123          # paste, then Ctrl-D; or pipe it from any tool
+qa-agent draft criteria story.md --ref PROJ-123   # a file, named by the ticket
+```
+
+| Rule | Why |
+|---|---|
+| `--ref` becomes `source.requirement` of every criterion and question drafted | A reviewer can open the ticket; the next run with the same ref knows which criteria came from it |
+| `-` (stdin) needs `--ref`; an empty requirement is a setup problem (exit 2), with no model call | Without a ref there is nothing to point back to |
+| Without `--ref`, the file's path is the name, as before | Nothing changes for a team that keeps requirement files |
+
+No connector to a project tool is built in: a pipe works with any of them, and one more setting is
+one more thing to break.
 

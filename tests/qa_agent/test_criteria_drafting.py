@@ -1,5 +1,7 @@
 """qa-agent draft criteria: criteria and questions from a requirement, each grounded in its words."""
 
+import io
+
 import pytest
 
 from qa_agent.cli import main
@@ -118,3 +120,35 @@ def test_a_quote_of_a_word_or_two_proves_nothing_and_is_refused(project, capsys)
         "criteria:\n  - text: Refunds are instant.\n    from: Refunds\n")
     code, out = run(project, capsys)
     assert code == 1 and "refused   Refunds are instant.: it must quote at least 3 words of the requirement" in out
+
+
+def from_stdin(project, capsys, monkeypatch, text, *ref):
+    monkeypatch.setattr("sys.stdin", io.StringIO(text))
+    code = main(["--project", str(project.root), "draft", "criteria", "-", *ref])
+    return code, capsys.readouterr()
+
+
+def test_a_requirement_pasted_in_points_back_to_its_ref(project, capsys, monkeypatch):
+    (project.root / "ai/recorded/draft-criteria-proj-123.txt").write_text(REPLY)
+    code, out = from_stdin(project, capsys, monkeypatch, REQUIREMENT, "--ref", "PROJ-123")
+    assert code == 1 and "drafted   AC-2" in out.out
+    drafts = CriteriaDrafts.load(project)
+    assert drafts.criteria[0]["source"]["requirement"] == "PROJ-123"
+    assert drafts.questions[0]["requirement"] == "PROJ-123"
+
+
+def test_a_file_with_a_ref_points_back_to_the_ref(project, capsys):
+    (project.root / "ai/recorded/draft-criteria-proj-7.txt").write_text(REPLY)
+    main(["--project", str(project.root), "draft", "criteria", str(project.root / "requirements/cancel.md"),
+          "--ref", "PROJ-7"])
+    assert CriteriaDrafts.load(project).criteria[0]["source"]["requirement"] == "PROJ-7"
+
+
+@pytest.mark.parametrize("text, ref, message", [
+    (REQUIREMENT, [], "reading from stdin needs --ref"),
+    ("  \n", ["--ref", "PROJ-1"], "the requirement PROJ-1 is empty"),
+])
+def test_stdin_needs_a_ref_and_some_words(project, capsys, monkeypatch, text, ref, message):
+    code, out = from_stdin(project, capsys, monkeypatch, text, *ref)
+    assert code == 2 and message in out.err
+    assert not (project.root / "reports" / "ai-audit-log.jsonl").exists()
