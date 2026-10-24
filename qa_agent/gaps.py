@@ -46,11 +46,19 @@ class Gap:
         codes = ", ".join(str(code) for code in self.codes)
         return f"{self.key}: no case expects {codes}"
 
+    def describe_for_redo(self) -> str:
+        """For the model, when a reviewer sent a draft back: what that draft was for (other cases may
+        cover it by now, so "has no case" could be wrong)."""
+        if self.kind == "criterion":
+            return f"Acceptance criterion {self.criterion.id}: {self.criterion.text}"
+        if self.kind == "401":
+            return f"A call to the {self.service} service without a valid token (expect 401)"
+        return f"{self.key}, with the response codes the draft below expects"
 
-def find_gaps(project: TeamProject, leave_out: frozenset = frozenset()) -> list[Gap]:
-    """What no case covers. Cases in leave_out are counted as not there (a redo asks: without this case?)."""
+
+def find_gaps(project: TeamProject) -> list[Gap]:
     cases = [case for path in project.case_files() for case in load_case_file(path).cases
-             if case.review.status != "rejected" and case.id not in leave_out]
+             if case.review.status != "rejected"]
     gaps = [Gap(criterion.id, "criterion", criterion=criterion)
             for criterion in project.read_criteria().values()
             if not any(criterion.id in case.criteria for case in cases)]

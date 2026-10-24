@@ -237,13 +237,43 @@ def test_a_redo_and_a_plan_dont_go_together(project, capsys):
     assert main(["--project", str(project.root), "draft", "cases", "--redo", "TC002", "--plan"]) == 2
 
 
-def test_a_gap_another_case_covers_now_is_not_redone(project, capsys):
-    sent_back(project)
+def test_a_draft_sent_back_is_redone_whatever_other_cases_cover_now(project, capsys):
+    sent_back(project)                    # TC002 and TC003 (both AC-2) sent back; a person's case now covers AC-2
     human = project.root / "cases" / "bookings.yaml"
     human.write_text(human.read_text().replace("criteria: [AC-1]", "criteria: [AC-1, AC-2]"))
+    reply(project, "redo-tc002", REDO_AC2)
+    assert redo(project, "TC002") == 0   # the reviewer asked for it: the reviewer decides on the new draft
+    sent = json.loads((project.root / "reports" / "ai-audit-log.jsonl").read_text().splitlines()[-1])["sent"]["user"]
+    assert sent.startswith("What the draft was for: Acceptance criterion AC-2: ") and "has no case" not in sent
+
+
+def test_an_operations_draft_is_redone_with_what_it_was_for(project, capsys):
+    reply(project, file_name("draft GET /bookings/search"),
+          "cases:\n  - {title: Search, steps: [{request: {method: GET, path: /bookings/search}, expect: {status: 200}}]}")
+    for key in [gap.key for gap in pending_gaps(project)[0]]:
+        if key != "GET /bookings/search":
+            reply(project, file_name(f"draft {key}"), "cases: []\nreason: not in this test")
+    main(["--project", str(project.root), "draft", "cases"])
+    case_file = load_case_file(project.root / "cases" / "bookings-drafts.yaml")
+    old = case_file.cases[0]
+    old.review.status, old.review.comment = "rejected", "too thin: check the list has a total"
+    save_case_file(case_file)
+    reply(project, file_name(f"redo {old.id}"), "cases:\n  - {title: Search has a total, steps: [{request: "
+                                                "{method: GET, path: /bookings/search}, expect: {status: 200, exists: [total]}}]}")
+    assert redo(project, old.id) == 0
+    sent = json.loads((project.root / "reports" / "ai-audit-log.jsonl").read_text().splitlines()[-1])["sent"]["user"]
+    assert sent.startswith("What the draft was for: GET /bookings/search, with the response codes the draft below expects")
+    assert drafts(project)[-1].source == {"kind": "ai-draft", "model": "recorded:recorded", "gap": "GET /bookings/search",
+                                          "replaces": old.id}
+
+
+def test_a_draft_for_a_criterion_no_longer_approved_is_not_redone(project, capsys):
+    sent_back(project)
+    criteria = project.root / "acceptance-criteria.yaml"
+    criteria.write_text(criteria.read_text().replace("  - {id: AC-2", "  - {status: draft, id: AC-2"))
     capsys.readouterr()
     assert redo(project, "TC002") == 1
-    assert "not redone TC002: its gap AC-2 is covered by another case now (see qa-agent trace): reject this one in the review sheet" in capsys.readouterr().out
+    assert "criterion AC-2 is not approved now: approve it first, or reject this case" in capsys.readouterr().out
 
 
 AC2_COVERS_CANCEL = GOOD_AC2.replace("```\n", "").replace("```yaml\n", "") + """  - title: A booking can't be cancelled twice

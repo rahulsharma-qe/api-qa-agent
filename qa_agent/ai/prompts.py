@@ -47,7 +47,8 @@ list_length, list_contains, list_excludes (path: {field: value}), headers, max_r
 
 def draft_cases_user(gap, criteria: dict, operations: list, examples: list, team_rules: str,
                      sent_back: Optional[dict] = None) -> str:
-    parts = [f"The gap: {gap.describe()}", "", "Acceptance criteria:"]
+    what = f"What the draft was for: {gap.describe_for_redo()}" if sent_back else f"The gap: {gap.describe()}"
+    parts = [what, "", "Acceptance criteria:"]
     parts += [f"- {criterion.id}: {criterion.text}" for criterion in criteria.values()] or ["(none)"]
     parts += ["", f"The API (service {gap.service or 'main'}):"]
     for operation in operations:

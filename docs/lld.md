@@ -1134,7 +1134,9 @@ qa-agent draft criteria requirements/cancellation.md
 | The new draft goes through every check a first draft does; its source adds `replaces: TC045` | Nothing about a redo is trusted more than a first draft |
 | Then the old case becomes `rejected`, its comment ending `(replaced by TC051)` | It stays in the file as history; a rejected case covers nothing, so the trace counts only the new one |
 | Asked again: `already redone as TC051`, no model call | Safe to re-run |
-| The gap is found with the sent-back drafts left out. If another case covers it now, nothing is redone and the message says to reject the old one in the review sheet | Two drafts for one criterion, both sent back: the first redo covers the criterion, so the second isn't drafted twice |
+| No rule about coverage: a draft sent back is redone, whatever other cases cover its gap now; the reviewer decides on the new one, a duplicate included | The reviewer asked for it; a criterion holds several behaviours, and a count of its cases says nothing about the one sent back |
+| The prompt says what the draft was for ("Acceptance criterion AC-3: ..."), not that the gap has no case | Other cases may cover it by now |
+| A draft for a criterion that is no longer approved is not redone: approve the criterion first, or reject the case | The new draft would be refused anyway |
 | A refused reply leaves the old draft as the reviewer left it | Nothing changes unless something better was written |
 
 **A requirement from where it lives.** Requirements change in a ticket or a page, not in a folder of

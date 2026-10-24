@@ -153,11 +153,7 @@ def redo(project: TeamProject, session: AiSession, case_ids: list) -> RedoReport
         reason = _why_not_redo(case_id, old, cases)
         gap = None
         if not reason:
-            sent_back = frozenset(case.id for case in cases.values() if case.review.status in SENT_BACK)
-            gap = next((g for g in find_gaps(project, sent_back) if g.key == old.source.get("gap")), None)
-            if gap is None:
-                # the drafts reviewers sent back don't count: they are being redone
-                reason = f"its gap {old.source.get('gap')} is covered by another case now (see qa-agent trace): reject this one in the review sheet"
+            gap, reason = _gap_of(project, old)
         if reason:
             report.not_redone.append((case_id, reason))
             continue
@@ -175,6 +171,22 @@ def redo(project: TeamProject, session: AiSession, case_ids: list) -> RedoReport
         _mark_replaced(project, case_id, result[0])
         report.redone.append((case_id, *result))
     return report
+
+
+def _gap_of(project: TeamProject, old: Case) -> tuple:
+    """(what the sent-back draft was for, '') or (None, why it can't be redone).
+
+    No rule about coverage: the reviewer asked for a redo, so there is one, and the reviewer decides
+    on the new draft, as on any other (a duplicate of another case included)."""
+    key = old.source.get("gap", "")
+    criteria = project.read_criteria()
+    if key in criteria:
+        return Gap(key, "criterion", criterion=criteria[key]), ""
+    if key in project.read_all_criteria():
+        return None, f"criterion {key} is not approved now: approve it first, or reject this case"
+    if key.startswith("401 ("):
+        return Gap(key, "401", service=key[len("401 ("):-1], codes=[401]), ""
+    return Gap(key, "operation", service=next((step.request.service for step in old.steps if step.request.service), "")), ""
 
 
 def _why_not_redo(case_id: str, old: Optional[Case], cases: dict) -> str:
