@@ -96,9 +96,13 @@ questions:
 """
 
 
-def draft_criteria_user(requirement_name: str, requirement: str, existing: dict) -> str:
+def draft_criteria_user(requirement_name: str, requirement: str, existing: dict, changed: tuple = ()) -> str:
     parts = [f"The requirement ({requirement_name}):", "", requirement.strip(), ""]
     if existing:
         parts += ["Acceptance criteria the team already has (don't repeat them):"]
         parts += [f"- {criterion.id}: {criterion.text}" for criterion in existing.values()]
+    if changed:
+        parts += ["", "These criteria quote words that are no longer in the requirement. Where the requirement "
+                  "now says something else about the same behaviour, draft the criterion as it reads now:"]
+        parts += [f"- {key}: {text}" for key, text in changed]
     return "\n".join(parts) + "\n"

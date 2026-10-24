@@ -1029,6 +1029,7 @@ to settle, as in a requirement review.
 |---|---|---|
 | `qa-agent draft criteria <requirement file>` | Acceptance criteria drafted from plain words, each with the line it came from | One |
 | `qa-agent draft criteria - --ref PROJ-123` | The same, the requirement pasted or piped in; the criteria point back to the ref | One |
+| `qa-agent draft criteria ... --plan` | What changed in the requirement since the last run, and the call's estimate | None |
 | `qa-agent draft cases --plan` | The gaps, the calls and the estimated cost | None |
 | `qa-agent draft cases [--max 10]` | A draft case for each gap, up to `--max` | One per gap |
 | `qa-agent draft cases --redo TC045 [TC048]` | A new draft for an AI draft a reviewer rejected or sent back, using the comment | One per case |
@@ -1150,4 +1151,23 @@ qa-agent draft criteria story.md --ref PROJ-123   # a file, named by the ticket
 
 No connector to a project tool is built in: a pipe works with any of them, and one more setting is
 one more thing to break.
+
+**When the requirement changes.** Run the same command again with the new text and the same ref.
+Before any model call, code compares each drafted criterion from that ref with the new text:
+
+| Rule | Why |
+|---|---|
+| A criterion (draft or approved) whose quoted words are no longer in the text goes back to `changes_needed`, reviewed by `qa-agent`, its comment saying which words went and who had approved it | The quote is the proof a criterion came from the requirement; when it is gone, a person decides again |
+| It drops out of `read_criteria()`, so `check` warns on every case linked to it | The cases to look at are found without anyone searching |
+| The model is told which criteria changed and asked to draft them as the text reads now; the rest of the text is drafted as usual, and what is already there is skipped | New and changed parts get drafts; nothing is drafted twice |
+| `--plan` shows the criteria drafted from the ref before and the ones that changed, with the call's estimate; nothing is sent or written | See the size of a change before paying for it |
+| A criterion already `changes_needed` or `rejected` is left alone; running again marks nothing twice | Safe to re-run |
+
+What it does not do, on purpose:
+
+- A different ref is a different requirement: nothing is compared across refs.
+- Any change to the quoted words counts, a fixed typo too: the reviewer approves again in a click.
+  A guess at "only a small change" would be the tool deciding what a person should.
+- Criteria in a person's own `acceptance-criteria.yaml` and questions are not compared: they carry
+  no quote from a ref.
 

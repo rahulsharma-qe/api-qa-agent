@@ -6,6 +6,12 @@
 --ref names where the requirement lives (a ticket, a page): the criteria point back to it, and the
 next run with the same ref finds what changed. Without it, the file's path is the name.
 
+    qa-agent draft criteria - --ref PROJ-123 --plan   what changed since the last run; no model call
+
+C5  changed requirement, found by code before any model call: a drafted criterion from the same
+    requirement whose quoted words are no longer in it goes back to changes_needed, with a comment
+    saying so. The cases linked to it then get a warning from check until a person decides again.
+
 One model call. The reply is checked item by item before anything is written:
 
     C1  grounded: every criterion and question quotes at least three words that are really in the
@@ -22,10 +28,12 @@ and dependency (another feature or system it relies on). A
 person approves each criterion and answers each question in the review sheet.
 """
 
+import datetime
 import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Optional
 
 import yaml
 
@@ -36,6 +44,8 @@ from qa_agent.checks import plural
 from qa_agent.project import SetupError, TeamProject
 
 DRAFTED_BY = "ai-draft"
+TOKENS_PER_CHARACTER = 0.25          # a rough estimate for --plan
+REPLY_TOKENS_ESTIMATE = 1500
 MIN_QUOTE_WORDS = 3            # a word or two ("the", "refund") is in almost any requirement: no proof
 
 
@@ -45,13 +55,17 @@ class CriteriaDraftReport:
     questions: list = field(default_factory=list)       # (id, kind, text)
     refused: list = field(default_factory=list)         # (what, reason)
     skipped: list = field(default_factory=list)         # text already there
+    changed: list = field(default_factory=list)         # (id, quote) no longer in the requirement
 
     def as_text(self) -> str:
-        lines = [f"drafted   {key}: {text}" for key, text in self.criteria]
+        lines = [f"changed   {key}: '{quote}' is no longer in the requirement: back to changes needed"
+                 for key, quote in self.changed]
+        lines += [f"drafted   {key}: {text}" for key, text in self.criteria]
         lines += [f"question  {key} ({kind}): {text}" for key, kind, text in self.questions]
         lines += [f"refused   {what}: {reason}" for what, reason in self.refused]
         lines += [f"skipped   {text}: already there" for text in self.skipped]
-        lines += ["", f"{plural(len(self.criteria), 'draft criterion', 'draft criteria')}, "
+        changed = f"{plural(len(self.changed), 'criterion', 'criteria')} changed, " if self.changed else ""
+        lines += ["", f"{changed}{plural(len(self.criteria), 'draft criterion', 'draft criteria')}, "
                       f"{plural(len(self.questions), 'question')}, {len(self.refused)} refused. "
                       "Next: qa-agent review export: a person approves the criteria and answers the questions."]
         return "\n".join(lines)
@@ -86,16 +100,30 @@ def read_requirement(project: TeamProject, where: str, ref: str = "", stdin=None
 
 def draft_criteria(project: TeamProject, session: AiSession, source: Requirement) -> CriteriaDraftReport:
     requirement, name = source.text, source.name
-    reply = session.ask(f"draft criteria {source.short}",
-                        DRAFT_CRITERIA_SYSTEM,
-                        draft_criteria_user(name, requirement, project.read_all_criteria()), max_tokens=3000)
+    drafts = CriteriaDrafts.load(project)
     report = CriteriaDraftReport()
+    changed = changed_criteria(drafts, source)                                             # C5: code, no model
+    for entry in changed:
+        quote, before = entry["source"]["quote"], entry.get("review") or {}
+        was = f" (it was approved by {before['by']}, {before.get('date', '')})" \
+            if entry.get("status") == "approved" and before.get("by") else ""
+        entry["status"] = "changes_needed"
+        entry["review"] = {"by": "qa-agent", "date": datetime.date.today().isoformat(),
+                           "comment": f"the requirement changed: '{quote}' is no longer in {name}{was}. "
+                                      "See the new drafts from it, then approve, change or reject this one"}
+        report.changed.append((entry["id"], quote))
+    changed_ids = {entry["id"] for entry in changed}
+    existing = {key: c for key, c in project.read_all_criteria().items() if key not in changed_ids}
+    reply = session.ask(f"draft criteria {source.short}", DRAFT_CRITERIA_SYSTEM,
+                        draft_criteria_user(name, requirement, existing, [(e["id"], e["text"]) for e in changed]),
+                        max_tokens=3000)
     items = _read_reply(reply)
     if isinstance(items, str):
         report.refused.append(("the reply", items))
+        if report.changed:
+            drafts.save()
         return report
-    drafts = CriteriaDrafts.load(project)
-    known_texts = {_plain(criterion.text) for criterion in project.read_all_criteria().values()}
+    known_texts = {_plain(criterion.text) for criterion in existing.values()}
     known_texts |= {"quote:" + _plain((entry.get("source") or {}).get("quote", "")) for entry in drafts.criteria}
     known_questions = {_plain(question.get("text", "")) for question in drafts.questions}
     known_questions |= {"quote:" + _plain(question.get("quote", "")) for question in drafts.questions}
@@ -129,9 +157,39 @@ def draft_criteria(project: TeamProject, session: AiSession, source: Requirement
                                      "quote": raw["from"].strip(), "requirement": name, "status": "open",
                                      "answer": "", "answered_by": ""})
             report.questions.append((key, raw["kind"], raw["text"].strip()))
-    if report.criteria or report.questions:
+    if report.criteria or report.questions or report.changed:
         drafts.save()
     return report
+
+
+def changed_criteria(drafts: CriteriaDrafts, source: Requirement) -> list:
+    """Drafted criteria from this requirement whose quoted words aren't in it any more.
+    Draft and approved ones only: one already sent back or rejected waits for a person anyway."""
+    text = _plain(source.text)
+    return [entry for entry in drafts.criteria
+            if (entry.get("source") or {}).get("requirement") == source.name
+            and entry.get("status", "draft") in ("draft", "approved")
+            and _plain(entry["source"].get("quote", "")) not in text]
+
+
+def plan(project: TeamProject, source: Requirement, session: Optional[AiSession] = None) -> str:
+    """What a run would do: what changed since the last run, and the call. Nothing sent, nothing written."""
+    drafts = CriteriaDrafts.load(project)
+    before = [entry["id"] for entry in drafts.criteria
+              if (entry.get("source") or {}).get("requirement") == source.name]
+    lines = [f"{source.name}: {plural(len(before), 'criterion', 'criteria')} drafted from it before"
+             + (f" ({', '.join(before)})" if before else "") + "."]
+    changed = changed_criteria(drafts, source)
+    lines += [f"  changed   {entry['id']}: '{entry['source']['quote']}' is no longer in it" for entry in changed]
+    if before and not changed:
+        lines.append("  no criterion's words have changed")
+    prompt = draft_criteria_user(source.name, source.text, project.read_all_criteria())
+    tokens = int((len(DRAFT_CRITERIA_SYSTEM) + len(prompt)) * TOKENS_PER_CHARACTER)
+    estimate = f"1 model call, about {tokens:,} tokens in and {REPLY_TOKENS_ESTIMATE:,} out"
+    cost = session.cost(tokens, REPLY_TOKENS_ESTIMATE) if session is not None else None
+    if cost is not None:
+        estimate += f", about ${cost:.2f}"
+    return "\n".join(lines + ["", estimate + ". Nothing was sent or written: run without --plan to draft."])
 
 
 def _read_reply(reply: str):

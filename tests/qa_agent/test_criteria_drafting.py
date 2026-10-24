@@ -152,3 +152,62 @@ def test_stdin_needs_a_ref_and_some_words(project, capsys, monkeypatch, text, re
     code, out = from_stdin(project, capsys, monkeypatch, text, *ref)
     assert code == 2 and message in out.err
     assert not (project.root / "reports" / "ai-audit-log.jsonl").exists()
+
+
+CHANGED = REQUIREMENT.replace("Cancel within 24 hours of booking and get all your money back.",
+                              "Cancel within 48 hours of booking and get all your money back.")
+REPLY_48 = """criteria:
+  - text: A booking cancelled within 48 hours of being made gets a full refund.
+    from: "Cancel within 48 hours of booking"
+"""
+
+
+def changed_run(project, capsys, monkeypatch, *extra):
+    """A first run from PROJ-123, AC-2 approved, then PROJ-123 changes from 24 to 48 hours."""
+    (project.root / "ai/recorded/draft-criteria-proj-123.txt").write_text(REPLY)
+    from_stdin(project, capsys, monkeypatch, REQUIREMENT, "--ref", "PROJ-123")
+    drafts = CriteriaDrafts.load(project)
+    drafts.criteria[0].update(status="approved", review={"by": "qa-lead", "date": "2026-10-20", "comment": ""})
+    drafts.save()
+    (project.root / "ai/recorded/draft-criteria-proj-123.txt").write_text(REPLY_48)
+    return from_stdin(project, capsys, monkeypatch, CHANGED, "--ref", "PROJ-123", *extra)
+
+
+def test_a_criterion_whose_words_left_the_requirement_goes_back_to_review(project, capsys, monkeypatch):
+    code, out = changed_run(project, capsys, monkeypatch)
+    assert code == 0
+    assert "changed   AC-2: 'Cancel within 24 hours of booking and get all your money back' is no longer in the " \
+           "requirement: back to changes needed" in out.out
+    assert "drafted   AC-4: A booking cancelled within 48 hours of being made gets a full refund." in out.out
+    ac2, ac3, _ = CriteriaDrafts.load(project).criteria
+    assert ac2["status"] == "changes_needed" and ac2["review"]["by"] == "qa-agent"
+    assert "is no longer in PROJ-123 (it was approved by qa-lead, 2026-10-20)" in ac2["review"]["comment"]
+    assert ac3["status"] == "draft"                                    # its words are still there
+    assert "AC-2" not in project.read_criteria()                        # cases linked to it now get a warning
+    sent = (project.root / "reports" / "ai-audit-log.jsonl").read_text().splitlines()[-1]
+    assert "no longer in the requirement" in sent and "AC-2: A booking cancelled within 24 hours" in sent
+
+
+def test_the_plan_shows_the_change_and_sends_and_writes_nothing(project, capsys, monkeypatch):
+    code, out = changed_run(project, capsys, monkeypatch, "--plan")
+    assert code == 0
+    assert "PROJ-123: 2 criteria drafted from it before (AC-2, AC-3)." in out.out
+    assert "changed   AC-2: 'Cancel within 24 hours of booking and get all your money back' is no longer in it" in out.out
+    assert "1 model call" in out.out and "Nothing was sent or written" in out.out
+    assert CriteriaDrafts.load(project).criteria[0]["status"] == "approved"
+    assert len((project.root / "reports" / "ai-audit-log.jsonl").read_text().splitlines()) == 1
+
+
+def test_running_it_again_after_a_change_marks_nothing_twice(project, capsys, monkeypatch):
+    changed_run(project, capsys, monkeypatch)
+    code, out = from_stdin(project, capsys, monkeypatch, CHANGED, "--ref", "PROJ-123")
+    assert "changed" not in out.out.split("\n\n")[0] and "0 draft criteria" in out.out
+
+
+def test_a_different_ref_is_a_different_requirement(project, capsys, monkeypatch):
+    (project.root / "ai/recorded/draft-criteria-proj-123.txt").write_text(REPLY)
+    from_stdin(project, capsys, monkeypatch, REQUIREMENT, "--ref", "PROJ-123")
+    (project.root / "ai/recorded/draft-criteria-proj-999.txt").write_text(REPLY_48)
+    _, out = from_stdin(project, capsys, monkeypatch, CHANGED, "--ref", "PROJ-999")
+    assert "changed " not in out.out
+    assert CriteriaDrafts.load(project).criteria[0]["status"] == "draft"

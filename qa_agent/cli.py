@@ -12,6 +12,7 @@
     qa-agent bug-detection --seeded-bugs seeded-bugs.yaml --framework pytest   the bug-detection rate: seeded bugs, one at a time
     qa-agent draft criteria requirements/x.md        the AI layer: criteria and questions from a requirement in plain words
     qa-agent draft criteria - --ref PROJ-123         the same, the requirement pasted or piped in
+    qa-agent draft criteria ... --plan               what changed in the requirement since the last run; no model call
     qa-agent draft cases [--plan] [--max 10]         the AI layer: a draft case per coverage gap, for a person to review
     qa-agent draft cases --redo TC045 [TC048]        the AI layer: a new draft for one a reviewer rejected or sent back
 
@@ -32,6 +33,7 @@ from qa_agent.ai.models import ModelError, ModelSetupError
 from qa_agent.ai.session import AiSession
 from qa_agent.checks import check_project, plural
 from qa_agent.criteria_drafting import draft_criteria, read_requirement
+from qa_agent.criteria_drafting import plan as criteria_plan
 from qa_agent.criteria_review import pending as pending_criteria
 from qa_agent.drafting import DEFAULT_MAX, draft_cases, plan, redo
 from qa_agent.generate import generate
@@ -144,6 +146,8 @@ def _parser() -> argparse.ArgumentParser:
     criteria.add_argument("requirement", help="a text or markdown file (a story, a part of a spec), or - to read stdin")
     criteria.add_argument("--ref", default="", help="where the requirement lives, e.g. PROJ-123: the criteria point "
                                                    "back to it (needed with -)")
+    criteria.add_argument("--plan", action="store_true",
+                          help="show what changed since the last run and the call's estimate; call no model, write nothing")
     criteria.set_defaults(run=run_draft_criteria)
     cases = drafting.add_parser("cases", help="a draft case for each coverage gap (criteria, operations, codes)")
     cases.add_argument("--plan", action="store_true", help="list the gaps, the calls and an estimate; call no model")
@@ -290,9 +294,16 @@ def run_draft_cases(args) -> int:
 
 def run_draft_criteria(args) -> int:
     project = TeamProject.load(args.project)
+    requirement = read_requirement(project, args.requirement, args.ref)
+    if args.plan:
+        try:
+            session = AiSession.for_project(project)
+        except ModelSetupError:
+            session = None                   # a plan needs no model; the cost shows once ai: is set
+        print(criteria_plan(project, requirement, session))
+        return DONE
     try:
-        report = draft_criteria(project, AiSession.for_project(project),
-                                read_requirement(project, args.requirement, args.ref))
+        report = draft_criteria(project, AiSession.for_project(project), requirement)
     except ModelError as error:
         print(f"qa-agent: the model couldn't be reached: {error}", file=sys.stderr)
         return SETUP_PROBLEM
