@@ -21,7 +21,7 @@ from openpyxl.styles import Alignment, Font, Protection
 from openpyxl.worksheet.datavalidation import DataValidation
 
 from qa_agent.cases import PRIORITIES, SUITES, Case, load_case_file, save_case_file
-from qa_agent.checks import ERROR, check_project
+from qa_agent.checks import ERROR, check_project, plural
 from qa_agent.criteria_review import add_criteria_sheets, apply_criteria_sheets
 from qa_agent.review_common import (DECIDE_FILL, DECISIONS, HEADER_FILL, LOCKED_FILL, row_problem,
                                     text_value)
@@ -119,7 +119,7 @@ def import_review_sheet(project: TeamProject, path: Path) -> ReviewImportResult:
         status = DECISIONS[row["Decision"].lower()]
         errors = [f for f in report.for_case(case.id) if f.level == ERROR]
         if status == "approved" and (case.needs_steps or errors):
-            reason = "it has steps only in words" if case.needs_steps else f"check finds {len(errors)} error(s)"
+            reason = "it has steps only in words" if case.needs_steps else f"check finds {plural(len(errors), 'error')}"
             result.refused.append(f"{case.id}: can't be approved: {reason}; fix it, then review it again")
             continue
         case.review.status, case.review.by, case.review.date = status, row["Reviewer"], row["Date"]

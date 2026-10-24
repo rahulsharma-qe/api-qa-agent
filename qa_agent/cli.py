@@ -194,8 +194,7 @@ def review_export(args) -> int:
     sheet = args.sheet if args.sheet.is_absolute() else project.root / args.sheet
     count = export_review_sheet(project, sheet, args.all)
     criteria, questions = pending_criteria(project)
-    extra = (f", {len(criteria)} {'criterion' if len(criteria) == 1 else 'criteria'} and "
-             f"{plural(len(questions), 'open question')}"
+    extra = (f", {plural(len(criteria), 'criterion', 'criteria')} and {plural(len(questions), 'open question')}"
              if criteria or questions else "")
     print(f"{project.relative(sheet)}: {plural(count, 'case')}{extra} to review. Fill Decision, Reviewer and Comment "
           f"(and Answer for questions), save, then: qa-agent review apply")

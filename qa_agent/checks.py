@@ -64,8 +64,9 @@ class CheckReport:
         return "\n".join(lines)
 
 
-def plural(number: int, noun: str) -> str:
-    return f"{number} {noun}" + ("" if number == 1 else "s")
+def plural(number: int, noun: str, many: str = "") -> str:
+    """'1 case', '3 cases', '2 draft criteria' (many, for a noun that isn't plain +s): never '(s)'."""
+    return f"{number} {noun if number == 1 else (many or noun + 's')}"
 
 
 def check_project(project: TeamProject) -> CheckReport:

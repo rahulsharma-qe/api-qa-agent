@@ -27,6 +27,7 @@ import yaml
 from qa_agent.ai.prompts import DRAFT_CRITERIA_SYSTEM, draft_criteria_user
 from qa_agent.ai.session import AiSession
 from qa_agent.criteria_drafts import QUESTION_KINDS, CriteriaDrafts
+from qa_agent.checks import plural
 from qa_agent.project import SetupError, TeamProject
 
 DRAFTED_BY = "ai-draft"
@@ -45,7 +46,8 @@ class CriteriaDraftReport:
         lines += [f"question  {key} ({kind}): {text}" for key, kind, text in self.questions]
         lines += [f"refused   {what}: {reason}" for what, reason in self.refused]
         lines += [f"skipped   {text}: already there" for text in self.skipped]
-        lines += ["", f"{len(self.criteria)} draft criteria, {len(self.questions)} question(s), {len(self.refused)} refused. "
+        lines += ["", f"{plural(len(self.criteria), 'draft criterion', 'draft criteria')}, "
+                      f"{plural(len(self.questions), 'question')}, {len(self.refused)} refused. "
                       "Next: qa-agent review export: a person approves the criteria and answers the questions."]
         return "\n".join(lines)
 

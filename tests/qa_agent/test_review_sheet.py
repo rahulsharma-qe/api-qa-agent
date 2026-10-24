@@ -104,7 +104,7 @@ def test_cases_in_words_or_with_errors_cant_be_approved(make_project):
                    "TC3": {"Decision": "Approve", "Reviewer": "qa-lead"}})
     refused = "\n".join(import_review_sheet(project, sheet).refused)
     assert "TC2: can't be approved: it has steps only in words" in refused
-    assert "TC3: can't be approved: check finds 1 error(s)" in refused
+    assert "TC3: can't be approved: check finds 1 error" in refused
 
 
 def test_a_case_changed_after_export_is_not_applied(make_project):

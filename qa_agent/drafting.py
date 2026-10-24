@@ -29,6 +29,7 @@ from qa_agent.ai.models import ModelError
 from qa_agent.ai.prompts import DRAFT_CASES_SYSTEM, draft_cases_user
 from qa_agent.ai.session import AiSession
 from qa_agent.case_import import id_maker
+from qa_agent.checks import plural
 from qa_agent.cases import CaseFile, CaseFormatError, load_case_file, parse_case_file, save_case_file
 from qa_agent.gaps import Gap, find_gaps
 from qa_agent.project import TeamProject
@@ -58,8 +59,8 @@ class DraftReport:
             lines.append(f"next time {', '.join(self.not_reached)} (over --max)")
         if self.stopped:
             lines.append(f"stopped   {self.stopped}")
-        count = sum(len(ids) for _, ids, _ in self.drafted)
-        lines += ["", f"{count} draft case(s) for {len(self.drafted)} gap(s), {len(self.refused)} refused. "
+        drafted = sum(len(ids) for _, ids, _ in self.drafted)
+        lines += ["", f"{plural(drafted, 'draft case')} for {plural(len(self.drafted), 'gap')}, {len(self.refused)} refused. "
                       "Next: qa-agent check, then qa-agent review export: a person decides on each one."]
         return "\n".join(lines)
 
@@ -74,7 +75,7 @@ def pending_gaps(project: TeamProject) -> tuple[list, list]:
 
 def plan(project: TeamProject, max_gaps: int = DEFAULT_MAX, session: Optional[AiSession] = None) -> str:
     to_draft, skipped = pending_gaps(project)
-    lines = [f"{len(to_draft)} gap(s) to draft; {len(skipped)} drafted before."]
+    lines = [f"{plural(len(to_draft), 'gap')} to draft; {len(skipped)} drafted before."]
     total_tokens = 0
     for number, gap in enumerate(to_draft, start=1):
         marker = "" if number <= max_gaps else "   (over --max: next time)"
@@ -82,7 +83,7 @@ def plan(project: TeamProject, max_gaps: int = DEFAULT_MAX, session: Optional[Ai
         if number <= max_gaps:
             total_tokens += _estimate_tokens(project, gap)
     calls = min(len(to_draft), max_gaps)
-    estimate = f"{calls} model call(s), about {total_tokens:,} tokens in and {calls * REPLY_TOKENS_ESTIMATE:,} out"
+    estimate = f"{plural(calls, 'model call')}, about {total_tokens:,} tokens in and {calls * REPLY_TOKENS_ESTIMATE:,} out"
     if session is not None:
         cost = session.cost(total_tokens, calls * REPLY_TOKENS_ESTIMATE)
         if cost is not None:

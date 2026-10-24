@@ -84,7 +84,7 @@ def test_an_item_that_quotes_words_not_in_the_requirement_is_refused(project, ca
 def test_running_it_again_adds_nothing(project, capsys):
     run(project, capsys)
     _, out = run(project, capsys)
-    assert "0 draft criteria, 0 question(s)" in out and out.count("already there") == 6            # C4
+    assert "0 draft criteria, 0 questions" in out and out.count("already there") == 6            # C4
     assert [c["id"] for c in CriteriaDrafts.load(project).criteria] == ["AC-2", "AC-3"]
 
 

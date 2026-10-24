@@ -67,7 +67,7 @@ def drafts(project):
 def test_the_plan_lists_the_gaps_and_calls_no_model(project, capsys):
     assert main(["--project", str(project.root), "draft", "cases", "--plan", "--max", "2"]) == 0
     out = capsys.readouterr().out
-    assert "5 gap(s) to draft" in out and "(over --max: next time)" in out and "2 model call(s)" in out
+    assert "5 gaps to draft" in out and "(over --max: next time)" in out and "2 model calls" in out
     assert not (project.root / "reports" / "ai-audit-log.jsonl").exists()
 
 
