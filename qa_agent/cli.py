@@ -10,6 +10,7 @@
     qa-agent promote --runs r1 r2 r3 [--apply]       stable functional cases -> regression; a person applies it
                      [--feature x] [--priority P0 P1] [--reason "released in 4.3"]
     qa-agent suite TC010 functional --by --reason    a person moves a case between suites, on the record
+    qa-agent impact-analysis --since v4.2            what changed in the API since a release, and the cases to run
     qa-agent bug-detection --seeded-bugs seeded-bugs.yaml --framework pytest   the bug-detection rate: seeded bugs, one at a time
     qa-agent draft criteria requirements/x.md        the AI layer: criteria and questions from a requirement in plain words
     qa-agent draft criteria - --ref PROJ-123         the same, the requirement pasted or piped in
@@ -38,6 +39,7 @@ from qa_agent.criteria_drafting import plan as criteria_plan
 from qa_agent.criteria_review import pending as pending_criteria
 from qa_agent.drafting import DEFAULT_MAX, draft_cases, plan, redo
 from qa_agent.generate import generate
+from qa_agent.impact_analysis import impact_analysis
 from qa_agent.init_project import init_project
 from qa_agent.promote import move_to_suite, promote
 from qa_agent.trace import build_trace
@@ -143,6 +145,11 @@ def _parser() -> argparse.ArgumentParser:
     move.add_argument("--by", required=True, help="who decided")
     move.add_argument("--reason", required=True, help="why, in a few words")
     move.set_defaults(run=run_suite)
+
+    impact = commands.add_parser("impact-analysis", help="what changed in api/api.yaml since a release, and the "
+                                                        "cases to run (highest priority first)")
+    impact.add_argument("--since", required=True, metavar="REF", help="a git tag, branch or commit: v4.2, main~5")
+    impact.set_defaults(run=run_impact_analysis)
 
     detection = commands.add_parser("bug-detection", help="the bug-detection rate: run the tests once per seeded bug")
     detection.add_argument("--seeded-bugs", type=Path, default=Path("seeded-bugs.yaml"),
@@ -265,6 +272,11 @@ def run_promote(args) -> int:
     if missing:
         raise SetupError(f"no such runs: {', '.join(missing)}")
     print(promote(project, runs, args.apply, args.feature, tuple(args.priority), args.reason).as_text(len(runs)))
+    return DONE
+
+
+def run_impact_analysis(args) -> int:
+    print(impact_analysis(TeamProject.load(args.project), args.since).as_text())
     return DONE
 
 

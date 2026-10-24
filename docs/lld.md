@@ -1267,6 +1267,23 @@ suite in the case format: sanity is a tag, so one case can be regression and san
 format keeps two suites. `examples/bookings-team` tags a cancellation case `sanity`, and `run_all.sh`
 prints what `-m regression`, `-m sanity` and `-m p0` pick.
 
+### 12.5 Impact analysis: what a change to the API affects
+
+```
+qa-agent impact-analysis --since v4.2
+```
+
+| Rule | Why |
+|---|---|
+| `api/api.yaml` now against `api/api.yaml` at the ref (`git show`); each operation changed (response codes or required body fields differ), added or removed | The team re-imports the API when it changes and commits it, so git has every version |
+| Affected: every case (rejected ones aside) with a step calling a changed or removed operation, P0 first | Risk-based: run what the change touches, most important first |
+| The run command lists only approved cases (`pytest -k`, `-Dtest=Class#method+...`); a draft is listed as "not a test yet" | Only approved cases are tests |
+| An added operation says it has no case yet; a removed one names the cases still calling it (`check` already reports them as errors) | The gap and the breakage, each said once |
+| Not in git, or no such ref: exit 2; `api/api.yaml` not there at the ref: every operation counts as added. Exit 0 otherwise: it informs, `check` and the tests decide | Reads only; the same answer every time |
+
+Not in it, on purpose: the requirement (that is `draft criteria --plan`), a diff of code, and an
+OpenAPI file given directly (`import api` first). Example: `examples/bookings-team`, step 10.
+
 ## 13. Releases
 
 A release says: everything in its notes works the way the notes say. So a version is tagged only
