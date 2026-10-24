@@ -2,7 +2,9 @@
 
     qa-agent.yaml               team: bookings · service: bookings · frameworks: [pytest] · case_id_prefix: TC (optional)
     api/api.yaml                the API model
-    acceptance-criteria.yaml    the acceptance criteria
+    acceptance-criteria.yaml    the acceptance criteria a person wrote (approved by being written)
+    acceptance-criteria-drafts.yaml   criteria and questions drafted from a requirement (qa-agent draft
+                                criteria), each approved by a person in the review sheet before it counts
     cases/*.yaml                the cases, one file per feature
 """
 
@@ -12,6 +14,8 @@ from pathlib import Path
 from qa_agent.yaml_files import FileFormatError, read_yaml
 
 CONFIG_FILE = "qa-agent.yaml"
+CRITERIA_DRAFTS_FILE = "acceptance-criteria-drafts.yaml"
+CRITERION_STATUSES = ("draft", "approved", "changes_needed", "rejected")
 FRAMEWORKS = ("pytest", "restassured")
 
 
@@ -23,6 +27,12 @@ class SetupError(Exception):
 class Criterion:
     id: str
     text: str
+    status: str = "approved"            # a person's own criteria are approved; drafted ones start as draft
+    source: dict = field(default_factory=dict, compare=False, hash=False)    # where a drafted one came from
+
+    @property
+    def is_approved(self) -> bool:
+        return self.status == "approved"
 
 
 @dataclass(frozen=True)
@@ -76,15 +86,37 @@ class TeamProject:
         except ValueError:
             return str(path)
 
+    @property
+    def criteria_drafts_path(self) -> Path:
+        return self.root / CRITERIA_DRAFTS_FILE
+
+    def has_criteria(self) -> bool:
+        return self.criteria_path.is_file() or self.criteria_drafts_path.is_file()
+
     def read_criteria(self) -> dict[str, Criterion]:
-        """Every criterion by id. Empty when the project has no acceptance-criteria.yaml."""
-        if not self.criteria_path.is_file():
-            return {}
-        data = _read(self.criteria_path) or {}
-        entries = data.get("criteria") if isinstance(data, dict) else None
-        if not isinstance(entries, list) or not all(isinstance(entry, dict) and entry.get("id") for entry in entries):
-            raise SetupError(f"{self.criteria_path}: expected 'criteria:' with a list of {{id, text}}")
-        return {str(entry["id"]): Criterion(str(entry["id"]), str(entry.get("text", ""))) for entry in entries}
+        """The approved criteria by id: what coverage, gaps and drafting count. Empty with no criteria files."""
+        return {key: criterion for key, criterion in self.read_all_criteria().items() if criterion.is_approved}
+
+    def read_all_criteria(self) -> dict[str, Criterion]:
+        """Every criterion by id, drafts included: a person's file first, then the drafted ones."""
+        found: dict[str, Criterion] = {}
+        for path, drafted in ((self.criteria_path, False), (self.criteria_drafts_path, True)):
+            if not path.is_file():
+                continue
+            data = _read(path) or {}
+            entries = data.get("criteria", []) if isinstance(data, dict) else None
+            if not isinstance(entries, list) or not all(isinstance(entry, dict) and entry.get("id") for entry in entries):
+                raise SetupError(f"{path}: expected 'criteria:' with a list of {{id, text}}")
+            for entry in entries:
+                key = str(entry["id"])
+                if key in found:
+                    raise SetupError(f"{path}: criterion {key} is also in {self.relative(self.criteria_path)}")
+                status = str(entry.get("status") or ("draft" if drafted else "approved"))
+                if status not in CRITERION_STATUSES:
+                    raise SetupError(f"{path}: {key}: status '{status}' (use {', '.join(CRITERION_STATUSES)})")
+                source = entry.get("source") if isinstance(entry.get("source"), dict) else {}
+                found[key] = Criterion(key, str(entry.get("text", "")), status, source)
+        return found
 
 
 def _read(path: Path):

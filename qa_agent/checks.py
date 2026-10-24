@@ -11,6 +11,7 @@ from typing import Any, Optional
 
 from qa_agent.api_model import ApiModel, ApiModelError, load_api_model
 from qa_agent.cases import Case, CaseFile, CaseFormatError, Step, load_case_file
+from qa_agent.criteria_drafts import CriteriaDrafts
 from qa_agent.data_files import DataFileError, column_names
 from qa_agent.project import TeamProject
 
@@ -70,9 +71,13 @@ def plural(number: int, noun: str) -> str:
 def check_project(project: TeamProject) -> CheckReport:
     """Every rule, over every case file. Raises SetupError when the project itself can't be read."""
     report = CheckReport(project.team)
-    criteria = project.read_criteria()
-    if not project.criteria_path.is_file():
+    criteria = project.read_all_criteria()
+    if not project.has_criteria():
         report.findings.append(Finding(INFO, "", "", "No acceptance-criteria.yaml: the criteria rules are skipped"))
+    for question in CriteriaDrafts.load(project).open_questions():
+        report.findings.append(Finding(INFO, project.relative(project.criteria_drafts_path), "",
+                                       f"{question.get('id')} ({question.get('kind')}) is open: {question.get('text')} "
+                                       "Answer it in the review sheet's Questions tab"))
     api = _api_model(project, report)
     for path in project.case_files():
         file_name = project.relative(path)
@@ -167,12 +172,20 @@ def _is_hollow(steps: list[Step]) -> bool:
 
 
 def _criteria_findings(case: Case, criteria: dict) -> list[tuple[str, str]]:
+    """criteria: every criterion, drafts included."""
     if not criteria:
         return []
     if not case.criteria:
         return [(WARNING, ": linked to no criterion. Fix: add criteria: [AC-…] so it can be traced")]
-    return [(ERROR, f": criterion {item} is not in acceptance-criteria.yaml. Fix: correct the id, or add the criterion")
-            for item in case.criteria if item not in criteria]
+    found = []
+    for item in case.criteria:
+        if item not in criteria:
+            found.append((ERROR, f": criterion {item} is not in acceptance-criteria.yaml. Fix: correct the id, "
+                                 "or add the criterion"))
+        elif not criteria[item].is_approved:
+            found.append((WARNING, f": criterion {item} is {criteria[item].status.replace('_', ' ')}, not approved: "
+                                   "it counts once a person approves it in the review sheet"))
+    return found
 
 
 def _data_columns(case: Case, project: TeamProject, found: list) -> Optional[list[str]]:

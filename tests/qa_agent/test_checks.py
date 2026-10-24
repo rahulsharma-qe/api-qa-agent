@@ -179,3 +179,44 @@ def test_tbd_anywhere_in_a_step_is_an_error_so_the_case_cant_be_approved(make_pr
                 expect: {status: 200, fields: {count: 3}}
         """}))
     assert report.has_errors and "TC1 step 1: has TBD, a value still to confirm" in text
+
+
+DRAFTED_CRITERIA = """
+criteria:
+  - {id: AC-7, text: A booking can be listed by status, status: draft}
+  - {id: AC-8, text: Bookings can be exported, status: rejected}
+  - {id: AC-9, text: A cancelled booking reads back as cancelled, status: approved}
+questions:
+  - {id: Q-1, kind: contradiction, text: "24 hours or one working day?", quote: one working day, status: open}
+  - {id: Q-2, kind: ambiguity, text: "What is a VIP?", quote: VIP, status: answered, answer: Gold members}
+"""
+
+
+def test_drafted_criteria_count_only_once_approved_and_open_questions_are_listed(make_project):
+    root = make_project({"api/api.yaml": API, "acceptance-criteria.yaml": CRITERIA,
+                         "acceptance-criteria-drafts.yaml": DRAFTED_CRITERIA, "cases/b.yaml": """
+        feature: B
+        cases:
+          - id: TC1
+            title: t
+            criteria: [AC-7, AC-9]
+            steps:
+              - request: {method: GET, path: /bookings/search}
+                expect: {status: 200, fields: {count: 3}}
+        """})
+    project = TeamProject.load(root)
+    assert list(project.read_criteria()) == ["AC-1", "AC-2", "AC-9"]
+    assert list(project.read_all_criteria()) == ["AC-1", "AC-2", "AC-7", "AC-8", "AC-9"]
+    report, _, text = findings(root)
+    assert "TC1: criterion AC-7 is draft, not approved: it counts once a person approves it" in text
+    assert "Q-1 (contradiction) is open: 24 hours or one working day?" in text and "Q-2" not in text
+    assert not report.has_errors
+
+
+def test_a_criterion_id_in_both_files_is_a_setup_problem(make_project):
+    import pytest
+    from qa_agent.project import SetupError
+    root = make_project({"acceptance-criteria.yaml": CRITERIA,
+                         "acceptance-criteria-drafts.yaml": "criteria:\n  - {id: AC-1, text: again}\n"})
+    with pytest.raises(SetupError, match="AC-1 is also in acceptance-criteria.yaml"):
+        TeamProject.load(root).read_all_criteria()
