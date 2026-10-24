@@ -1200,6 +1200,13 @@ lists what is in each. Building it found two problems, fixed before it: a gap co
 draft in the same run was drafted again, and `--redo` refused a criterion's case when a sibling case
 covered the criterion (now a draft sent back is always redone, see 11.9).
 
+### 11.11 As built: the AI layer in the Docker image
+
+The image installs `.[anthropic,openai]`, so `qa-agent draft` runs in it with a live model; the key
+comes from the environment (`docker run -e ANTHROPIC_API_KEY ...`), never from a file in the image.
+A test checks the image installs every model client `pyproject.toml` offers. CI runs `draft` in the
+image on a copy of `examples/from-a-requirement` (recorded replies) and imports both clients.
+
 ## 12. A team's regression pack
 
 Most teams already have a regression pack, signed off long ago, and add a feature's important cases

@@ -110,8 +110,10 @@ A version number keeps every run the same; `:latest` follows each release. Or bu
 yourself: `docker build -t qa-agent https://github.com/rahulsharma-qe/api-qa-agent.git`, then use
 `qa-agent` in place of the image name.
 
-In the image: `init`, `import`, `check`, `review`, `generate`, `trace`, `promote`, `suite`. Your
-tests run where they always run (pytest or Maven), since they call your API.
+In the image: `init`, `import`, `check`, `review`, `generate`, `trace`, `promote`, `suite`. From the
+next release, or in an image you build from this repository, `draft` too (the model's key from your
+environment: `docker run -e ANTHROPIC_API_KEY ...`). Your tests run where they always run (pytest or
+Maven), since they call your API.
 On Linux, add `--user "$(id -u):$(id -g)"` so the files qa-agent writes are yours.
 In Windows PowerShell, write `${PWD}` instead of `$PWD`.
 

@@ -182,6 +182,17 @@ jobs:
           qa_agent check
           qa_agent generate --check
           qa_agent trace --check
+      - name: The AI layer in the image, on the example from a requirement (recorded replies, a copy)
+        run: |
+          cp -r examples/from-a-requirement "$RUNNER_TEMP/ai"
+          cd "$RUNNER_TEMP/ai"
+          rm -rf acceptance-criteria-drafts.yaml cases tests/generated
+          qa_agent() { docker run --rm -i --user "$(id -u):$(id -g)" -v "$PWD:/project" qa-agent "$@"; }
+          qa_agent draft criteria - --ref BOOK-101 < requirements/BOOK-101.md || test $? -eq 1
+          qa_agent review apply --sheet review/1-criteria.xlsx
+          qa_agent draft cases || test $? -eq 1
+          test -s cases/bookings-drafts.yaml
+          docker run --rm --entrypoint python qa-agent -c "import anthropic, openai"
       - name: A new project from init in the image, owned by the runner's user (the Linux tip)
         run: |
           mkdir -p "$RUNNER_TEMP/new"
