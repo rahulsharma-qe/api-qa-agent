@@ -30,7 +30,7 @@ testing AI agents themselves.
 | Cucumber on REST Assured | Later |
 | User-interface tests, in their own repository (`playwright-qa-agent`) | Later |
 | Jira and wiki; results back to TestRail, Zephyr or Xray | Later |
-| The AI layer: drafting, review, the model in your own cloud | **Next**: built so far: the model (any provider), redaction, the audit log; `qa-agent draft criteria` (criteria and questions from a requirement in plain words, each quoting its source; a file, or pasted in with `--ref PROJ-123`; run again when the requirement changes and the criteria it no longer says go back to review) and `qa-agent draft cases` (a draft for each coverage gap; `--redo` for one a reviewer sent back, with the comment), all checked by code and approved by a person in the review sheet; next: the example, from a requirement to tests |
+| The AI layer: drafting, review, the model in your own cloud | **Next**: built so far: the model (any provider), redaction, the audit log; `qa-agent draft criteria` (criteria and questions from a requirement in plain words, each quoting its source; a file, or pasted in with `--ref PROJ-123`; run again when the requirement changes and the criteria it no longer says go back to review) and `qa-agent draft cases` (a draft for each coverage gap; `--redo` for one a reviewer sent back, with the comment), all checked by code and approved by a person in the review sheet; the example, from a ticket in plain words to tests that pass ([`examples/from-a-requirement/`](examples/from-a-requirement/)), with recorded replies; next: replies from a real model, measured |
 
 Everything that needs no AI comes first, so a team can use the utility end to end with its
 existing test cases before any AI is switched on.
@@ -89,6 +89,16 @@ team's existing cases in four formats, what `check` finds, the review sheet, the
 both frameworks, and the trace. A new team starts with `qa-agent init my-team --framework pytest` (or
 `--framework restassured`): a project that runs on day one.
 
+And the AI layer, with recorded replies (no API key):
+
+```bash
+cd examples/from-a-requirement
+./run_all.sh                                       # a ticket -> criteria -> cases -> three reviews and a redo -> tests
+```
+
+Its [README](examples/from-a-requirement/README.md) shows each step's output and what each guardrail did.
+The replies there are hand-written, and labelled so: they show the flow, not how good a model is.
+
 ### Run with Docker (no Python install)
 
 ```bash
@@ -137,6 +147,7 @@ left out. A pack the team signed off already comes in approved:
 | [`qa_agent/`](qa_agent/) | `qa-agent`, the command line: `init`, `import`, `check`, `review`, `generate`, `trace`, `promote`, `suite`, `bug-detection`, `draft` |
 | [`Dockerfile`](Dockerfile) | qa-agent in a container, for a team with no Python install |
 | [`examples/bookings-team/`](examples/bookings-team/) | A team's project for the reference API: every `qa-agent` feature, with its output |
+| [`examples/from-a-requirement/`](examples/from-a-requirement/) | The AI layer: a ticket in plain words to tests, a person approving every step; recorded replies |
 | [`teams/`](teams/) | Two small teams, each shaped like its own repository: `bookings-python` (pytest) and `refunds-java` (REST Assured) |
 | [`examples/external-apis/`](examples/external-apis/) | qa-agent and both frameworks on APIs this repository didn't write; first, Swagger Petstore |
 | [`.github/workflows/qa-agent-team.yml`](.github/workflows/qa-agent-team.yml) | The reusable workflow a team's CI calls: environment ready, generated tests up to date, tests, trace |

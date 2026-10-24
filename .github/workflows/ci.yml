@@ -152,6 +152,21 @@ jobs:
             examples/bookings-team/reports/trace.md
             examples/bookings-team/reports/trace.xlsx
 
+  from-a-requirement:
+    # The AI layer end to end, with recorded replies (no API key): from a ticket in plain words to
+    # criteria, cases, three reviews and a redo, rebuilt from the inputs and compared; then the
+    # generated pytest tests against the reference API, and the trace.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install qa-agent, the reference API and the Python framework
+        run: pip install -e . -e frameworks/python_api
+      - name: Every step on the example, the tests and the trace
+        run: examples/from-a-requirement/run_all.sh
+
   docker-image:
     # The Docker image as a team uses it: built, then qa-agent run inside it on a mounted project
     # folder (the example, and a new project from init). The tool only: no tests run in the image.

@@ -1175,6 +1175,31 @@ What it does not do, on purpose:
 - Criteria in a person's own `acceptance-criteria.yaml` and questions are not compared: they carry
   no quote from a ref.
 
+### 11.10 As built: the example (6-4)
+
+`examples/from-a-requirement/`: a team with only `requirements/BOOK-101.md` and `api/api.yaml` (the
+three endpoints BOOK-101 uses: a team imports its feature's endpoints, not every operation it could
+call; `not_tested` stays for what is never tested here). `run_all.sh` rebuilds everything from those, the
+filled review sheets and the recorded replies, compares it with what is committed, then runs the
+tests against the reference API and the trace; CI runs it (job `from-a-requirement`), and
+`tests/qa_agent/test_example_from_a_requirement.py` does the rebuild in plain pytest.
+
+| Step | Command | What it shows |
+|---|---|---|
+| 1 | `draft criteria - --ref BOOK-101` | Five criteria and three questions (ambiguity, omission, dependency); a sixth criterion, not grounded, refused |
+| 2 | `review apply --sheet review/1-criteria.xlsx` | Two criteria reworded with the answers, one rejected, the questions answered |
+| 3 | `draft cases --plan`, `draft cases` | Ids and review from code (`TC999`, `approved` dropped); a reply calling an operation not in the API, refused; a gap covered by an earlier draft in the run, no call; `TBD` |
+| 4 | `check`, `review apply --sheet review/2-cases.xlsx` | `TBD` is an error; eight approved, one rejected, one sent back with a comment |
+| 5 | `draft cases --redo TC005` (twice) | The comment fixed; the second time, already redone, no call |
+| 6 | `review apply --sheet review/3-redo.xlsx` | The redone case approved |
+| 7 | `draft criteria - --ref BOOK-101 --plan` (v2 of the ticket) | 24 hours became 48: AC-1 and AC-2 changed, found by code; nothing sent or written |
+| 8, 9 | `generate`, pytest, `trace --check` | 9 tests pass; the trace shows the one code left uncovered (the refused reply) |
+
+The replies are hand-written and each says so in its first line (a test checks it); `ai/recorded/README.md`
+lists what is in each. Building it found two problems, fixed before it: a gap covered by an earlier
+draft in the same run was drafted again, and `--redo` refused a criterion's case when a sibling case
+covered the criterion (now a draft sent back is always redone, see 11.9).
+
 ## 12. A team's regression pack
 
 Most teams already have a regression pack, signed off long ago, and add a feature's important cases
