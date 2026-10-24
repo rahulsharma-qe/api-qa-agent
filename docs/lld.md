@@ -1019,8 +1019,9 @@ approves, never writes test code, and never decides scope.
 | A requirement, and no API yet | Later: criteria and manual cases (`manual_steps`), turned into steps once the API exists |
 
 A requirement never becomes an API description: without a real one (OpenAPI or curl) there are no
-runnable tests. Where the requirement is unclear, the model asks instead of guessing: a criterion
-draft can be a question (`QUESTION: refund at exactly 24 hours?`) for a person to settle.
+runnable tests. Where the requirement is ambiguous, leaves something out, contradicts itself or
+relies on something it doesn't describe, the model asks instead of guessing: a question for a person
+to settle, as in a requirement review.
 
 ### 11.2 Commands
 
@@ -1049,7 +1050,8 @@ per million tokens. The key comes only from the environment.
 | G10 | A reply that isn't the case format is refused with the reason; nothing is written |
 
 The same holds for criteria: a drafted criterion is `draft` until a person approves it in the review
-sheet's Criteria tab, and the trace and `draft cases` count only approved criteria.
+sheet's Criteria tab, and the trace and `draft cases` count only approved criteria. A drafted
+criterion or question must quote at least three words that are really in the requirement, or it is refused.
 
 ### 11.4 Measured, with a real model
 
@@ -1101,4 +1103,18 @@ A wrong or missing setting says what to add; a missing key names the environment
   skipped; one over `--max` is listed for next time. If the model can't be reached, the run stops
   there, keeps what it drafted, names the gaps left and exits 2.
 - **Exit codes.** 0 drafted; 1 a reply was refused; 2 no `ai:` settings, no key, or the model unreachable.
+
+### 11.8 As built: criteria from a requirement (6-3)
+
+```
+qa-agent draft criteria requirements/cancellation.md
+```
+
+| Part | What |
+|---|---|
+| `acceptance-criteria-drafts.yaml` | Drafted criteria (`status: draft`, `source` with the requirement and the words quoted) and questions (`kind`: ambiguity, omission, contradiction or dependency; `status: open` or `answered`, with the answer and who gave it). Written only by code; a person's `acceptance-criteria.yaml` is never touched, and its criteria are approved by being written |
+| `TeamProject` | `read_criteria()` gives the approved criteria (what the trace, the gaps and `draft cases` count); `read_all_criteria()` gives every one, for `check`. An id in both files is a setup problem |
+| `criteria_drafting.py` | One model call. Each item is checked on its own: it must quote at least three words that are in the requirement (spacing, case and quote marks aside), a question must be of a known kind, and one already there is skipped (by its words, or by its quote, so a criterion a reviewer reworded is still known). Ids `AC-<next>` and `Q-<next>` come from code |
+| Review sheet | A Criteria tab (each drafted criterion waiting for a decision; its text editable, the words it came from locked) and a Questions tab (Answer, Answered by), when there is something to show. `review apply` applies a criterion's decision only if its text is unchanged since the export |
+| `check` | A case linked to a criterion that isn't approved: a warning. An open question: a note, until it is answered |
 
