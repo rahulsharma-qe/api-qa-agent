@@ -1171,3 +1171,25 @@ What it does not do, on purpose:
 - Criteria in a person's own `acceptance-criteria.yaml` and questions are not compared: they carry
   no quote from a ref.
 
+## 12. A team's regression pack
+
+Most teams already have a regression pack, signed off long ago, and add a feature's important cases
+to it when the feature ships. Re-reviewing hundreds of signed-off cases, or promoting every stable
+case at once, would keep a team from starting.
+
+### 12.1 Import a signed-off pack approved
+
+```
+qa-agent import cases regression-pack.xlsx --approved-by qa-lead --reason "signed-off regression pack, release 4.2"
+```
+
+| Rule | Why |
+|---|---|
+| `--approved-by` and `--reason` together, or neither (exit 2, nothing written) | An approval with no reason is not on the record |
+| Each case: `review: {status: approved, by, date: today, comment: "imported as approved: <reason>", fingerprint}` | The trace and the sheet show the approval came with the import, not from a review here |
+| After writing, `check` runs; a case with an error (`TBD`, no steps, an unknown criterion or operation) stays a draft, its first error listed | A bulk approval lets nothing broken in |
+| `--suite regression` sets every case's suite; without it, the file's Suite column, else functional | A pack is usually all regression |
+| Imported again: skipped as already there, approvals unchanged; `--overwrite` replaces and approves again under the new name | Safe to re-run |
+
+The tool can't prove the name is that person: it is on the record in the case, and git shows who ran it.
+

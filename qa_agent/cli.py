@@ -28,7 +28,7 @@ from qa_agent import __version__
 from qa_agent.api_model import ApiModel, ApiModelError, load_api_model, save_api_model
 from qa_agent.bug_detection import measure
 from qa_agent.case_import import import_cases
-from qa_agent.cases import CaseFormatError
+from qa_agent.cases import SUITES, CaseFormatError
 from qa_agent.ai.models import ModelError, ModelSetupError
 from qa_agent.ai.session import AiSession
 from qa_agent.checks import check_project, plural
@@ -90,6 +90,11 @@ def _parser() -> argparse.ArgumentParser:
     cases.add_argument("files", nargs="+", type=Path, help=".xlsx, .csv, .json (Postman) or .feature files")
     cases.add_argument("--into", type=Path, help="one case file for everything imported (default: one per feature)")
     cases.add_argument("--overwrite", action="store_true", help="replace cases (and data files) already there")
+    cases.add_argument("--approved-by", default="", metavar="NAME",
+                       help="a pack the team signed off already: import it approved by this person (needs --reason)")
+    cases.add_argument("--reason", default="", help="why it comes in approved, e.g. \"signed-off regression pack, 4.2\"")
+    cases.add_argument("--suite", choices=SUITES, help="the suite of every case imported (default: the file's Suite "
+                                                       "column, else functional)")
     cases.set_defaults(run=import_existing_cases)
 
     check = commands.add_parser("check", help="check every case with rules; exit 1 on errors")
@@ -194,8 +199,10 @@ def import_existing_cases(args) -> int:
     missing = [str(path) for path in args.files if not path.is_file()]
     if missing:
         raise SetupError(f"no such file: {', '.join(missing)}")
-    print(import_cases(project, args.files, args.into, args.overwrite).as_text())
-    print("Next: qa-agent check, then qa-agent review export")
+    summary = import_cases(project, args.files, args.into, args.overwrite, args.approved_by, args.reason, args.suite)
+    print(summary.as_text())
+    print("Next: qa-agent check, then qa-agent review export" +
+          (" for the drafts left" if summary.approved_by else ""))
     return DONE
 
 

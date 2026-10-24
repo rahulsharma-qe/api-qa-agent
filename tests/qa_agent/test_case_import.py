@@ -79,3 +79,54 @@ def test_importing_again_keeps_the_id_it_was_given(make_project):
     import_cases(project, [root / "existing/smoke.json"])
     again = import_cases(project, [root / "existing/smoke.json"])
     assert again.new_ids == [] and again.skipped == ["TC001: already in cases/smoke.yaml (use --overwrite to replace it)"]
+
+
+PACK = ("Case ID,Title,Criteria,Priority,Suite,Method,Path,Expected Status\n"
+        "TC1,Find a booking,AC-1,P0,regression,GET,/bookings/search,200\n"
+        "TC2,Unknown booking,AC-1,P1,,GET,/bookings/NOPE00,404\n"
+        "TC3,Old rule,AC-9,P1,,GET,/bookings/search,200\n")
+
+
+def signed_off(make_project):
+    from tests.qa_agent.conftest import API, CRITERIA
+    return make_project({"existing/pack.csv": PACK, "api/api.yaml": API, "acceptance-criteria.yaml": CRITERIA})
+
+
+def test_a_signed_off_pack_comes_in_approved_by_name_with_the_reason(make_project, capsys):
+    root = signed_off(make_project)
+    assert main(["--project", str(root), "import", "cases", str(root / "existing/pack.csv"), "--into", "cases/pack.yaml",
+                 "--approved-by", "qa-lead", "--reason", "signed-off regression pack, release 4.2"]) == 0
+    out = capsys.readouterr().out
+    assert "3 cases imported: 2 approved by qa-lead, 1 left as drafts (check found an error), 0 skipped" in out
+    assert "stays draft TC3: criterion AC-9 is not in acceptance-criteria.yaml" in out
+    first, second, third = load_case_file(root / "cases/pack.yaml").cases
+    assert first.is_approved and second.is_approved and third.review.status == "draft"
+    assert first.review.by == "qa-lead" and first.review.comment == "imported as approved: signed-off regression pack, release 4.2"
+    assert (first.suite, second.suite) == ("regression", "functional")              # the file's Suite column
+
+
+def test_suite_sets_every_case_imported(make_project):
+    root = signed_off(make_project)
+    main(["--project", str(root), "import", "cases", str(root / "existing/pack.csv"), "--into", "cases/pack.yaml",
+          "--suite", "regression"])
+    cases = load_case_file(root / "cases/pack.yaml").cases
+    assert {case.suite for case in cases} == {"regression"} and {case.review.status for case in cases} == {"draft"}
+
+
+def test_an_approval_needs_a_name_and_a_reason(make_project, capsys):
+    root = signed_off(make_project)
+    assert main(["--project", str(root), "import", "cases", str(root / "existing/pack.csv"),
+                 "--approved-by", "qa-lead"]) == 2
+    assert "give both: --approved-by <name> --reason <why>" in capsys.readouterr().err
+    assert not (root / "cases").exists()
+
+
+def test_importing_the_pack_again_changes_no_approval(make_project, capsys):
+    root = signed_off(make_project)
+    args = ["--project", str(root), "import", "cases", str(root / "existing/pack.csv"), "--into", "cases/pack.yaml",
+            "--approved-by", "qa-lead", "--reason", "pack"]
+    main(args)
+    before = (root / "cases/pack.yaml").read_text()
+    main(args[:-4] + ["--approved-by", "someone-else", "--reason", "again"])
+    assert "0 approved by someone-else" in capsys.readouterr().out.splitlines()[-2]
+    assert (root / "cases/pack.yaml").read_text() == before

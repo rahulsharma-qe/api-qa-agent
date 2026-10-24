@@ -2,7 +2,18 @@
 
 Each imported case gets `review: {status: draft}` and its `source`. A case whose id is already in
 the project is skipped and reported, unless --overwrite, which replaces it (and its review).
+
+A pack the team signed off already (a regression pack, say) can come in approved:
+
+    qa-agent import cases regression-pack.xlsx --approved-by qa-lead --reason "signed-off pack, release 4.2"
+
+Both are needed. Each case is approved by that name, today, with the comment "imported as approved:
+<reason>" (so the trace and the sheet show the approval came with the import), and its fingerprint.
+A case `check` finds an error in stays a draft, with the reason: a bulk approval lets nothing broken in.
+--suite regression sets the suite of every case imported (else the file's Suite column, else functional).
 """
+
+import datetime
 
 import csv
 import json
@@ -12,6 +23,7 @@ from pathlib import Path
 from typing import Optional
 
 from qa_agent.cases import CaseFile, CaseFormatError, load_case_file, parse_case_file, save_case_file
+from qa_agent.checks import ERROR, check_project, plural
 from qa_agent.importers.common import CaseImportError, ImportResult, slug
 from qa_agent.importers.gherkin import read_feature_file
 from qa_agent.importers.postman import read_postman_collection
@@ -26,15 +38,23 @@ class ImportSummary:
     notes: list = field(default_factory=list)
     data_files: list = field(default_factory=list)
     new_ids: list = field(default_factory=list)       # "TC042: Health check": cases that came without an id
+    approved_by: str = ""                             # set for an import of a signed-off pack
+    stayed_draft: list = field(default_factory=list)  # "TC014: has TBD ...": not approved, check found an error
 
     def as_text(self) -> str:
         lines = [f"{file}: {', '.join(ids)}" for file, ids in self.written.items()]
+        lines += [f"stays draft {item}" for item in self.stayed_draft]
         lines += [f"new id {item}" for item in self.new_ids]
         lines += [f"data file written: {name}" for name in self.data_files]
         lines += [f"skipped {item}" for item in self.skipped]
         lines += [f"note: {note}" for note in self.notes]
         total = sum(len(ids) for ids in self.written.values())
-        lines.append(f"{total} cases imported as drafts, {len(self.skipped)} skipped")
+        if self.approved_by:
+            approved = total - len(self.stayed_draft)
+            lines.append(f"{plural(total, 'case')} imported: {approved} approved by {self.approved_by}, "
+                         f"{len(self.stayed_draft)} left as drafts (check found an error), {len(self.skipped)} skipped")
+        else:
+            lines.append(f"{total} cases imported as drafts, {len(self.skipped)} skipped")
         return "\n".join(lines)
 
 
@@ -51,8 +71,11 @@ def read_existing_cases(path: Path, source_name: str) -> ImportResult:
 
 
 def import_cases(project: TeamProject, paths: list[Path], into: Optional[Path] = None,
-                 overwrite: bool = False) -> ImportSummary:
-    summary = ImportSummary()
+                 overwrite: bool = False, approved_by: str = "", reason: str = "",
+                 suite: Optional[str] = None) -> ImportSummary:
+    if bool(approved_by.strip()) != bool(reason.strip()):
+        raise CaseImportError("to import as approved, give both: --approved-by <name> --reason <why>")
+    summary = ImportSummary(approved_by=approved_by.strip())
     try:
         files = {path: load_case_file(path) for path in project.case_files()}
     except CaseFormatError as error:
@@ -77,6 +100,8 @@ def import_cases(project: TeamProject, paths: list[Path], into: Optional[Path] =
                 raw["id"] = known or next_id()
                 if not known:
                     summary.new_ids.append(f"{raw['id']}: {raw.get('title')}")
+            if suite:
+                raw["suite"] = suite
             rows = raw.pop("_data_rows", None)
             if rows:
                 raw["data_file"] = f"data/{slug(feature.feature)}-{raw['id'].lower()}.csv"
@@ -85,7 +110,31 @@ def import_cases(project: TeamProject, paths: list[Path], into: Optional[Path] =
     for case_file in files.values():
         if project.relative(case_file.path) in summary.written:
             save_case_file(case_file)
+    if summary.approved_by:
+        _approve(project, summary, reason.strip())
     return summary
+
+
+def _approve(project: TeamProject, summary: ImportSummary, reason: str) -> None:
+    """Approve what was just written, except a case check finds an error in."""
+    imported = {case_id for ids in summary.written.values() for case_id in ids}
+    report = check_project(project)
+    for case_file in report.case_files:
+        changed = False
+        for case in case_file.cases:
+            if case.id not in imported:
+                continue
+            errors = [finding.message for finding in report.for_case(case.id) if finding.level == ERROR]
+            if errors:
+                summary.stayed_draft.append(errors[0])
+                continue
+            case.review.status, case.review.by = "approved", summary.approved_by
+            case.review.date = datetime.date.today().isoformat()
+            case.review.comment = f"imported as approved: {reason}"
+            case.review.fingerprint = case.fingerprint()
+            changed = True
+        if changed:
+            save_case_file(case_file)
 
 
 def _source_key(source) -> str:
