@@ -299,3 +299,32 @@ qa-agent bug-detection: pytest · 5 of 7 seeded bugs caught (71%)
 The two missed bugs are the trace's gaps seen from the other side: no case calls without a token
 (the untested 401), and no case lists bookings (`GET /bookings`, AC-6). Passing tests alone would
 not have said so.
+
+## 10. The API changed: which cases to run?
+
+The next release adds a 410 to cancel: a booking whose flight has left can't be cancelled. The team
+imports the new curl ([`api/source/next-release/`](api/source/next-release/)) and asks what that
+change affects since the last release (`run_all.sh` does this in its scratch copy, tagged `v4.2`):
+
+```bash
+qa-agent import api api/source/next-release/cancel_after_departure.curl
+qa-agent impact-analysis --since v4.2
+```
+
+```
+changed   POST /bookings/{pnr}/cancel   responses: +410
+          10 operations unchanged
+
+Affected cases (4), highest priority first:
+  TC002   P0  functional      The refund at the 24-hour boundary
+  TC040   P0  functional      The refund depends on when the booking is cancelled
+  TC003   P1  functional      A second cancel is refused
+  TC004   P2  functional      An unknown PNR can't be cancelled
+
+Run them:
+  pytest -k "test_tc002_ or test_tc040_ or test_tc003_ or test_tc004_"
+  ./mvnw test -Dtest="CancellationTest#tc002TheRefundAtThe24HourBoundary+...,CancellationScenariosTest#..."
+```
+
+The four cases to rerun, P0 first, out of every case in the project; and the new code, 410, has no
+case yet: the trace shows it as a gap, and `qa-agent draft cases` drafts one.

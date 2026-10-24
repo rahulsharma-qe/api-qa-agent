@@ -1,0 +1,8 @@
+curl -X POST https://qa1.example.com/bookings/AB12CD/cancel \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.example-token" \
+  -H "Content-Type: application/json" \
+  -d '{"cancelled_at": "2026-11-02T10:00:00Z"}'
+
+### response
+HTTP/1.1 410 Gone
+{"error": {"code": "booking_departed", "message": "The flight has left: the booking can't be cancelled"}}

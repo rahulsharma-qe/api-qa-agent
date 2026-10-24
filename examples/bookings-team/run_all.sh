@@ -13,6 +13,7 @@
 # 3. Trace: criteria -> cases -> tests -> results, with coverage; fail if an approved case has no test.
 # 4. Promote: the Python tests twice more, then the cases stable enough for regression (listed only).
 # 5. The bug-detection rate: the Python tests once per seeded bug in the reference API.
+# 6. Impact analysis: in the scratch copy, the next release's API is imported; which cases does it affect?
 set -euo pipefail
 cd "$(dirname "$0")"
 example="$(pwd)"
@@ -84,3 +85,11 @@ if [[ -n "${demo:-}" ]]; then
 else
   echo "The reference API was already running: stop it, then run qa-agent bug-detection --framework pytest"
 fi
+
+echo "== 6. Impact analysis: the next release adds 410 to cancel (in the scratch copy, as a git repository)"
+cd "$scratch/bookings-team"
+git init -q && git add -A && git -c user.name=qa -c user.email=qa@example.com commit -q -m "release 4.2"
+git tag v4.2
+qa-agent import api api/source/next-release/cancel_after_departure.curl
+qa-agent impact-analysis --since v4.2
+
