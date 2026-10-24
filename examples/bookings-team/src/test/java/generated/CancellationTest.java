@@ -23,7 +23,7 @@ public class CancellationTest extends BaseTest {
     }
 
     /** The refund at the 24-hour boundary. Criteria: AC-2, AC-3. */
-    @Test(groups = {"functional", "boundary", "writes"}, dataProvider = "tc002TheRefundAtThe24HourBoundaryRows")
+    @Test(groups = {"functional", "boundary", "sanity", "writes"}, dataProvider = "tc002TheRefundAtThe24HourBoundaryRows")
     @CaseId("TC002") @Priority("P0")
     public void tc002TheRefundAtThe24HourBoundary(Map<String, Object> row) {
         String unique = TestData.uniqueId();

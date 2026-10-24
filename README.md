@@ -105,6 +105,27 @@ tests run where they always run (pytest or Maven), since they call your API.
 On Linux, add `--user "$(id -u):$(id -g)"` so the files qa-agent writes are yours.
 In Windows PowerShell, write `${PWD}` instead of `$PWD`.
 
+## Suites
+
+| Suite | What it is | How a case gets there | Run it (pytest · REST Assured) |
+|---|---|---|---|
+| functional | New and changed behaviour; every case starts here | `suite: functional`, the default | `pytest -m functional` · `./mvnw test -Dgroups=functional` |
+| regression | Stable cases that run on every build | `qa-agent promote` (stable in three runs), `qa-agent suite`, or a signed-off pack imported with `--suite regression` | `pytest -m regression` · `-Dgroups=regression` |
+| sanity | A quick check of one area, after a fix | `tags: [sanity]` | `pytest -m sanity` · `-Dgroups=sanity` |
+| by priority | P0 to P3, from each case's `priority` | `priority: P0` | `pytest -m p0` · `-Dgroups=p0` |
+
+A case is in one suite and can have many tags: a regression case can also be sanity. When a feature
+ships, its important cases join regression:
+
+```bash
+qa-agent promote --runs r1.xml r2.xml r3.xml --feature cancellation --priority P0 P1 --reason "released in 4.3"
+```
+
+It lists what is ready and what it left out; `--apply` moves them, with the reason in each case's
+notes. Set `regression: {priorities: [P0, P1]}` in `qa-agent.yaml` once, and `--priority` can be
+left out. A pack the team signed off already comes in approved:
+`qa-agent import cases regression-pack.xlsx --approved-by qa-lead --reason "signed-off pack" --suite regression`.
+
 ## What's inside
 
 | Folder | What it is |

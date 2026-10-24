@@ -13,6 +13,7 @@ TC002_ROWS = load_rows(PROJECT / "data/cancellation_boundaries.csv")
 
 @pytest.mark.functional
 @pytest.mark.boundary
+@pytest.mark.sanity
 @pytest.mark.writes
 @pytest.mark.case("TC002")
 @pytest.mark.priority("P0")

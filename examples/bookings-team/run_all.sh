@@ -8,7 +8,8 @@
 #
 # 1. In a scratch copy: import the API and the team's existing cases again, apply the filled review
 #    sheet, generate; everything must come out exactly as committed.
-# 2. The drift check; start the reference API (unless it is already up); the environment; the tests.
+# 2. The drift check; start the reference API (unless it is already up); the environment; the tests;
+#    what each suite and priority picks (pytest -m regression, sanity, p0; -Dgroups=p0).
 # 3. Trace: criteria -> cases -> tests -> results, with coverage; fail if an approved case has no test.
 # 4. Promote: the Python tests twice more, then the cases stable enough for regression (listed only).
 # 5. The bug-detection rate: the Python tests once per seeded bug in the reference API.
@@ -51,8 +52,16 @@ results=()
 if [[ " $frameworks " == *" pytest "* ]]; then
   python -m pytest -q --junitxml=reports/junit.xml
   results+=(reports/junit.xml)
+  for pick in regression sanity p0; do
+    printf '  pytest -m %-11s %s\n' "$pick" "$( (python -m pytest -q --collect-only -m "$pick" || true) | tail -1)"
+  done
 fi
 if [[ " $frameworks " == *" restassured "* ]]; then
+  rm -rf target/surefire-reports
+  ./mvnw -q -B test -Dgroups=p0                      # by priority: @Priority("P0") is the group p0
+  p0_tests="$(cat target/surefire-reports/TEST-*.xml | grep -c "<testcase" || true)"
+  echo "  ./mvnw test -Dgroups=p0   $p0_tests tests"
+  [[ "$p0_tests" -gt 0 ]]
   ./mvnw -q -B test
   results+=(target/surefire-reports)
 fi

@@ -1223,3 +1223,11 @@ pytest -m "p0 or p1"             ./mvnw test -Dgroups=p0,p1
 Generated code does not change, so no team sees drift from `generate --check`, and a test written
 by hand gets the same, from its priority alone.
 
+### 12.4 Suites, in the README
+
+The README's Suites table names what QA teams already say (functional, regression, sanity, by
+priority) with how a case gets there and the command for each framework. There is no sanity
+suite in the case format: sanity is a tag, so one case can be regression and sanity at once, and the
+format keeps two suites. `examples/bookings-team` tags a cancellation case `sanity`, and `run_all.sh`
+prints what `-m regression`, `-m sanity` and `-m p0` pick.
+
