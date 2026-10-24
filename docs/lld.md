@@ -1267,3 +1267,29 @@ suite in the case format: sanity is a tag, so one case can be regression and san
 format keeps two suites. `examples/bookings-team` tags a cancellation case `sanity`, and `run_all.sh`
 prints what `-m regression`, `-m sanity` and `-m p0` pick.
 
+## 13. Releases
+
+A release says: everything in its notes works the way the notes say. So a version is tagged only
+when all three hold:
+
+1. CI is green on `main`.
+2. Everything the notes claim is verified the way they claim it: a claim about the AI layer is
+   measured with a real model, not shown with recorded replies.
+3. The release workflow has published the Docker image for the tag.
+
+Work that is done but not released stays on `main`; the README's "Where it stands" says what is
+built either way.
+
+| Change | Version |
+|---|---|
+| A milestone done and verified: new capabilities | minor (0.5.0, 0.6.0) |
+| Fixes only: no new command, flag or setting | patch (0.5.1) |
+| A rename or other breaking change | with a minor while below 1.0, listed under "Breaking" in the notes (as in 0.4.0); after 1.0, a major |
+| 1.0.0 | When the commands and the case format are stable, and the whole flow has run end to end with a real model |
+
+The frameworks (`api-test-framework`, the REST Assured framework) have their own versions, bumped
+only when their public API changes; the teams' poms move with them in the same commit.
+
+Next: 0.5.0 once the AI layer is measured with a real model (11.4, 6-5); then 0.6.0, the model in
+the team's own cloud.
+
