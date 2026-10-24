@@ -17,27 +17,24 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
-from openpyxl.styles import Alignment, Font, PatternFill, Protection
+from openpyxl.styles import Alignment, Font, Protection
 from openpyxl.worksheet.datavalidation import DataValidation
 
 from qa_agent.cases import PRIORITIES, SUITES, Case, load_case_file, save_case_file
 from qa_agent.checks import ERROR, check_project
+from qa_agent.criteria_review import add_criteria_sheets, apply_criteria_sheets
+from qa_agent.review_common import (DECIDE_FILL, DECISIONS, HEADER_FILL, LOCKED_FILL, row_problem,
+                                    text_value)
 from qa_agent.importers.common import split_list
 from qa_agent.project import SetupError, TeamProject
 
 SHEET = "Cases"
-DECISIONS = {"approve": "approved", "approved": "approved", "changes needed": "changes_needed",
-             "reject": "rejected", "rejected": "rejected"}
 COLUMNS = [  # header, width, editable
     ("ID", 12, False), ("Case file", 22, False), ("Status", 14, False), ("Title", 36, True),
     ("Criteria", 12, True), ("Priority", 9, True), ("Suite", 12, True), ("Tags", 12, True),
     ("Steps", 60, False), ("Expected", 44, False), ("Check findings", 44, False),
     ("Decision", 16, True), ("Reviewer", 14, True), ("Date", 12, True), ("Comment", 40, True),
     ("Fingerprint", 14, False)]
-HEADER_FILL = PatternFill("solid", fgColor="1F2937")
-LOCKED_FILL = PatternFill("solid", fgColor="F3F4F6")
-DECIDE_FILL = PatternFill("solid", fgColor="FEF9C3")
-DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 HOW_TO = [
     "How to review",
     "",
@@ -46,6 +43,10 @@ HOW_TO = [
     "3. Pick a Decision: Approve, Changes needed or Reject. Fill Reviewer; Date is today if left empty.",
     "4. Changes needed and Reject need a Comment, so the author knows why.",
     "5. Save, then run: qa-agent review apply",
+    "",
+    "Criteria tab (when there is one): drafted acceptance criteria. Approve, send back or reject each, as for",
+    "cases; you may reword the criterion. Questions tab: what the requirement leaves open. Write the Answer",
+    "and who gave it (Answered by); the product owner is often the one to ask.",
     "",
     "Only approved cases become tests. A case edited after this sheet was made is not applied:",
     "export the sheet again. A case with check errors, or with steps only in words, can't be approved.",
@@ -82,6 +83,7 @@ def export_review_sheet(project: TeamProject, path: Path, every_case: bool = Fal
                       readable_steps(case), readable_expectations(case), "\n".join(findings),
                       "", "", "", case.review.comment, case.fingerprint()])
     _format(sheet, len(rows))
+    add_criteria_sheets(workbook, project)
     guide = workbook.create_sheet("How to review")
     for line in HOW_TO:
         guide.append([line])
@@ -126,6 +128,7 @@ def import_review_sheet(project: TeamProject, path: Path) -> ReviewImportResult:
         result.applied.append(f"{case.id}: {status.replace('_', ' ')} by {row['Reviewer']}, {row['Date']}")
     for case_file in {case_file.path: case_file for case_file, _, _ in accepted}.values():
         save_case_file(case_file)
+    apply_criteria_sheets(path, project, result)
     return result
 
 
@@ -225,28 +228,16 @@ def _decided_rows(path: Path, result: ReviewImportResult) -> list[dict]:
         raise SetupError(f"{path}: columns missing: {', '.join(missing)}; export the review sheet again")
     decided = []
     for number, values in enumerate(rows[1:], start=2):
-        row = {name: _text(value) for name, value in zip(header, values)}
+        row = {name: text_value(value) for name, value in zip(header, values)}
         if not row.get("Decision"):
             continue
-        problem = _row_problem(row)
+        problem = row_problem(row)
         if problem:
             result.refused.append(f"{row.get('ID') or f'row {number}'}: {problem}")
             continue
         row["Date"] = row["Date"] or datetime.date.today().isoformat()
         decided.append(row)
     return decided
-
-
-def _row_problem(row: dict) -> str:
-    if row["Decision"].lower() not in DECISIONS:
-        return f"Decision '{row['Decision']}' (use Approve, Changes needed or Reject)"
-    if not row.get("Reviewer"):
-        return "Reviewer is empty: a decision needs a name"
-    if DECISIONS[row["Decision"].lower()] != "approved" and not row.get("Comment"):
-        return f"{row['Decision']} needs a Comment, so the author knows why"
-    if row.get("Date") and not DATE.match(row["Date"]):
-        return f"Date '{row['Date']}' (use YYYY-MM-DD)"
-    return ""
 
 
 def _edit(case: Case, row: dict) -> str:
@@ -260,11 +251,3 @@ def _edit(case: Case, row: dict) -> str:
     case.title, case.priority, case.suite = row["Title"], row["Priority"], row["Suite"]
     case.criteria, case.tags = split_list(row["Criteria"]), split_list(row["Tags"])
     return ""
-
-
-def _text(value) -> str:
-    if isinstance(value, (datetime.date, datetime.datetime)):
-        return value.strftime("%Y-%m-%d")
-    if isinstance(value, float) and value.is_integer():
-        value = int(value)
-    return "" if value is None else str(value).strip()

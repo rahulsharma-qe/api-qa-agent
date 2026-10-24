@@ -30,6 +30,7 @@ from qa_agent.ai.models import ModelError, ModelSetupError
 from qa_agent.ai.session import AiSession
 from qa_agent.checks import check_project, plural
 from qa_agent.criteria_drafting import draft_criteria
+from qa_agent.criteria_review import pending as pending_criteria
 from qa_agent.drafting import DEFAULT_MAX, draft_cases, plan
 from qa_agent.generate import generate
 from qa_agent.init_project import init_project
@@ -192,8 +193,12 @@ def review_export(args) -> int:
     project = TeamProject.load(args.project)
     sheet = args.sheet if args.sheet.is_absolute() else project.root / args.sheet
     count = export_review_sheet(project, sheet, args.all)
-    print(f"{project.relative(sheet)}: {plural(count, 'case')} to review. Fill Decision, Reviewer and Comment, "
-          f"save, then: qa-agent review apply")
+    criteria, questions = pending_criteria(project)
+    extra = (f", {len(criteria)} {'criterion' if len(criteria) == 1 else 'criteria'} and "
+             f"{plural(len(questions), 'open question')}"
+             if criteria or questions else "")
+    print(f"{project.relative(sheet)}: {plural(count, 'case')}{extra} to review. Fill Decision, Reviewer and Comment "
+          f"(and Answer for questions), save, then: qa-agent review apply")
     return DONE
 
 
