@@ -1193,3 +1193,18 @@ qa-agent import cases regression-pack.xlsx --approved-by qa-lead --reason "signe
 
 The tool can't prove the name is that person: it is on the record in the case, and git shows who ran it.
 
+### 12.2 Promote a released feature's cases
+
+```
+qa-agent promote --runs r1 r2 r3 --feature cancellation --priority P0 P1 --reason "released in 4.3" --apply
+```
+
+| Rule | Why |
+|---|---|
+| `--feature`: only the case files whose `feature:` or file name matches (any case); an unknown one names the features there | "This feature shipped" is how a team thinks about it |
+| `--priority`: only these; without it, `regression: {priorities: [P0, P1]}` in `qa-agent.yaml`; without that, every priority (as before) | A team sets its rule once; nothing changes for a team that hasn't |
+| The stability rule is unchanged: approved, functional, passed in every run, at least three runs | A release doesn't make a flaky case stable |
+| A stable case of another priority is listed: `left out, not P0/P1: TC031 (P2)` | Nothing is dropped silently |
+| `--reason` is added to the note each promoted case gets | The why stays with the case |
+| A regression case that failed is flagged, whatever its priority | A broken regression case matters at any priority |
+

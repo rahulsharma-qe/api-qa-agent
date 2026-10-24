@@ -11,6 +11,7 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from qa_agent.cases import PRIORITIES
 from qa_agent.yaml_files import FileFormatError, read_yaml
 
 CONFIG_FILE = "qa-agent.yaml"
@@ -43,6 +44,7 @@ class TeamProject:
     frameworks: tuple[str, ...]
     case_id_prefix: str = "TC"          # an imported case with no id gets the next free one: TC042
     ai: dict = field(default_factory=dict, compare=False, hash=False)   # the AI layer's settings (qa_agent/ai)
+    regression_priorities: tuple = ()   # what promote moves to regression by default; empty: every priority
 
     @classmethod
     def load(cls, root: Path) -> "TeamProject":
@@ -62,7 +64,7 @@ class TeamProject:
         if not isinstance(ai, dict):
             raise SetupError(f"{config_path}: 'ai' should be a mapping (provider, model or recorded)")
         return cls(Path(root), str(config["team"]), str(config["service"]), tuple(frameworks),
-                   str(config.get("case_id_prefix") or "TC"), dict(ai))
+                   str(config.get("case_id_prefix") or "TC"), dict(ai), _regression_priorities(config, config_path))
 
     @property
     def api_model_path(self) -> Path:
@@ -124,3 +126,15 @@ def _read(path: Path):
         return read_yaml(path)
     except FileFormatError as error:
         raise SetupError(str(error)) from error
+
+
+def _regression_priorities(config: dict, config_path: Path) -> tuple:
+    """regression: {priorities: [P0, P1]}: the priorities promote moves by default."""
+    regression = config.get("regression") or {}
+    priorities = regression.get("priorities") if isinstance(regression, dict) else None
+    if regression and (not isinstance(priorities, list) or not priorities
+                       or any(str(item) not in PRIORITIES for item in priorities)):
+        raise SetupError(f"{config_path}: regression: priorities should be a list of {', '.join(PRIORITIES)}, "
+                         "e.g. regression: {priorities: [P0, P1]}")
+    return tuple(str(item) for item in priorities or ())
+

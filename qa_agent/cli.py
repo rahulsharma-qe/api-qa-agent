@@ -8,6 +8,7 @@
     qa-agent generate                                approved cases -> tests, for every framework
     qa-agent trace --results reports/junit.xml       criteria -> cases -> tests -> results, and coverage
     qa-agent promote --runs r1 r2 r3 [--apply]       stable functional cases -> regression; a person applies it
+                     [--feature x] [--priority P0 P1] [--reason "released in 4.3"]
     qa-agent suite TC010 functional --by --reason    a person moves a case between suites, on the record
     qa-agent bug-detection --seeded-bugs seeded-bugs.yaml --framework pytest   the bug-detection rate: seeded bugs, one at a time
     qa-agent draft criteria requirements/x.md        the AI layer: criteria and questions from a requirement in plain words
@@ -28,7 +29,7 @@ from qa_agent import __version__
 from qa_agent.api_model import ApiModel, ApiModelError, load_api_model, save_api_model
 from qa_agent.bug_detection import measure
 from qa_agent.case_import import import_cases
-from qa_agent.cases import SUITES, CaseFormatError
+from qa_agent.cases import PRIORITIES, SUITES, CaseFormatError
 from qa_agent.ai.models import ModelError, ModelSetupError
 from qa_agent.ai.session import AiSession
 from qa_agent.checks import check_project, plural
@@ -130,6 +131,10 @@ def _parser() -> argparse.ArgumentParser:
     stable.add_argument("--runs", nargs="+", type=Path, required=True,
                         help="three or more runs, each a JUnit file or folder: reports/run1.xml reports/run2.xml ...")
     stable.add_argument("--apply", action="store_true", help="set suite: regression on the ready cases")
+    stable.add_argument("--feature", default="", help="only this feature's cases (its feature: name or file name)")
+    stable.add_argument("--priority", nargs="+", choices=PRIORITIES, default=[],
+                        help="only these priorities (default: regression: priorities in qa-agent.yaml, else all)")
+    stable.add_argument("--reason", default="", help="why, kept in each case's notes, e.g. \"released in 4.3\"")
     stable.set_defaults(run=run_promote)
 
     move = commands.add_parser("suite", help="move a case to another suite, with who and why")
@@ -259,7 +264,7 @@ def run_promote(args) -> int:
     missing = [project.relative(path) for path in runs if not path.exists()]
     if missing:
         raise SetupError(f"no such runs: {', '.join(missing)}")
-    print(promote(project, runs, args.apply).as_text(len(runs)))
+    print(promote(project, runs, args.apply, args.feature, tuple(args.priority), args.reason).as_text(len(runs)))
     return DONE
 
 

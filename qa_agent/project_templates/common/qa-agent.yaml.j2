@@ -3,3 +3,4 @@ team: {{ team }}
 service: {{ service }}            # the main service: a step without `service:` calls it
 frameworks: [{{ framework }}]
 case_id_prefix: TC                # a case imported without an id gets the next free one: TC002, TC003, ...
+# regression: {priorities: [P0, P1]}   # what promote moves to regression by default; without it, every priority
