@@ -18,8 +18,8 @@ testing AI agents themselves.
 |---|---|
 | Reference API to test against ([`demo_api/`](demo_api/)) | **Built**: bookings, tokens, cancel and refund rules, health checks; its OpenAPI description lists every status code and is checked in CI |
 | Environment check ([`env_check/`](env_check/)) | **Built**: a dependency that is down stops the run as an environment problem, never a test failure |
-| Python framework ([`frameworks/python_api/`](frameworks/python_api/)) | **Built**: environments, OAuth, API chaining, data-driven tests, readable failures; Allure report, smoke and priority tags, evidence, one retry shown separately |
-| REST Assured framework with TestNG ([`frameworks/restassured_api/`](frameworks/restassured_api/)) | **Built**: the same features in Java, with TestNG groups and suites, Excel-driven data, Allure, evidence, retry |
+| Python framework ([`frameworks/python_api/`](frameworks/python_api/)) | **Built**: environments, OAuth, API chaining, data-driven tests, readable failures; Allure report, smoke and priority tags (`pytest -m p0`), evidence, one retry shown separately |
+| REST Assured framework with TestNG ([`frameworks/restassured_api/`](frameworks/restassured_api/)) | **Built**: the same features in Java, with TestNG groups and suites (`-Dgroups=p0` by priority), Excel-driven data, Allure, evidence, retry |
 | `qa-agent`: cases from the team's API and existing cases ([`qa_agent/`](qa_agent/), [example](examples/bookings-team/)) | **Built**: API import (OpenAPI, curl); existing cases from Excel, CSV, Postman and Gherkin, a signed-off regression pack approved on import (`--approved-by --reason`); `check` with the fix for every finding; review in an Excel sheet, with who and when |
 | `qa-agent`: tests, trace, new projects | **Built**: approved cases become pytest and REST Assured tests; the trace from criteria to results, with coverage; `init` makes a project that runs on day one |
 | `qa-agent`: every day | **Built**: the drift check (`generate --check`), a coverage floor (`trace --min-coverage`), `promote` stable cases to regression (a released feature's P0 and P1 cases, say), `suite` to move one back, on the record |

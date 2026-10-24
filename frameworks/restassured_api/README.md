@@ -51,6 +51,7 @@ boolean, list, object, null) · `fieldContains` · `listLength` · `listContains
 
 ```bash
 ./mvnw test -Dgroups=smoke                                   # by group: smoke, regression, functional
+./mvnw test -Dgroups=p0                                      # by priority: p0 to p3, from @Priority
 ./mvnw test -Dsurefire.suiteXmlFiles=suites/regression.xml   # or a testng.xml suite
 ./mvnw test -Denv=qa1                                        # same tests, other hosts (or API_ENV=qa1)
 ./mvnw test -Denv=staging -Dgroups=writes                    # read-only: every test that changes data is skipped, with the reason
@@ -64,7 +65,7 @@ framework and env_check: services, tokens (`none`, `static_token`, `client_crede
 | `groups = "smoke"`, `"regression"`, `"functional"` | which suite a test belongs to |
 | `groups = "writes"` | changes data: skipped on a `read_only` environment |
 | `@CaseId("TC003")` | the test case it came from: an Allure label and a TestNG attribute |
-| `@Priority("P0")` | P0 (highest) to P3: the severity in Allure (P0 blocker, P1 critical, P2 normal, P3 minor) |
+| `@Priority("P0")` | P0 (highest) to P3: the severity in Allure (P0 blocker, P1 critical, P2 normal, P3 minor); the test also joins the group `p0`, so `-Dgroups=p0` runs the P0 tests |
 
 ## Reports, evidence and retries
 

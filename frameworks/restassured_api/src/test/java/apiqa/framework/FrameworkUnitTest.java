@@ -23,6 +23,7 @@ import apiqa.framework.data.NewPassenger;
 import apiqa.framework.data.TestData;
 import apiqa.framework.expect.Expect;
 import apiqa.framework.expect.ExpectationFailed;
+import apiqa.framework.testng.RetryTransformer;
 
 /** The framework's own tests: no service needed. */
 public class FrameworkUnitTest {
@@ -118,5 +119,12 @@ public class FrameworkUnitTest {
         assertTrue(unknown.getMessage().contains("unknown environment 'qa9'"));
         ConfigException service = expectThrows(ConfigException.class, () -> demo.baseUrl("payments"));
         assertTrue(service.getMessage().contains("no service 'payments'"));
+    }
+
+    @Test
+    public void aPriorityBecomesAGroupOnceSoDgroupsP0RunsIt() {
+        String[] groups = RetryTransformer.withGroup(new String[] {"regression", "writes"}, "p0");
+        assertEquals(List.of(groups), List.of("regression", "writes", "p0"));
+        assertEquals(List.of(RetryTransformer.withGroup(groups, "p0")), List.of("regression", "writes", "p0"));
     }
 }

@@ -1208,3 +1208,18 @@ qa-agent promote --runs r1 r2 r3 --feature cancellation --priority P0 P1 --reaso
 | `--reason` is added to the note each promoted case gets | The why stays with the case |
 | A regression case that failed is flagged, whatever its priority | A broken regression case matters at any priority |
 
+### 12.3 Run by priority
+
+```
+pytest -m p0                     ./mvnw test -Dgroups=p0
+pytest -m "p0 or p1"             ./mvnw test -Dgroups=p0,p1
+```
+
+| Part | What |
+|---|---|
+| Python framework (`pytest_plugin.py`) | A test marked `priority("P0")` is also marked `p0` while tests are collected, before `-m` picks them; `p0` to `p3` are registered markers |
+| REST Assured framework (`RetryTransformer`) | A test with `@Priority("P0")` joins the group `p0`. The class is the one the teams' poms already register, so no pom changes |
+
+Generated code does not change, so no team sees drift from `generate --check`, and a test written
+by hand gets the same, from its priority alone.
+

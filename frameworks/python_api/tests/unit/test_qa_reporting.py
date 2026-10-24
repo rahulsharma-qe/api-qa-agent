@@ -48,6 +48,26 @@ def test_smoke_and_priority_are_markers_and_go_into_junit(pytester):
     assert '<property name="case_id" value="TC001"' in report and '<property name="priority" value="P0"' in report
 
 
+def test_a_priority_is_also_a_marker_so_m_p0_runs_the_p0_tests(pytester):
+    make_project(pytester, """
+        import pytest
+
+        @pytest.mark.priority("P0")
+        def test_top():
+            pass
+
+        @pytest.mark.priority("P2")
+        def test_lower():
+            pass
+
+        def test_no_priority():
+            pass
+    """)
+    result = pytester.runpytest("-m", "p0", "--strict-markers")
+    result.assert_outcomes(passed=1, deselected=2)
+    pytester.runpytest("-m", "p0 or p2", "--strict-markers").assert_outcomes(passed=2, deselected=1)
+
+
 def test_an_unknown_priority_is_a_usage_error(pytester):
     make_project(pytester, """
         import pytest

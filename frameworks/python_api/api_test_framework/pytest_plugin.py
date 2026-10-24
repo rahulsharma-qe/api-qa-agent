@@ -3,6 +3,7 @@
     pytest --env qa2                      the environment (or API_ENV=qa2); default: demo
     pytest --api-config path.yaml         the environments file (or API_CONFIG); default: config/environments.yaml
     pytest -m regression                  only regression tests (or -m smoke)
+    pytest -m p0                          only the P0 tests: a test with priority("P0") is also marked p0
     pytest --evidence reports/evidence    every test's requests and responses, pass or fail, one file each
     pytest --reruns 1                     retry a failure once; a pass on retry is listed separately
     pytest --alluredir reports/allure-results   the Allure report (allure generate reports/allure-results)
@@ -36,6 +37,8 @@ MARKERS = {
     "writes": "changes data: skipped on an environment marked read_only",
     "case(case_id)": "the test case this test was generated from; written into the JUnit report",
     "priority(level)": "P0 (highest) to P3; written into the JUnit report, and the severity in Allure",
+    **{level.lower(): f"priority {level}: added from priority(\"{level}\"), so -m {level.lower()} picks them"
+       for level in PRIORITIES},
 }
 ENVIRONMENT_KEY = pytest.StashKey[EnvironmentConfig]()
 CONTEXT_KEY = pytest.StashKey[ScenarioContext]()
@@ -57,9 +60,12 @@ def pytest_configure(config):
     config.stash[PASSED_ON_RETRY_KEY] = []
 
 
+@pytest.hookimpl(tryfirst=True)              # before -m deselects, so -m p0 sees the p0 marker
 def pytest_collection_modifyitems(config, items):
     for item in items:
-        _priority(item)            # a wrong priority stops the run before anything is sent
+        level = _priority(item)    # a wrong priority stops the run before anything is sent
+        if level and not item.get_closest_marker(level.lower()):
+            item.add_marker(level.lower())
     writing = [item for item in items if item.get_closest_marker("writes")]
     environment = _environment(config) if writing else None
     if environment is not None and environment.read_only:

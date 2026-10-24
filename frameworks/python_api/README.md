@@ -88,7 +88,7 @@ A missing environment, file or variable stops the run with `SETUP PROBLEM` (exit
 | `functional` | new behaviour, run on demand until promoted |
 | `writes` | changes data: skipped on a `read_only` environment, with the reason |
 | `case("TC003")` | the test case it came from: a JUnit property and an Allure label |
-| `priority("P0")` | P0 (highest) to P3: a JUnit property, and the severity in Allure (P0 blocker, P1 critical, P2 normal, P3 minor) |
+| `priority("P0")` | P0 (highest) to P3: a JUnit property, and the severity in Allure (P0 blocker, P1 critical, P2 normal, P3 minor); the test is also marked `p0`, so `pytest -m p0` runs the P0 tests |
 
 ## Reports, evidence and retries
 
