@@ -53,6 +53,7 @@ class DraftReport:
     drafted: list = field(default_factory=list)      # (gap key, [case ids], file)
     refused: list = field(default_factory=list)      # (gap key, reason)
     skipped: list = field(default_factory=list)      # gap keys drafted before
+    covered: list = field(default_factory=list)      # gap keys a draft made earlier in this run covers
     not_reached: list = field(default_factory=list)  # gap keys over --max
     stopped: str = ""                                # why the run stopped early (the model couldn't be reached)
 
@@ -60,6 +61,7 @@ class DraftReport:
         lines = [f"drafted   {key}: {', '.join(ids)} -> {path}" for key, ids, path in self.drafted]
         lines += [f"refused   {key}: {reason}" for key, reason in self.refused]
         lines += [f"skipped   {key}: drafted before" for key in self.skipped]
+        lines += [f"covered   {key}: by a draft made earlier in this run, no call" for key in self.covered]
         if self.not_reached:
             lines.append(f"next time {', '.join(self.not_reached)} (over --max)")
         if self.stopped:
@@ -104,7 +106,8 @@ def plan(project: TeamProject, max_gaps: int = DEFAULT_MAX, session: Optional[Ai
         if number <= max_gaps:
             total_tokens += _estimate_tokens(project, gap)
     calls = min(len(to_draft), max_gaps)
-    estimate = f"{plural(calls, 'model call')}, about {total_tokens:,} tokens in and {calls * REPLY_TOKENS_ESTIMATE:,} out"
+    estimate = (f"at most {plural(calls, 'model call')} (a gap an earlier draft covers needs none), "
+                f"about {total_tokens:,} tokens in and {calls * REPLY_TOKENS_ESTIMATE:,} out")
     if session is not None:
         cost = session.cost(total_tokens, calls * REPLY_TOKENS_ESTIMATE)
         if cost is not None:
@@ -113,16 +116,25 @@ def plan(project: TeamProject, max_gaps: int = DEFAULT_MAX, session: Optional[Ai
 
 
 def draft_cases(project: TeamProject, session: AiSession, max_gaps: int = DEFAULT_MAX) -> DraftReport:
+    """One call per gap, up to max_gaps calls. The gaps are counted again before each call: a draft
+    for a criterion often covers an operation's codes too, and that gap then needs no call."""
     report = DraftReport()
     to_draft, report.skipped = pending_gaps(project)
-    report.not_reached = [gap.key for gap in to_draft[max_gaps:]]
-    for gap in to_draft[:max_gaps]:
-        system, user = DRAFT_CASES_SYSTEM, _user_prompt(project, gap)
+    calls = 0
+    for number, planned in enumerate(to_draft):
+        if calls == max_gaps:
+            report.not_reached = [gap.key for gap in to_draft[number:]]
+            break
+        gap = {gap.key: gap for gap in find_gaps(project)}.get(planned.key)
+        if gap is None:
+            report.covered.append(planned.key)
+            continue
+        calls += 1
         try:
-            reply = session.ask(f"draft {gap.key}", system, user, max_tokens=3000)
+            reply = session.ask(f"draft {gap.key}", DRAFT_CASES_SYSTEM, _user_prompt(project, gap), max_tokens=3000)
         except ModelError as error:
             report.stopped = f"at {gap.key}: {error}"
-            report.not_reached = [g.key for g in to_draft[to_draft.index(gap):max_gaps]] + report.not_reached
+            report.not_reached = [g.key for g in to_draft[number:]]
             break
         result = _write_drafts(project, gap, reply, f"{session.model.provider}:{session.model.model}")
         if isinstance(result, str):

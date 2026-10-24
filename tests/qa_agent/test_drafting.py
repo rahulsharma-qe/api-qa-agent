@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+from qa_agent.ai.models import file_name
 from qa_agent.checks import ERROR, check_project
 from qa_agent.cli import main
 from qa_agent.cases import load_case_file, save_case_file
@@ -243,3 +244,30 @@ def test_a_gap_another_case_covers_now_is_not_redone(project, capsys):
     capsys.readouterr()
     assert redo(project, "TC002") == 1
     assert "not redone TC002: its gap AC-2 is covered by another case now (see qa-agent trace): reject this one in the review sheet" in capsys.readouterr().out
+
+
+AC2_COVERS_CANCEL = GOOD_AC2.replace("```\n", "").replace("```yaml\n", "") + """  - title: A booking can't be cancelled twice
+    criteria: [AC-2]
+    steps:
+      - request: {method: POST, path: /bookings, body: {passenger_name: "D {{unique}}", email: d@x.io}}
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request: {method: POST, path: "/bookings/{{pnr}}/cancel"}
+        expect: {status: 200}
+      - request: {method: POST, path: "/bookings/{{pnr}}/cancel"}
+        expect: {status: 409}
+"""
+
+
+def test_a_gap_a_draft_in_the_same_run_covered_gets_no_call(project, capsys):
+    keys = [gap.key for gap in pending_gaps(project)[0]]
+    assert "POST /bookings/{pnr}/cancel" in keys
+    reply(project, "draft-ac-2", AC2_COVERS_CANCEL)
+    for key in keys[1:]:
+        if key != "POST /bookings/{pnr}/cancel":
+            reply(project, file_name(f"draft {key}"), "cases: []\nreason: not in this test")
+    main(["--project", str(project.root), "draft", "cases"])
+    out = capsys.readouterr().out
+    assert "covered   POST /bookings/{pnr}/cancel: by a draft made earlier in this run, no call" in out
+    sent = [json.loads(line)["name"] for line in (project.root / "reports" / "ai-audit-log.jsonl").read_text().splitlines()]
+    assert "draft POST /bookings/{pnr}/cancel" not in sent

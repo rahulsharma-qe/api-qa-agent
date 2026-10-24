@@ -1103,7 +1103,9 @@ A wrong or missing setting says what to add; a missing key names the environment
   its comments, so drafts keep to their own files (G6); the review sheet, `check` and the trace read
   them like any other.
 - **One gap at a time.** A gap already drafted (by its `source.gap`, whatever its review status) is
-  skipped; one over `--max` is listed for next time. If the model can't be reached, the run stops
+  skipped; one over `--max` is listed for next time. The gaps are counted again before each call: a draft
+  for a criterion often covers an operation's codes too, and a gap covered that way in the same run
+  is listed as covered, with no call (so `--plan` gives the most calls a run can make). If the model can't be reached, the run stops
   there, keeps what it drafted, names the gaps left and exits 2.
 - **Exit codes.** 0 drafted; 1 a reply was refused; 2 no `ai:` settings, no key, or the model unreachable.
 
