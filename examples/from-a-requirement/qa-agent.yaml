@@ -1,0 +1,7 @@
+# A team's project for qa-agent. Every command reads this first.
+team: refunds
+service: bookings            # the main service: a step without `service:` calls it
+frameworks: [pytest]
+ai:
+  provider: recorded         # replies read from ai/recorded/, no model called: see ai/recorded/README.md
+  recorded: ai/recorded      # a team writes `provider: anthropic` (or openai) and `model: ...` instead

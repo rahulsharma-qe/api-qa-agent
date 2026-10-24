@@ -1,0 +1,290 @@
+feature: Bookings (drafted)
+cases:
+  - id: TC001
+    title: A booking cancelled one hour after it was made gets a full refund
+    criteria: [AC-1]
+    priority: P0
+    suite: functional
+    source: {kind: ai-draft, model: 'recorded:recorded', gap: AC-1}
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body:
+            passenger_name: Ravi Kumar {{unique}}
+            email: ravi.{{unique}}@testdata.example
+            amount: 250
+            booked_at: '2026-01-15T10:00:00Z'
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request:
+          method: POST
+          path: /bookings/{{pnr}}/cancel
+          body: {cancelled_at: '2026-01-15T11:00:00Z'}
+        expect:
+          status: 200
+          fields: {refund_allowed: true, refund_amount: 250}
+    review:
+      status: approved
+      by: qa-lead
+      date: '2026-10-24'
+      fingerprint: d0240318751a
+  - id: TC002
+    title: A booking cancelled exactly 24 hours after it was made gets a full refund
+    criteria: [AC-1]
+    priority: P0
+    suite: functional
+    tags: [boundary]
+    source: {kind: ai-draft, model: 'recorded:recorded', gap: AC-1}
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body:
+            passenger_name: Ravi Kumar {{unique}}
+            email: ravi.{{unique}}@testdata.example
+            amount: 250
+            booked_at: '2026-01-15T10:00:00Z'
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request:
+          method: POST
+          path: /bookings/{{pnr}}/cancel
+          body: {cancelled_at: '2026-01-16T10:00:00Z'}
+        expect:
+          status: 200
+          fields: {refund_allowed: true, refund_amount: 250}
+    review:
+      status: approved
+      by: qa-lead
+      date: '2026-10-24'
+      fingerprint: 3a7b82957767
+  - id: TC003
+    title: A booking cancelled 24 hours and 1 minute after it was made gets no refund
+    criteria: [AC-2]
+    priority: P0
+    suite: functional
+    tags: [boundary]
+    source: {kind: ai-draft, model: 'recorded:recorded', gap: AC-2}
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body:
+            passenger_name: Ravi Kumar {{unique}}
+            email: ravi.{{unique}}@testdata.example
+            amount: 250
+            booked_at: '2026-01-15T10:00:00Z'
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request:
+          method: POST
+          path: /bookings/{{pnr}}/cancel
+          body: {cancelled_at: '2026-01-16T10:01:00Z'}
+        expect:
+          status: 200
+          fields: {refund_allowed: false, refund_amount: 0}
+    review:
+      status: approved
+      by: qa-lead
+      date: '2026-10-24'
+      fingerprint: c712730850c4
+  - id: TC004
+    title: A booking cancelled 30 days after it was made gets no refund
+    criteria: [AC-2]
+    priority: P2
+    suite: functional
+    source: {kind: ai-draft, model: 'recorded:recorded', gap: AC-2}
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body:
+            passenger_name: Ravi Kumar {{unique}}
+            email: ravi.{{unique}}@testdata.example
+            amount: 250
+            booked_at: '2026-01-15T10:00:00Z'
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request:
+          method: POST
+          path: /bookings/{{pnr}}/cancel
+          body: {cancelled_at: '2026-02-14T10:00:00Z'}
+        expect:
+          status: 200
+          fields: {refund_allowed: false, refund_amount: 0}
+    review:
+      status: rejected
+      by: qa-lead
+      date: '2026-10-24'
+      comment: 'Same rule as TC003: the minute after 24 hours is the one that matters'
+  - id: TC005
+    title: A booking already cancelled can't be cancelled again
+    criteria: [AC-3]
+    priority: P1
+    suite: functional
+    tags: [negative]
+    source: {kind: ai-draft, model: 'recorded:recorded', gap: AC-3}
+    notes: The error code for a second cancel isn't in the API description; confirm it.
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body:
+            passenger_name: Ravi Kumar {{unique}}
+            email: ravi.{{unique}}@testdata.example
+            amount: 250
+            booked_at: '2026-01-15T10:00:00Z'
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request:
+          method: POST
+          path: /bookings/{{pnr}}/cancel
+          body: {cancelled_at: '2026-01-15T11:00:00Z'}
+        expect: {status: 200}
+      - request:
+          method: POST
+          path: /bookings/{{pnr}}/cancel
+          body: {cancelled_at: '2026-01-15T12:00:00Z'}
+        expect:
+          status: 409
+          fields: {error.code: TBD}
+    review:
+      status: rejected
+      by: qa-lead
+      date: '2026-10-24'
+      comment: 'A second cancel answers 409 with error code already_cancelled (the API''s error list): check that
+        code, not TBD (replaced by TC011)'
+  - id: TC006
+    title: A PNR that doesn't exist can't be cancelled
+    criteria: [AC-3]
+    priority: P2
+    suite: functional
+    tags: [negative]
+    source: {kind: ai-draft, model: 'recorded:recorded', gap: AC-3}
+    steps:
+      - request: {method: POST, path: /bookings/NOPE00/cancel}
+        expect:
+          status: 404
+          exists: [error.message]
+    review:
+      status: approved
+      by: qa-lead
+      date: '2026-10-24'
+      fingerprint: 17488614d1d2
+  - id: TC007
+    title: After a cancel within 24 hours, the refund status is refunded, for the full amount
+    criteria: [AC-4]
+    priority: P1
+    suite: functional
+    source: {kind: ai-draft, model: 'recorded:recorded', gap: AC-4}
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body:
+            passenger_name: Ravi Kumar {{unique}}
+            email: ravi.{{unique}}@testdata.example
+            amount: 250
+            booked_at: '2026-01-15T10:00:00Z'
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request:
+          method: POST
+          path: /bookings/{{pnr}}/cancel
+          body: {cancelled_at: '2026-01-15T11:00:00Z'}
+        expect: {status: 200}
+      - request: {method: GET, path: '/bookings/{{pnr}}/refund'}
+        expect:
+          status: 200
+          fields: {refund_status: refunded, refund_amount: 250}
+    review:
+      status: approved
+      by: qa-lead
+      date: '2026-10-24'
+      fingerprint: 82210e279e71
+  - id: TC008
+    title: The refund status of a PNR that doesn't exist is not found
+    criteria: [AC-4]
+    priority: P2
+    suite: functional
+    tags: [negative]
+    source: {kind: ai-draft, model: 'recorded:recorded', gap: AC-4}
+    steps:
+      - request: {method: GET, path: /bookings/NOPE00/refund}
+        expect:
+          status: 404
+          exists: [error.message]
+    review:
+      status: approved
+      by: qa-lead
+      date: '2026-10-24'
+      fingerprint: 868a21f7a46e
+  - id: TC009
+    title: A booking without an email is refused
+    criteria: []
+    priority: P2
+    suite: functional
+    tags: [negative]
+    source: {kind: ai-draft, model: 'recorded:recorded', gap: POST /bookings}
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body: {passenger_name: 'Ravi Kumar {{unique}}', amount: 250}
+        expect: {status: 422}
+    review:
+      status: approved
+      by: qa-lead
+      date: '2026-10-24'
+      fingerprint: 743eef546dfd
+  - id: TC010
+    title: A cancel without a valid token is refused
+    criteria: []
+    priority: P1
+    suite: functional
+    tags: [security]
+    source: {kind: ai-draft, model: 'recorded:recorded', gap: 401 (bookings)}
+    steps:
+      - request: {method: POST, path: /bookings/NOPE00/cancel, auth: none}
+        expect: {status: 401}
+    review:
+      status: approved
+      by: qa-lead
+      date: '2026-10-24'
+      fingerprint: d802e6198903
+  - id: TC011
+    title: A booking already cancelled can't be cancelled again
+    criteria: [AC-3]
+    priority: P1
+    suite: functional
+    tags: [negative]
+    source: {kind: ai-draft, model: 'recorded:recorded', gap: AC-3, replaces: TC005}
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body:
+            passenger_name: Ravi Kumar {{unique}}
+            email: ravi.{{unique}}@testdata.example
+            amount: 250
+            booked_at: '2026-01-15T10:00:00Z'
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request:
+          method: POST
+          path: /bookings/{{pnr}}/cancel
+          body: {cancelled_at: '2026-01-15T11:00:00Z'}
+        expect: {status: 200}
+      - request:
+          method: POST
+          path: /bookings/{{pnr}}/cancel
+          body: {cancelled_at: '2026-01-15T12:00:00Z'}
+        expect:
+          status: 409
+          fields: {error.code: already_cancelled}
+    review:
+      status: approved
+      by: qa-lead
+      date: '2026-10-24'
+      fingerprint: 3c2aff7afe29

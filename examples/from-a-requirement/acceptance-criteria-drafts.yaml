@@ -1,0 +1,79 @@
+# Drafted by qa-agent draft criteria. A person approves each criterion, and answers each
+# question, in the review sheet (qa-agent review export, then review apply). Written by code only.
+criteria:
+  - id: AC-1
+    text: A booking cancelled within 24 hours of being made, 24 hours exactly included, gets a full refund.
+    status: approved
+    source:
+      kind: ai-draft
+      model: recorded:recorded
+      requirement: BOOK-101
+      quote: Cancel within 24 hours of booking and get all your money back
+    review: {by: qa-lead, date: '2026-10-24', comment: ''}
+  - id: AC-2
+    text: A booking cancelled more than 24 hours after it was made is cancelled, with no refund.
+    status: approved
+    source:
+      kind: ai-draft
+      model: recorded:recorded
+      requirement: BOOK-101
+      quote: After 24 hours, the booking can still be cancelled, but no refund is given
+    review: {by: qa-lead, date: '2026-10-24', comment: ''}
+  - id: AC-3
+    text: A booking that is already cancelled, or a PNR that does not exist, can't be cancelled.
+    status: approved
+    source:
+      kind: ai-draft
+      model: recorded:recorded
+      requirement: BOOK-101
+      quote: A booking that is already cancelled can't be cancelled again
+    review: {by: qa-lead, date: '2026-10-24', comment: ''}
+  - id: AC-4
+    text: The refund status of a cancelled booking can be read.
+    status: approved
+    source:
+      kind: ai-draft
+      model: recorded:recorded
+      requirement: BOOK-101
+      quote: check the refund status of a cancelled booking
+    review: {by: qa-lead, date: '2026-10-24', comment: ''}
+  - id: AC-5
+    text: Refunds are paid by the payments service.
+    status: rejected
+    source:
+      kind: ai-draft
+      model: recorded:recorded
+      requirement: BOOK-101
+      quote: Refunds are paid by the payments service
+    review:
+      by: qa-lead
+      date: '2026-10-24'
+      comment: 'Not testable through this API: the payments team tests it (see Q-3)'
+questions:
+  - id: Q-1
+    kind: ambiguity
+    text: Is a booking cancelled at exactly 24 hours refunded in full, or not at all?
+    quote: Cancel within 24 hours of booking
+    requirement: BOOK-101
+    status: answered
+    answer: 'Yes: exactly 24 hours still gets a full refund'
+    answered_by: product-owner
+    answered_on: '2026-10-24'
+  - id: Q-2
+    kind: omission
+    text: What should the passenger see when the PNR doesn't exist?
+    quote: cancel a booking with its PNR
+    requirement: BOOK-101
+    status: answered
+    answer: An error saying the booking was not found
+    answered_by: product-owner
+    answered_on: '2026-10-24'
+  - id: Q-3
+    kind: dependency
+    text: What does the passenger see if the payments service is down when they cancel?
+    quote: Refunds are paid by the payments service
+    requirement: BOOK-101
+    status: answered
+    answer: 'Out of scope for BOOK-101: the cancel goes through and payments retries the refund'
+    answered_by: product-owner
+    answered_on: '2026-10-24'

@@ -1,0 +1,10 @@
+```yaml
+# Hand-written reply: no model was called. See README.md in this folder.
+cases:
+  - title: A cancel without a valid token is refused
+    priority: P1
+    tags: [security]
+    steps:
+      - request: {method: POST, path: /bookings/NOPE00/cancel, auth: none}
+        expect: {status: 401}
+```

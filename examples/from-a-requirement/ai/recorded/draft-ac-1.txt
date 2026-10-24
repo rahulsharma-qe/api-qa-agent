@@ -1,0 +1,31 @@
+```yaml
+# Hand-written reply: no model was called. See README.md in this folder.
+cases:
+  - id: TC999
+    title: A booking cancelled one hour after it was made gets a full refund
+    criteria: [AC-1]
+    priority: P0
+    review: {status: approved, by: the-model}
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body: {passenger_name: "Ravi Kumar {{unique}}", email: "ravi.{{unique}}@testdata.example", amount: 250, booked_at: "2026-01-15T10:00:00Z"}
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request: {method: POST, path: "/bookings/{{pnr}}/cancel", body: {cancelled_at: "2026-01-15T11:00:00Z"}}
+        expect: {status: 200, fields: {refund_allowed: true, refund_amount: 250}}
+  - title: A booking cancelled exactly 24 hours after it was made gets a full refund
+    criteria: [AC-1]
+    priority: P0
+    tags: [boundary]
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body: {passenger_name: "Ravi Kumar {{unique}}", email: "ravi.{{unique}}@testdata.example", amount: 250, booked_at: "2026-01-15T10:00:00Z"}
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request: {method: POST, path: "/bookings/{{pnr}}/cancel", body: {cancelled_at: "2026-01-16T10:00:00Z"}}
+        expect: {status: 200, fields: {refund_allowed: true, refund_amount: 250}}
+```

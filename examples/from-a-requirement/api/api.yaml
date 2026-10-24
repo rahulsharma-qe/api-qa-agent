@@ -1,0 +1,18 @@
+# The endpoints BOOK-101 uses, from the reference API's description. A team imports its feature's
+# endpoints (qa-agent import api), not every operation of every service it calls.
+services:
+  bookings:
+    operations:
+      - method: POST
+        path: /bookings
+        summary: Create Booking
+        body_required: [passenger_name, email, amount]
+        responses: [201, 401, 422]
+      - method: POST
+        path: /bookings/{pnr}/cancel
+        summary: Cancel Booking
+        responses: [200, 401, 404, 409, 422]
+      - method: GET
+        path: /bookings/{pnr}/refund
+        summary: Refund Status
+        responses: [200, 401, 404, 422]

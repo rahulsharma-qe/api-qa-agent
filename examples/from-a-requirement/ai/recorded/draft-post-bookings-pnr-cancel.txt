@@ -1,0 +1,16 @@
+```yaml
+# Hand-written reply: no model was called. See README.md in this folder.
+cases:
+  - title: A cancel with a date that isn't a date is refused
+    priority: P2
+    tags: [negative]
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body: {passenger_name: "Ravi Kumar {{unique}}", email: "ravi.{{unique}}@testdata.example", amount: 250, booked_at: "2026-01-15T10:00:00Z"}
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request: {method: POST, path: "/bookings/{{pnr}}/cancellations", body: {cancelled_at: "yesterday"}}
+        expect: {status: 422}
+```

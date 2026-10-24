@@ -1,0 +1,26 @@
+```yaml
+# Hand-written reply: no model was called. See README.md in this folder.
+criteria:
+  - text: A booking cancelled within 24 hours of being made gets a full refund.
+    from: "Cancel within 24 hours of booking and get all your money back"
+  - text: A booking cancelled more than 24 hours after it was made is cancelled, with no refund.
+    from: "After 24 hours, the booking can still be cancelled, but no refund is given"
+  - text: A booking that is already cancelled can't be cancelled again.
+    from: "A booking that is already cancelled can't be cancelled again"
+  - text: The refund status of a cancelled booking can be read.
+    from: "check the refund status of a cancelled booking"
+  - text: The passenger gets an email when the refund is paid.
+    from: "an email is sent when the refund is paid"
+  - text: Refunds are paid by the payments service.
+    from: "Refunds are paid by the payments service"
+questions:
+  - kind: ambiguity
+    text: Is a booking cancelled at exactly 24 hours refunded in full, or not at all?
+    from: "Cancel within 24 hours of booking"
+  - kind: omission
+    text: What should the passenger see when the PNR doesn't exist?
+    from: "cancel a booking with its PNR"
+  - kind: dependency
+    text: What does the passenger see if the payments service is down when they cancel?
+    from: "Refunds are paid by the payments service"
+```

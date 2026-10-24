@@ -1,0 +1,13 @@
+```yaml
+# Hand-written reply: no model was called. See README.md in this folder.
+cases:
+  - title: A booking without an email is refused
+    priority: P2
+    tags: [negative]
+    steps:
+      - request:
+          method: POST
+          path: /bookings
+          body: {passenger_name: "Ravi Kumar {{unique}}", amount: 250}
+        expect: {status: 422}
+```
