@@ -30,7 +30,7 @@ testing AI agents themselves.
 | Cucumber on REST Assured | Later |
 | User-interface tests, in their own repository (`playwright-qa-agent`) | Later |
 | Jira and wiki; results back to TestRail, Zephyr or Xray | Later |
-| The AI layer: drafting, review, the model in your own cloud | **Next**: built so far: the model (any provider), redaction, the audit log; `qa-agent draft criteria` (criteria and questions from a requirement in plain words, each quoting its source) and `qa-agent draft cases` (a draft for each coverage gap), all checked by code and approved by a person in the review sheet; next: the example, from a requirement to tests |
+| The AI layer: drafting, review, the model in your own cloud | **Next**: built so far: the model (any provider), redaction, the audit log; `qa-agent draft criteria` (criteria and questions from a requirement in plain words, each quoting its source) and `qa-agent draft cases` (a draft for each coverage gap; `--redo` for one a reviewer sent back, with the comment), all checked by code and approved by a person in the review sheet; next: the example, from a requirement to tests |
 
 Everything that needs no AI comes first, so a team can use the utility end to end with its
 existing test cases before any AI is switched on.

@@ -1,6 +1,8 @@
 """What the model is told. The rules here ask; the code after the reply checks (drafting.py):
 nothing below is trusted just because the prompt says it."""
 
+from typing import Optional
+
 import yaml
 
 DRAFT_CASES_SYSTEM = """You draft API test cases for a QA team, as data in the team's case format.
@@ -43,7 +45,8 @@ list_length, list_contains, list_excludes (path: {field: value}), headers, max_r
 """
 
 
-def draft_cases_user(gap, criteria: dict, operations: list, examples: list, team_rules: str) -> str:
+def draft_cases_user(gap, criteria: dict, operations: list, examples: list, team_rules: str,
+                     sent_back: Optional[dict] = None) -> str:
     parts = [f"The gap: {gap.describe()}", "", "Acceptance criteria:"]
     parts += [f"- {criterion.id}: {criterion.text}" for criterion in criteria.values()] or ["(none)"]
     parts += ["", f"The API (service {gap.service or 'main'}):"]
@@ -57,6 +60,11 @@ def draft_cases_user(gap, criteria: dict, operations: list, examples: list, team
                   yaml.safe_dump({"cases": examples}, sort_keys=False, allow_unicode=True).rstrip()]
     if team_rules.strip():
         parts += ["", "The team's own rules:", team_rules.strip()]
+    if sent_back:
+        parts += ["", "A reviewer sent back an earlier draft for this gap:", "",
+                  yaml.safe_dump({"cases": [sent_back["case"]]}, sort_keys=False, allow_unicode=True).rstrip(),
+                  "", f"The reviewer's comment: {sent_back['comment'] or '(none)'}",
+                  "Write a new draft that does what the comment asks. Don't repeat what the reviewer sent back."]
     return "\n".join(parts) + "\n"
 
 

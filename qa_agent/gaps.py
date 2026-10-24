@@ -47,9 +47,10 @@ class Gap:
         return f"{self.key}: no case expects {codes}"
 
 
-def find_gaps(project: TeamProject) -> list[Gap]:
+def find_gaps(project: TeamProject, leave_out: frozenset = frozenset()) -> list[Gap]:
+    """What no case covers. Cases in leave_out are counted as not there (a redo asks: without this case?)."""
     cases = [case for path in project.case_files() for case in load_case_file(path).cases
-             if case.review.status != "rejected"]
+             if case.review.status != "rejected" and case.id not in leave_out]
     gaps = [Gap(criterion.id, "criterion", criterion=criterion)
             for criterion in project.read_criteria().values()
             if not any(criterion.id in case.criteria for case in cases)]

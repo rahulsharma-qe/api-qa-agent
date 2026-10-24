@@ -2,6 +2,7 @@
 
     qa-agent draft cases --plan        the gaps, the calls and an estimate; no model call
     qa-agent draft cases [--max 10]    one model call per gap, up to --max
+    qa-agent draft cases --redo TC045  a new draft for one a reviewer rejected or sent back, with the comment
 
 Code decides what is missing (gaps.py); the model writes how to test it; code then checks the reply
 before anything is written. The guardrails, all here and none trusted to the prompt:
@@ -14,6 +15,9 @@ before anything is written. The guardrails, all here and none trusted to the pro
     G6  drafts go to their own files (cases/<area>-drafts.yaml); no file a person wrote is touched
     G7  a gap already drafted (any review status, rejected too) is skipped
     G10 a reply that isn't the case format is refused with the reason; nothing is written for it
+
+A redo goes through the same checks. Only an AI draft a reviewer rejected or sent back can be redone;
+the new draft's source says which case it replaces, and the old one is marked rejected and points to it.
 
 Redaction (G8) and the audit log (G9) are in AiSession: every call goes through it.
 """
@@ -30,7 +34,7 @@ from qa_agent.ai.prompts import DRAFT_CASES_SYSTEM, draft_cases_user
 from qa_agent.ai.session import AiSession
 from qa_agent.case_import import id_maker
 from qa_agent.checks import plural
-from qa_agent.cases import CaseFile, CaseFormatError, load_case_file, parse_case_file, save_case_file
+from qa_agent.cases import Case, CaseFile, CaseFormatError, load_case_file, parse_case_file, save_case_file
 from qa_agent.gaps import Gap, find_gaps
 from qa_agent.project import TeamProject
 from qa_agent.trace import read_api
@@ -41,6 +45,7 @@ TEAM_RULES_FILE = Path("ai") / "rules.md"
 DRAFTED_BY = "ai-draft"
 TOKENS_PER_CHARACTER = 0.25          # a rough estimate for --plan
 REPLY_TOKENS_ESTIMATE = 800
+SENT_BACK = ("rejected", "changes_needed")
 
 
 @dataclass
@@ -62,6 +67,22 @@ class DraftReport:
         drafted = sum(len(ids) for _, ids, _ in self.drafted)
         lines += ["", f"{plural(drafted, 'draft case')} for {plural(len(self.drafted), 'gap')}, {len(self.refused)} refused. "
                       "Next: qa-agent check, then qa-agent review export: a person decides on each one."]
+        return "\n".join(lines)
+
+
+@dataclass
+class RedoReport:
+    redone: list = field(default_factory=list)       # (old id, [new ids], file)
+    not_redone: list = field(default_factory=list)   # (id, reason)
+    stopped: str = ""
+
+    def as_text(self) -> str:
+        lines = [f"redone    {old}: {', '.join(ids)} -> {path} ({old} is now rejected)" for old, ids, path in self.redone]
+        lines += [f"not redone {key}: {reason}" for key, reason in self.not_redone]
+        if self.stopped:
+            lines.append(f"stopped   {self.stopped}")
+        lines += ["", f"{plural(len(self.redone), 'case')} redone, {len(self.not_redone)} not. "
+                      "Next: qa-agent check, then qa-agent review export: a person decides on the new drafts."]
         return "\n".join(lines)
 
 
@@ -111,13 +132,71 @@ def draft_cases(project: TeamProject, session: AiSession, max_gaps: int = DEFAUL
     return report
 
 
-def _user_prompt(project: TeamProject, gap: Gap) -> str:
+def redo(project: TeamProject, session: AiSession, case_ids: list) -> RedoReport:
+    """A new draft for each case a reviewer rejected or sent back, with the old draft and the comment."""
+    report = RedoReport()
+    for case_id in case_ids:
+        cases = {case.id: case for path in project.case_files() for case in load_case_file(path).cases}
+        old = cases.get(case_id)
+        reason = _why_not_redo(case_id, old, cases)
+        gap = None
+        if not reason:
+            sent_back = frozenset(case.id for case in cases.values() if case.review.status in SENT_BACK)
+            gap = next((g for g in find_gaps(project, sent_back) if g.key == old.source.get("gap")), None)
+            if gap is None:
+                # the drafts reviewers sent back don't count: they are being redone
+                reason = f"its gap {old.source.get('gap')} is covered by another case now (see qa-agent trace): reject this one in the review sheet"
+        if reason:
+            report.not_redone.append((case_id, reason))
+            continue
+        returned = {"case": _example(old), "comment": old.review.comment}
+        try:
+            reply = session.ask(f"redo {case_id}", DRAFT_CASES_SYSTEM, _user_prompt(project, gap, returned),
+                                max_tokens=3000)
+        except ModelError as error:
+            report.stopped = f"at {case_id}: {error}"
+            break
+        result = _write_drafts(project, gap, reply, f"{session.model.provider}:{session.model.model}", replaces=case_id)
+        if isinstance(result, str):
+            report.not_redone.append((case_id, f"the reply was refused: {result}"))
+            continue
+        _mark_replaced(project, case_id, result[0])
+        report.redone.append((case_id, *result))
+    return report
+
+
+def _why_not_redo(case_id: str, old: Optional[Case], cases: dict) -> str:
+    if old is None:
+        return "no case has this id"
+    if old.source.get("kind") != DRAFTED_BY:
+        return "not an AI draft: edit it in its case file"
+    newer = [case.id for case in cases.values() if case.source.get("replaces") == case_id]
+    if newer:
+        return f"already redone as {', '.join(newer)}"
+    if old.review.status not in SENT_BACK:
+        return f"it is {old.review.status.replace('_', ' ')}: only a rejected or sent-back draft (changes needed) is redone"
+    return ""
+
+
+def _mark_replaced(project: TeamProject, case_id: str, new_ids: list) -> None:
+    for path in project.case_files():
+        case_file = load_case_file(path)
+        for case in case_file.cases:
+            if case.id == case_id:
+                note = f"replaced by {', '.join(new_ids)}"
+                case.review.status = "rejected"
+                case.review.comment = f"{case.review.comment} ({note})" if case.review.comment else note
+                save_case_file(case_file)
+                return
+
+
+def _user_prompt(project: TeamProject, gap: Gap, sent_back: Optional[dict] = None) -> str:
     api = read_api(project)
     service = gap.service or project.main_service
     operations = [op for op in (api.operations(service) if api else []) if not op.not_tested]
     rules_path = project.root / TEAM_RULES_FILE
     rules = rules_path.read_text(encoding="utf-8") if rules_path.is_file() else ""
-    return draft_cases_user(gap, project.read_criteria(), operations, _examples(project, gap), rules)
+    return draft_cases_user(gap, project.read_criteria(), operations, _examples(project, gap), rules, sent_back)
 
 
 def _examples(project: TeamProject, gap: Gap, limit: int = 2) -> list:
@@ -127,14 +206,16 @@ def _examples(project: TeamProject, gap: Gap, limit: int = 2) -> list:
     path = gap.operation.path if gap.operation else ""
     approved.sort(key=lambda case: not any(step.request.path.split("/")[1:2] == path.split("/")[1:2]
                                            for step in case.steps))
-    examples = []
-    for case in approved[:limit]:
-        data = case.to_dict()
-        examples.append({key: data[key] for key in ("title", "criteria", "priority", "tags", "steps") if key in data})
-    return examples
+    return [_example(case) for case in approved[:limit]]
 
 
-def _write_drafts(project: TeamProject, gap: Gap, reply: str, model_name: str):
+def _example(case: Case) -> dict:
+    """What the model sees of a case: what it tests, not who reviewed it."""
+    data = case.to_dict()
+    return {key: data[key] for key in ("title", "criteria", "priority", "tags", "steps", "notes") if key in data}
+
+
+def _write_drafts(project: TeamProject, gap: Gap, reply: str, model_name: str, replaces: str = ""):
     """The draft cases written: ([ids], file). Or the reason the reply was refused (str)."""
     raw_cases = _read_reply(reply)
     if isinstance(raw_cases, str):
@@ -147,7 +228,8 @@ def _write_drafts(project: TeamProject, gap: Gap, reply: str, model_name: str):
     for raw in raw_cases:
         entry = {key: value for key, value in raw.items() if key not in ("id", "review", "source", "suite")}  # G1-G3
         entry.update(id=next_id(), suite="functional", review={"status": "draft"},
-                     source={"kind": DRAFTED_BY, "model": model_name, "gap": gap.key})
+                     source={"kind": DRAFTED_BY, "model": model_name, "gap": gap.key,
+                             **({"replaces": replaces} if replaces else {})})
         entries.append(entry)
     try:
         drafted = parse_case_file({"feature": "drafts", "cases": entries}, Path("reply")).cases

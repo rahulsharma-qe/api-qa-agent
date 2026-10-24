@@ -1030,6 +1030,7 @@ to settle, as in a requirement review.
 | `qa-agent draft criteria <requirement file>` | Acceptance criteria drafted from plain words, each with the line it came from | One |
 | `qa-agent draft cases --plan` | The gaps, the calls and the estimated cost | None |
 | `qa-agent draft cases [--max 10]` | A draft case for each gap, up to `--max` | One per gap |
+| `qa-agent draft cases --redo TC045 [TC048]` | A new draft for an AI draft a reviewer rejected or sent back, using the comment | One per case |
 
 Settings in `qa-agent.yaml`: `ai: {provider, model}` (or `recorded: <folder>`), optional prices
 per million tokens. The key comes only from the environment.
@@ -1117,4 +1118,18 @@ qa-agent draft criteria requirements/cancellation.md
 | `criteria_drafting.py` | One model call. Each item is checked on its own: it must quote at least three words that are in the requirement (spacing, case and quote marks aside), a question must be of a known kind, and one already there is skipped (by its words, or by its quote, so a criterion a reviewer reworded is still known). Ids `AC-<next>` and `Q-<next>` come from code |
 | Review sheet | A Criteria tab (each drafted criterion waiting for a decision; its text editable, the words it came from locked) and a Questions tab (Answer, Answered by), when there is something to show. `review apply` applies a criterion's decision only if its text is unchanged since the export |
 | `check` | A case linked to a criterion that isn't approved: a warning. An open question: a note, until it is answered |
+
+### 11.9 As built: after the review
+
+**Redo a draft a reviewer sent back.** `qa-agent draft cases --redo TC045` (one or more ids).
+
+| Rule | Why |
+|---|---|
+| Only an AI draft (`source.kind: ai-draft`) with status `rejected` or `changes_needed` | A case a person wrote is edited in its file; an approved one has nothing to redo; one still waiting has no comment yet |
+| The prompt is the gap's usual prompt plus the old draft (what it tests, not who reviewed it) and the reviewer's comment | The comment is the whole point of the redo; it goes through redaction like everything sent |
+| The new draft goes through every check a first draft does; its source adds `replaces: TC045` | Nothing about a redo is trusted more than a first draft |
+| Then the old case becomes `rejected`, its comment ending `(replaced by TC051)` | It stays in the file as history; a rejected case covers nothing, so the trace counts only the new one |
+| Asked again: `already redone as TC051`, no model call | Safe to re-run |
+| The gap is found with the sent-back drafts left out. If another case covers it now, nothing is redone and the message says to reject the old one in the review sheet | Two drafts for one criterion, both sent back: the first redo covers the criterion, so the second isn't drafted twice |
+| A refused reply leaves the old draft as the reviewer left it | Nothing changes unless something better was written |
 

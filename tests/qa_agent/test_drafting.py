@@ -6,7 +6,7 @@ import pytest
 
 from qa_agent.checks import ERROR, check_project
 from qa_agent.cli import main
-from qa_agent.cases import load_case_file
+from qa_agent.cases import load_case_file, save_case_file
 from qa_agent.drafting import pending_gaps
 from qa_agent.project import TeamProject
 
@@ -146,3 +146,100 @@ def test_without_ai_settings_draft_says_what_to_add(make_project, capsys):
     assert main(["--project", str(root), "draft", "cases"]) == 2
     assert "no ai: settings" in capsys.readouterr().err
     assert main(["--project", str(root), "draft", "cases", "--plan"]) == 0
+
+
+REDO_AC2 = """cases:
+  - title: A booking cancelled within 24 hours is refunded in full
+    criteria: [AC-2]
+    steps:
+      - request: {method: POST, path: /bookings, body: {passenger_name: "C {{unique}}", email: c@x.io}}
+        expect: {status: 201}
+        capture: {pnr: pnr}
+      - request: {method: POST, path: "/bookings/{{pnr}}/cancel"}
+        expect: {status: 200, exists: [refund_amount]}
+"""
+
+
+def sent_back(project, status="rejected", comment="checks the wrong thing: it should check the refund"):
+    """Draft AC-2 (TC002, TC003), then a reviewer sends both back."""
+    reply(project, "draft-ac-2", GOOD_AC2)
+    main(["--project", str(project.root), "draft", "cases", "--max", "1"])
+    case_file = load_case_file(project.root / "cases" / "bookings-drafts.yaml")
+    for case in case_file.cases:
+        case.review.status, case.review.comment = status, comment
+    save_case_file(case_file)
+
+
+def redo(project, *ids):
+    return main(["--project", str(project.root), "draft", "cases", "--redo", *ids])
+
+
+def test_a_rejected_draft_is_redone_with_the_comment_and_points_to_its_replacement(project, capsys):
+    sent_back(project)
+    reply(project, "redo-tc002", REDO_AC2)
+    capsys.readouterr()
+    assert redo(project, "TC002") == 0
+    assert "redone    TC002: TC004 -> cases/bookings-drafts.yaml (TC002 is now rejected)" in capsys.readouterr().out
+    old, _, new = drafts(project)
+    assert new.review.status == "draft" and new.source["replaces"] == "TC002" and new.source["gap"] == "AC-2"
+    assert old.review.status == "rejected"
+    assert old.review.comment == "checks the wrong thing: it should check the refund (replaced by TC004)"
+    sent = json.loads((project.root / "reports" / "ai-audit-log.jsonl").read_text().splitlines()[-1])["sent"]["user"]
+    assert "A reviewer sent back an earlier draft for this gap" in sent
+    assert "The reviewer's comment: checks the wrong thing: it should check the refund" in sent
+    assert "review" not in sent.split("sent back an earlier draft")[1].split("The reviewer's comment")[0]
+
+
+def test_a_draft_sent_back_with_changes_needed_is_redone_too(project, capsys):
+    sent_back(project, status="changes_needed")
+    reply(project, "redo-tc002", REDO_AC2)
+    assert redo(project, "TC002") == 0
+    assert [case.review.status for case in drafts(project)] == ["rejected", "changes_needed", "draft"]
+
+
+def test_running_the_redo_again_says_it_was_done(project, capsys):
+    sent_back(project)
+    reply(project, "redo-tc002", REDO_AC2)
+    redo(project, "TC002")
+    capsys.readouterr()
+    assert redo(project, "TC002") == 1
+    assert "not redone TC002: already redone as TC004" in capsys.readouterr().out
+    assert len(drafts(project)) == 3
+
+
+@pytest.mark.parametrize("case_id, status, reason", [
+    ("TC1", "rejected", "not an AI draft: edit it in its case file"),
+    ("TC002", "draft", "it is draft: only a rejected or sent-back draft (changes needed) is redone"),
+    ("TC777", "rejected", "no case has this id"),
+])
+def test_what_cant_be_redone_says_why_and_calls_no_model(project, capsys, case_id, status, reason):
+    sent_back(project, status=status)
+    log = project.root / "reports" / "ai-audit-log.jsonl"
+    calls_before = len(log.read_text().splitlines())
+    capsys.readouterr()
+    assert redo(project, case_id) == 1
+    assert f"not redone {case_id}: {reason}" in capsys.readouterr().out
+    assert len(log.read_text().splitlines()) == calls_before
+
+
+def test_a_refused_redo_leaves_the_old_draft_as_the_reviewer_left_it(project, capsys):
+    sent_back(project)
+    reply(project, "redo-tc002", "cases:\n  - {title: t, steps: [{request: {method: DELETE, path: /all}, "
+                                 "expect: {status: 200}}]}")
+    capsys.readouterr()
+    assert redo(project, "TC002") == 1
+    assert "not redone TC002: the reply was refused: 't' calls DELETE /all, not in api/api.yaml" in capsys.readouterr().out
+    assert drafts(project)[0].review.comment == "checks the wrong thing: it should check the refund"
+
+
+def test_a_redo_and_a_plan_dont_go_together(project, capsys):
+    assert main(["--project", str(project.root), "draft", "cases", "--redo", "TC002", "--plan"]) == 2
+
+
+def test_a_gap_another_case_covers_now_is_not_redone(project, capsys):
+    sent_back(project)
+    human = project.root / "cases" / "bookings.yaml"
+    human.write_text(human.read_text().replace("criteria: [AC-1]", "criteria: [AC-1, AC-2]"))
+    capsys.readouterr()
+    assert redo(project, "TC002") == 1
+    assert "not redone TC002: its gap AC-2 is covered by another case now (see qa-agent trace): reject this one in the review sheet" in capsys.readouterr().out

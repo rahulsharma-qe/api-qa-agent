@@ -12,6 +12,7 @@
     qa-agent bug-detection --seeded-bugs seeded-bugs.yaml --framework pytest   the bug-detection rate: seeded bugs, one at a time
     qa-agent draft criteria requirements/x.md        the AI layer: criteria and questions from a requirement in plain words
     qa-agent draft cases [--plan] [--max 10]         the AI layer: a draft case per coverage gap, for a person to review
+    qa-agent draft cases --redo TC045 [TC048]        the AI layer: a new draft for one a reviewer rejected or sent back
 
 Exit codes: 0 done (no errors), 1 errors found, 2 the project or an input can't be read.
 """
@@ -31,7 +32,7 @@ from qa_agent.ai.session import AiSession
 from qa_agent.checks import check_project, plural
 from qa_agent.criteria_drafting import draft_criteria
 from qa_agent.criteria_review import pending as pending_criteria
-from qa_agent.drafting import DEFAULT_MAX, draft_cases, plan
+from qa_agent.drafting import DEFAULT_MAX, draft_cases, plan, redo
 from qa_agent.generate import generate
 from qa_agent.init_project import init_project
 from qa_agent.promote import move_to_suite, promote
@@ -144,6 +145,8 @@ def _parser() -> argparse.ArgumentParser:
     cases = drafting.add_parser("cases", help="a draft case for each coverage gap (criteria, operations, codes)")
     cases.add_argument("--plan", action="store_true", help="list the gaps, the calls and an estimate; call no model")
     cases.add_argument("--max", type=int, default=DEFAULT_MAX, help=f"at most this many gaps (default: {DEFAULT_MAX})")
+    cases.add_argument("--redo", nargs="+", metavar="ID",
+                       help="a new draft for these AI drafts a reviewer rejected or sent back, using the comment")
     cases.set_defaults(run=run_draft_cases)
     return parser
 
@@ -261,6 +264,13 @@ def run_bug_detection(args) -> int:
 
 def run_draft_cases(args) -> int:
     project = TeamProject.load(args.project)
+    if args.redo:
+        if args.plan:
+            print("qa-agent: --redo and --plan don't go together: --redo drafts only the cases named", file=sys.stderr)
+            return SETUP_PROBLEM
+        result = redo(project, AiSession.for_project(project), args.redo)
+        print(result.as_text())
+        return SETUP_PROBLEM if result.stopped else FINDINGS if result.not_redone else DONE
     if args.plan:
         try:
             session = AiSession.for_project(project)
