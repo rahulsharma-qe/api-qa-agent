@@ -549,6 +549,7 @@ The fixed Gherkin phrasing, the same one phase 3c generates (so a feature file c
 | Rule | Level |
 |---|---|
 | The case file doesn't match the format; two cases share an id | Error |
+| Different ids, the same steps (requests, expectations, captures, data file) or the same manual steps (case and spacing aside); rejected cases and cases with no steps left out | Warning on each repeat, naming the case with the lowest id; one line per group on the console, and a count of groups. A reviewer decides which to keep. Exact matches only: "nearly the same" would warn about cases that differ on purpose. A hash per case, so 5,000 cases compare in well under a second |
 | A step has no expectation | Error |
 | Every step checks only a status and the case ends in success (2xx): a wrong answer passes | Warning: add `fields`, `exists` or `types` (a case that ends in a refusal or a 404 is not flagged: that status is its point) |
 | `{{name}}` used before it is captured; `{{row.x}}` with no data file, or no column `x` | Error |

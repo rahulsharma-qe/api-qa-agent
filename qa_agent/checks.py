@@ -4,6 +4,7 @@ Each finding names the file, the case, the step and the fix. Errors stop a case 
 generated; warnings and notes are for the reviewer, and also appear in the review sheet.
 """
 
+import json
 import re
 from collections import Counter
 from dataclasses import dataclass, field
@@ -26,6 +27,7 @@ class Finding:
     file: str
     case_id: str
     message: str
+    same_as: str = ""      # a duplicate case: the id of the case it repeats (printed once per group)
 
     def as_line(self) -> str:
         return f"  {self.level:<8} {self.message}"
@@ -45,6 +47,15 @@ class CheckReport:
     def has_errors(self) -> bool:
         return any(finding.level == ERROR for finding in self.findings)
 
+    def _duplicate_lines(self) -> dict:
+        """One line per group of duplicates: "TC031, TC045: same steps as TC006 (...)"."""
+        groups: dict = {}
+        for finding in self.findings:
+            if finding.same_as:
+                groups.setdefault(finding.same_as, []).append(finding)
+        return {first: f"  {WARNING:<8} {', '.join(f.case_id for f in found)}{found[0].message[len(found[0].case_id):]}"
+                for first, found in groups.items()}
+
     def for_case(self, case_id: str) -> list[Finding]:
         return [finding for finding in self.findings if finding.case_id == case_id]
 
@@ -54,9 +65,17 @@ class CheckReport:
         by_file: dict[str, list[Finding]] = {}
         for finding in self.findings:
             by_file.setdefault(finding.file, []).append(finding)
+        duplicates = self._duplicate_lines()
         for file_name, findings in by_file.items():
-            lines += ["", file_name or "the project"] + [finding.as_line() for finding in findings]
+            shown = [duplicates.pop(finding.same_as) if finding.same_as else finding.as_line()
+                     for finding in findings if not finding.same_as or finding.same_as in duplicates]
+            lines += ["", file_name or "the project"] + shown
         counts = Counter(finding.level for finding in self.findings)
+        groups = {finding.same_as for finding in self.findings if finding.same_as}
+        if groups:
+            repeats = sum(1 for finding in self.findings if finding.same_as)
+            lines += ["", f"{plural(len(groups), 'group')} of duplicate cases ({plural(repeats, 'case')} "
+                          "repeating another case's steps)"]
         lines += ["", " · ".join(plural(counts[level], name)
                                  for level, name in ((ERROR, "error"), (WARNING, "warning"), (INFO, "note")))]
         if not self.findings:
@@ -87,6 +106,7 @@ def check_project(project: TeamProject) -> CheckReport:
         except CaseFormatError as error:
             report.findings += [Finding(ERROR, file_name, "", problem) for problem in error.problems]
     _duplicate_ids(project, report)
+    _duplicate_cases(project, report)
     for case_file in report.case_files:
         file_name = project.relative(case_file.path)
         for case in case_file.cases:
@@ -116,6 +136,38 @@ def _duplicate_ids(project: TeamProject, report: CheckReport) -> None:
         if len(set(files)) > 1:
             report.findings.append(Finding(ERROR, files[-1], case_id,
                                            f"{case_id}: the id is also used in {files[0]}. Fix: give each case its own id"))
+
+
+def _duplicate_cases(project: TeamProject, report: CheckReport) -> None:
+    """Cases with different ids and the same steps (requests, expectations, captures, data file), or the
+    same manual steps (case and spacing aside). Rejected cases and cases with no steps are left out. The
+    case with the lowest id is the one kept; each repeat gets a warning naming it."""
+    by_steps: dict[str, list] = {}
+    for case_file in report.case_files:
+        for case in case_file.cases:
+            if case.review.status != "rejected" and (case.steps or case.manual_steps):
+                by_steps.setdefault(_steps_key(case), []).append((case, project.relative(case_file.path)))
+    for found in by_steps.values():
+        if len(found) < 2:
+            continue
+        found.sort(key=lambda pair: _id_order(pair[0].id))
+        (first, first_file), repeats = found[0], found[1:]
+        for case, file_name in repeats:
+            report.findings.append(Finding(
+                WARNING, file_name, case.id, f"{case.id}: same steps as {first.id} ({first_file}). "
+                "Fix: reject one in the review sheet, or remove it", same_as=first.id))
+
+
+def _steps_key(case: Case) -> str:
+    steps = [{key: value for key, value in step.to_dict().items() if key != "name"} for step in case.steps]
+    manual = [" ".join(line.lower().split()) for line in case.manual_steps]
+    return json.dumps({"steps": steps, "data": case.data_file, "manual": manual}, sort_keys=True, default=str)
+
+
+def _id_order(case_id: str) -> tuple:
+    """TC2 before TC10: the number in the id, then the id."""
+    number = re.search(r"\d+", case_id)
+    return (int(number.group()) if number else 0, case_id)
 
 
 def _case_findings(case: Case, case_file: CaseFile, project: TeamProject, api: Optional[ApiModel],
