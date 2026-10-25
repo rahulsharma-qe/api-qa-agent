@@ -1208,6 +1208,31 @@ comes from the environment (`docker run -e ANTHROPIC_API_KEY ...`), never from a
 A test checks the image installs every model client `pyproject.toml` offers. CI runs `draft` in the
 image on a copy of `examples/from-a-requirement` (recorded replies) and imports both clients.
 
+### 11.12 As built: the AI report
+
+```
+qa-agent ai-report [--out reports/ai-report]
+```
+
+| Part | What it does |
+|---|---|
+| `ai_report.py` | Reads `reports/ai-audit-log.jsonl` (the calls), `acceptance-criteria-drafts.yaml` (criteria and questions) and `cases/*.yaml`; builds the drafts (`source.kind: ai-draft`), their status and reviewer, the approved cases by origin, and what to look at first |
+| `ai_report_files.py` | `index.html` (one file: tallies that filter, criteria or cases, search, each draft's chain, link to each draft, print, dark mode; nothing fetched), `ai-report.md`, `ai-report.json`, from the same data |
+| `ai_report_template.html` | The page; the data goes in as JSON with every `<` escaped, so text from a review sheet can't close the script |
+
+| Rule | Why |
+|---|---|
+| A case approved and then changed (fingerprint) counts as "approved, then changed", not approved | Only an approved, unchanged case becomes a test |
+| An approval with no `by` is listed first | The report's point is that a person decided |
+| A draft is matched to its call by the call's name: `draft criteria <ref>`, `draft <gap>`, `redo <id>`. A draft with no call in the log is listed; a missing log is said, never shown as zero | The log can be cleared or moved, a source edited by hand |
+| A call with no draft kept is named: its reply was refused, or held nothing new | The refused reply stays visible, as in the trace |
+| No prompt and no reply in the report; the provider `recorded` shows as "recorded replies" | The report is for sharing; a demo isn't real usage |
+| Reads only, exit 0; the same project gives the same report | It informs; `check`, `generate` and the review decide |
+
+Not in it, on purpose: a compliance mapping (this tool uses AI, it isn't the AI system under test: that
+is `ai-quality-lab`'s `aiquality evidence`), proof the log wasn't edited, and Excel output.
+Example: `examples/from-a-requirement`, step 10.
+
 ## 12. A team's regression pack
 
 Most teams already have a regression pack, signed off long ago, and add a feature's important cases

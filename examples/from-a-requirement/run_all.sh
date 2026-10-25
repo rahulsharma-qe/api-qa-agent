@@ -8,6 +8,7 @@
 #      sheets): criteria, review, cases, review, a redo, review, a requirement change, generate.
 #      Everything must come out exactly as committed.
 # 9.   The tests, against the reference API, and the trace.
+# 10.  The AI report: every call, every draft, who decided (reports/ai-report/index.html).
 set -euo pipefail
 cd "$(dirname "$0")"
 example="$(pwd)"
@@ -69,3 +70,6 @@ fi
 python -m env_check --env demo
 python -m pytest -q --junitxml=reports/junit.xml
 qa-agent trace --results reports/junit.xml --check
+
+echo "== 10. What the AI layer did, and who approved each draft (from the rebuilt copy, which has the audit log)"
+qa-agent --project "$scratch/team" ai-report --out "$example/reports/ai-report"

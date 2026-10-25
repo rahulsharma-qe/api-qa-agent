@@ -17,7 +17,7 @@ def run(project: Path, *args: str) -> int:
     return main(["--project", str(project), *args])
 
 
-def test_every_step_from_the_inputs_gives_what_is_committed(tmp_path, monkeypatch):
+def test_every_step_from_the_inputs_gives_what_is_committed(tmp_path, monkeypatch, capsys):
     project = tmp_path / "team"
     shutil.copytree(EXAMPLE, project, ignore=shutil.ignore_patterns("__pycache__", "reports"))
     for name in WRITTEN_BY_QA_AGENT:
@@ -33,6 +33,11 @@ def test_every_step_from_the_inputs_gives_what_is_committed(tmp_path, monkeypatc
     assert run(project, "draft", "cases", "--redo", "TC005") == 1                     # already redone
     assert run(project, "review", "apply", "--sheet", "review/3-redo.xlsx") == 0
     assert run(project, "generate") == 0
+    capsys.readouterr()
+    assert run(project, "ai-report") == 0                                            # every call, every decision
+    report = capsys.readouterr().out
+    assert "AI drafts       16: 13 approved, 3 rejected" in report and "Look at first   nothing" in report
+    assert "no draft kept: the reply was refused by the checks, or held nothing new: draft POST /bookings/{pnr}/cancel" in report
 
     for name in WRITTEN_BY_QA_AGENT:
         built, committed = project / name, EXAMPLE / name

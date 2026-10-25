@@ -55,7 +55,7 @@ in both frameworks, a new project of your own, and the Docker image.
 | Bug-detection rate: seven seeded bugs, which ones the tests catch | **Built** |
 | Many teams ([`teams/`](teams/)); external APIs ([`examples/external-apis/`](examples/external-apis/)), where it found a real gap: Petstore accepts a pet with no name | **Built** |
 | A Docker image of qa-agent ([`ghcr.io/rahulsharma-qe/qa-agent`](https://github.com/rahulsharma-qe/api-qa-agent/pkgs/container/qa-agent)), for a team with no Python install | **Built** |
-| The AI layer: criteria from a requirement, cases for the gaps, every draft checked by code and approved by a person | **Built**, with recorded replies; **next**: a real model, measured |
+| The AI layer: criteria from a requirement, cases for the gaps, every draft checked by code and approved by a person; an AI report of every call and decision | **Built**, with recorded replies; **next**: a real model, measured |
 | The model in your own cloud (AWS Bedrock, Google Vertex, Azure) | **Next** |
 | Cucumber on REST Assured; Jira and wiki; results to TestRail, Zephyr or Xray | Later |
 | User-interface tests, in their own repository (`playwright-qa-agent`) | Later |

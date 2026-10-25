@@ -67,6 +67,26 @@ What is sent is redacted (tokens, keys, passwords, emails) and every call is log
 `acceptance-criteria-drafts.yaml`); the review sheet gains Criteria and Questions tabs.
 The [example](../examples/from-a-requirement/README.md) shows every step and every guardrail.
 
+### What the AI did, and who approved it
+
+```bash
+qa-agent ai-report                  # reports/ai-report/index.html, ai-report.md, ai-report.json
+```
+
+One report for a reviewer, a QA manager or an auditor, read from the audit log and the drafts:
+
+| Part | What it shows |
+|---|---|
+| Look at first | A case approved and then changed, an approval with no reviewer named, a draft whose call isn't in the log, a missing log, failed calls, drafts and questions still waiting |
+| AI drafts and decisions | Every drafted criterion and case: approved, changes needed, rejected or waiting, who decided, when, and why. Each opens to its chain: requirement, criterion, call, decision |
+| Questions | What the model asked about the requirement, and who answered |
+| Where the approved cases came from | Drafted by AI, imported, or written by hand |
+| AI calls | Each call's purpose, model, tokens, time and what was redacted; cost when `qa-agent.yaml` sets prices |
+
+No prompt and no reply goes into the report: they stay in the audit log, so the report can be shared.
+It reads only, and says "recorded replies" when no model was called. It is evidence of how AI was used
+and reviewed, not a compliance decision, and it can't show that the log wasn't edited.
+
 ## Suites
 
 | Suite | What it is | How a case gets there | Run it (pytest · REST Assured) |

@@ -136,3 +136,23 @@ Response codes  8 of 9   missing: POST /bookings/{pnr}/cancel 422
 
 The one code missing is the gap whose reply was refused: the trace says so, rather than hiding it.
 A new reply for it, or a case a person writes, closes it.
+
+## 10. What the AI layer did, and who approved it
+
+`qa-agent ai-report` reads the audit log and the drafts, and writes `reports/ai-report/` (open
+`index.html`):
+
+```
+ai-report for refunds (recorded replies, not a live model)
+AI calls        9, 0 failed · tokens and cost: none, the replies were recorded
+Redacted        nothing: no email, token, key or secret found in what was sent
+AI drafts       16: 13 approved, 3 rejected
+Questions       3: 3 answered, 0 open
+Approved cases  9: 9 drafted by AI, 0 imported, 0 written by hand
+Look at first   nothing
+Calls with no draft kept: the reply was refused by the checks, or held nothing new: draft POST /bookings/{pnr}/cancel
+```
+
+Each draft opens to the chain behind it: the requirement, the criterion, the call, and who decided.
+The refused reply shows up here too, as a call with no draft kept.
+
