@@ -86,12 +86,21 @@ def test_the_example_is_built_like_a_project_from_init(tmp_path):
     assert os.access(EXAMPLE / "run_all.sh", os.X_OK)
 
 
-def test_check_on_the_example_finds_what_its_readme_shows():
-    report = check_project(TeamProject.load(EXAMPLE))
+def test_check_on_the_example_finds_what_its_readme_shows(tmp_path):
+    """The README's check comes right after the import, before the review: the imported cases as drafts."""
+    project = tmp_path / "bookings-team"
+    shutil.copytree(EXAMPLE, project, ignore=shutil.ignore_patterns("__pycache__", "reports", "target"))
+    for name in IMPORTED:
+        (project / name).unlink()
+    assert main(["--project", str(project), "import", "cases", *(str(path) for path in
+                 sorted((project / "existing").iterdir()))]) == 0
+    report = check_project(TeamProject.load(project))
     assert not report.has_errors
     assert sorted((f.level, f.case_id) for f in report.findings) == [
-        ("info", "TC006"), ("info", "TC020"), ("info", "TC021"), ("info", "TC041"),
-        ("warning", "TC005"), ("warning", "TC005")]
+        ("info", "TC006"), ("info", "TC020"), ("info", "TC021"), ("info", "TC022"), ("info", "TC041"),
+        ("warning", "TC005"), ("warning", "TC005"), ("warning", "TC022"), ("warning", "TC030"), ("warning", "TC042")]
+    assert [f.message for f in report.for_case("TC022") if f.same_as] == [
+        "TC022: same steps as TC020 (cases/refunds.yaml). Fix: reject one in the review sheet, or remove it"]
 
 
 def test_the_review_left_the_cases_the_readme_describes():
@@ -100,6 +109,7 @@ def test_the_review_left_the_cases_the_readme_describes():
     approved = sorted(case_id for case_id, status in statuses.items() if status == "approved")
     assert approved == ["TC001", "TC002", "TC003", "TC004", "TC010", "TC011", "TC012", "TC030", "TC040"]
     assert statuses["TC005"] == "changes_needed" and statuses["TC042"] == "rejected"
+    assert statuses["TC022"] == "rejected"                     # the duplicate of TC020
 
 
 def test_the_examples_seeded_bugs_file_lists_every_seeded_bug():

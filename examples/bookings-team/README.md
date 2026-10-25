@@ -46,14 +46,14 @@ qa-agent import cases existing/booking_cases.xlsx existing/manual_cases.xlsx \
 
 ```
 cases/bookings-api.yaml: TC010, TC011, TC012
-cases/refunds.yaml: TC020, TC021
+cases/refunds.yaml: TC020, TC021, TC022
 cases/bookings-smoke.yaml: TC030, TC042
 cases/cancellation-scenarios.yaml: TC040, TC041
 new id TC042: Health check
 data file written: data/cancellation-scenarios-tc040.csv
 note: existing/bookings.postman_collection.json, 'Create and read a booking' step 2: pm.expect(body.passenger_name).to.match(/Meera/);
 note: existing/cancel.feature, 'Cancelling twice tells the passenger it is already cancelled': not in the fixed phrasing; kept in words (needs steps)
-9 cases imported as drafts, 0 skipped
+10 cases imported as drafts, 0 skipped
 ```
 
 (Run it again and every case is skipped: their ids are already in the project, and the health
@@ -69,7 +69,8 @@ pytest markers and TestNG groups. They come from a sheet's Tags column or Gherki
 none, so the reviewer adds them in the review sheet.
 
 - **Excel, API layout:** one row per step, so TC010 to TC012 come in ready to run.
-- **Excel, manual layout:** TC020 and TC021 have steps in words, so they come in as "needs steps".
+- **Excel, manual layout:** TC020 to TC022 have steps in words, so they come in as "needs steps".
+  TC022 is TC020 again under another title, as happens in a sheet that grew over the years.
 - **Postman:** the folder "TC030 Create and read a booking" is one case of two requests; its test
   scripts became the status, fields, `contains`, a response-time limit and the captured PNR.
   `{{$randomInt}}` and `{{$guid}}` became `{{unique}}`, the token header was dropped, and the one
@@ -85,7 +86,17 @@ qa-agent check
 ```
 
 ```
-qa-agent check: bookings · 15 cases in 6 files
+qa-agent check: bookings · 16 cases in 6 files
+
+cases/refunds.yaml
+  warning  TC022: same steps as TC020 (cases/refunds.yaml). Fix: reject one in the review sheet, or remove it
+  info     TC020: needs steps (it has manual steps only). It is kept and traced, and can't be generated until it has steps
+  info     TC021: needs steps (it has manual steps only). It is kept and traced, and can't be generated until it has steps
+  info     TC022: needs steps (it has manual steps only). It is kept and traced, and can't be generated until it has steps
+
+cases/bookings-smoke.yaml
+  warning  TC030: linked to no criterion. Fix: add criteria: [AC-…] so it can be traced
+  warning  TC042: linked to no criterion. Fix: add criteria: [AC-…] so it can be traced
 
 cases/bookings.yaml
   warning  TC005 step 1: status 400 is not documented for POST /bookings (documented: 201, 401, 422). Fix: check the expected status, or document it in the API
@@ -97,15 +108,17 @@ cases/cancellation-scenarios.yaml
 cases/cancellation.yaml
   info     TC006: needs steps (it has manual steps only). It is kept and traced, and can't be generated until it has steps
 
-cases/refunds.yaml
-  info     TC020: needs steps (it has manual steps only). It is kept and traced, and can't be generated until it has steps
-  info     TC021: needs steps (it has manual steps only). It is kept and traced, and can't be generated until it has steps
+1 group of duplicate cases (1 case repeating another case's steps)
 
-0 errors · 2 warnings · 4 notes
+0 errors · 5 warnings · 5 notes
 ```
 
 - **TC005** expects 400 where the API returns 422: a mistake a person makes, caught before any
   test runs. Leaving out `email` is the point of this negative test, so that warning stays.
+- **TC030 and TC042** came from Postman, which has no criteria: the reviewer links TC030 to AC-1
+  and rejects TC042 (below).
+- **TC022** repeats TC020's steps under another title: a duplicate, caught by comparing the steps,
+  not the ids or titles. The reviewer decides which one stays.
 - **TC006, TC020, TC021, TC041** are in words. They are traced to their criteria, and become tests
   once they have steps.
 - **AC-6** (listing bookings by status) has no case at all; the trace will show it as a gap.
@@ -127,6 +140,7 @@ result in words, marked "needs steps". The reviewer here:
 | Approve | TC001 to TC004, TC010 to TC012, TC030, TC040 | TC030 also got criterion AC-1 and the tag `smoke`, which the Postman collection didn't have |
 | Changes needed | TC005 | "The API returns 422 for a missing field, not 400" |
 | Reject | TC042 | "env_check already calls /health-check before every run; not a test case" |
+| Reject | TC022 | "Duplicate of TC020: the same case under another title in the manual sheet" |
 | No decision | TC006, TC020, TC021, TC041 | In words: they can't be approved until they have steps |
 
 ```
@@ -135,7 +149,8 @@ applied  TC010: approved by qa-lead, 2026-10-21
 applied  TC005: changes needed by qa-lead, 2026-10-21
 ...
 applied  TC042: rejected by qa-lead, 2026-10-21
-11 decisions applied, 0 refused
+applied  TC022: rejected by qa-lead, 2026-10-21
+12 decisions applied, 0 refused
 ```
 
 Each approved case now carries `review: {status: approved, by, date, fingerprint}`. If anyone edits

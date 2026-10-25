@@ -33,3 +33,24 @@ cases:
       - Open its refund status
       - 'Expected: The status is not_cancelled'
     review: {status: draft}
+  - id: TC022
+    title: Refund status after a late cancel
+    criteria: [AC-5]
+    priority: P1
+    suite: functional
+    tags: [refund]
+    source:
+      format: excel-manual
+      file: existing/manual_cases.xlsx
+      sheet: Refunds
+      row: 4
+    manual_steps:
+      - 'Before: A booking made two days ago'
+      - Cancel the booking
+      - Open its refund status
+      - 'Expected: The status is no_refund and the amount is 0'
+    review:
+      status: rejected
+      by: qa-lead
+      date: '2026-10-21'
+      comment: 'Duplicate of TC020: the same case under another title in the manual sheet'

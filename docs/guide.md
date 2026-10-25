@@ -28,7 +28,8 @@ Every command takes `--project <folder>` (default: the current folder) and `--he
 1. **Bring what you have.** `import api` for the API, `import cases` for the cases you already have.
    A pack the team signed off already can come in approved (see [Regression](#regression)).
 2. **Check.** `check` finds what would make a test wrong: a call to an operation the API doesn't
-   have, a value still to confirm (`TBD`), a case that checks nothing, a criterion that doesn't exist.
+   have, a value still to confirm (`TBD`), a case that checks nothing, a criterion that doesn't exist,
+   a case that repeats another's steps under a different id.
 3. **Review.** `review export` writes the sheet; a person fills Decision, Reviewer and Comment;
    `review apply` records it. A case edited after approval goes back to review by itself.
 4. **Generate and run.** `generate` writes the tests; they run in your framework as always.
