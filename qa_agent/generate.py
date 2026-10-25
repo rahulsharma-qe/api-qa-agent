@@ -120,6 +120,8 @@ def _compare(project: TeamProject, renderer, expected: dict, result: GenerateRes
 
 
 def _why_not(case) -> str:
+    if case.review.status == "rejected":
+        return "rejected"                      # whatever else is true of it: it won't be a test
     if case.changed_after_approval:
         return "changed after approval; review it again"
     if case.needs_steps:

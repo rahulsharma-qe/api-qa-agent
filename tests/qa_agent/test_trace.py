@@ -126,3 +126,14 @@ def test_a_coverage_floor_fails_only_when_given_and_missed(make_project, capsys)
     assert main(["--project", str(project.root), "trace", "--min-coverage", "60"]) == 0   # 67% and 67%
     assert main(["--project", str(project.root), "trace", "--min-coverage", "70"]) == 1
     assert "Criteria 67% (floor 70%), Operations 67% (floor 70%)" in capsys.readouterr().out
+
+
+def test_a_rejected_case_is_not_listed_as_waiting_for_approval(make_project):
+    from qa_agent.trace import _criteria_coverage
+    from qa_agent.cases import Case, Review
+    from qa_agent.project import Criterion
+    criteria = {"AC-1": Criterion("AC-1", "a"), "AC-2": Criterion("AC-2", "b")}
+    cases = [Case("TC1", "draft one", criteria=["AC-1"]),
+             Case("TC2", "rejected one", criteria=["AC-1"], review=Review(status="rejected")),
+             Case("TC3", "rejected only", criteria=["AC-2"], review=Review(status="rejected"))]
+    assert _criteria_coverage(criteria, cases).missing == ["AC-1 (not approved: TC1)", "AC-2 (no case)"]

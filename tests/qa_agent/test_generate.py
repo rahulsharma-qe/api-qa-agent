@@ -91,3 +91,9 @@ def test_the_drift_check_writes_nothing_and_names_what_is_out_of_date(make_proje
     out = capsys.readouterr().out
     assert "test_bookings.py (left over: its cases are no longer approved)" in out
     assert "BookingsTest.java (left over" in out
+
+
+def test_a_rejected_case_is_said_to_be_rejected_before_anything_else():
+    from qa_agent.cases import Case, Review
+    from qa_agent.generate import _why_not
+    assert _why_not(Case("TC1", "t", manual_steps=["in words"], review=Review(status="rejected"))) == "rejected"

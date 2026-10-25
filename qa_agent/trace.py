@@ -228,7 +228,7 @@ def _criteria_coverage(criteria: dict, cases: list) -> Coverage:
         return Coverage("Criteria", 0, 0, note="no acceptance-criteria.yaml")
     missing = []
     for criterion in criteria:
-        linked = [case for case in cases if criterion in case.criteria]
+        linked = [case for case in cases if criterion in case.criteria and case.review.status != "rejected"]
         if any(case.is_approved for case in linked):
             continue
         if not linked:
