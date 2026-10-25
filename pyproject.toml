@@ -32,7 +32,7 @@ include = ["demo_api*", "env_check*", "qa_agent*"]
 
 [tool.setuptools.package-data]
 demo_api = ["openapi.json"]
-qa_agent = ["renderers/templates/*", "project_templates/**/*"]
+qa_agent = ["renderers/templates/*", "project_templates/**/*", "ai_report_template.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]       # each framework under frameworks/ runs its own tests

@@ -17,6 +17,7 @@
     qa-agent draft criteria ... --plan               what changed in the requirement since the last run; no model call
     qa-agent draft cases [--plan] [--max 10]         the AI layer: a draft case per coverage gap, for a person to review
     qa-agent draft cases --redo TC045 [TC048]        the AI layer: a new draft for one a reviewer rejected or sent back
+    qa-agent ai-report                               what the AI layer did and who approved it: reports/ai-report/
 
 Exit codes: 0 done (no errors), 1 errors found, 2 the project or an input can't be read.
 """
@@ -33,6 +34,8 @@ from qa_agent.case_import import import_cases
 from qa_agent.cases import PRIORITIES, SUITES, CaseFormatError
 from qa_agent.ai.models import ModelError, ModelSetupError
 from qa_agent.ai.session import AiSession
+from qa_agent.ai_report import build_ai_report
+from qa_agent.ai_report_files import write_ai_report
 from qa_agent.checks import check_project, plural
 from qa_agent.criteria_drafting import draft_criteria, read_requirement
 from qa_agent.criteria_drafting import plan as criteria_plan
@@ -172,6 +175,12 @@ def _parser() -> argparse.ArgumentParser:
     cases.add_argument("--redo", nargs="+", metavar="ID",
                        help="a new draft for these AI drafts a reviewer rejected or sent back, using the comment")
     cases.set_defaults(run=run_draft_cases)
+
+    report = commands.add_parser("ai-report", help="what the AI layer did, and who approved each draft: "
+                                                   "HTML, Markdown and JSON, from the audit log and the drafts")
+    report.add_argument("--out", type=Path, default=Path("reports") / "ai-report",
+                        help="the folder to write to (default: reports/ai-report)")
+    report.set_defaults(run=run_ai_report)
     return parser
 
 
@@ -314,6 +323,24 @@ def run_draft_cases(args) -> int:
     if report.stopped:
         return SETUP_PROBLEM
     return FINDINGS if report.refused else DONE
+
+
+def run_ai_report(args) -> int:
+    project = TeamProject.load(args.project)
+    report = build_ai_report(project)
+    out = args.out if args.out.is_absolute() else project.root / args.out
+    paths = write_ai_report(report, out)
+    print(report.as_text())
+    print("\nWritten: " + ", ".join(_shown(path, project) for path in paths))
+    return DONE
+
+
+def _shown(path: Path, project: TeamProject) -> str:
+    """Where a file went, as short as it can be said: from here, else from the project."""
+    try:
+        return path.resolve().relative_to(Path.cwd().resolve()).as_posix()
+    except ValueError:
+        return project.relative(path)
 
 
 def run_draft_criteria(args) -> int:

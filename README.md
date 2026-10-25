@@ -79,7 +79,7 @@ before any AI is switched on.
 | [`demo_api/`](demo_api/) | The reference API: bookings, cancel with a 24-hour refund rule, refund status, tokens, health checks, seeded bugs |
 | [`env_check/`](env_check/) | Before a run: every service a team depends on; exit 3 when a critical one is down |
 | [`frameworks/`](frameworks/) | The Python (pytest) and Java (REST Assured, TestNG) frameworks, each a library on its own with an example per feature |
-| [`qa_agent/`](qa_agent/) | `qa-agent`, the command line: `init`, `import`, `check`, `review`, `generate`, `trace`, `promote`, `suite`, `impact-analysis`, `bug-detection`, `draft` |
+| [`qa_agent/`](qa_agent/) | `qa-agent`, the command line: `init`, `import`, `check`, `review`, `generate`, `trace`, `promote`, `suite`, `impact-analysis`, `bug-detection`, `draft`, `ai-report` |
 | [`examples/`](examples/) | [`bookings-team`](examples/bookings-team/) (every feature, with its output), [`from-a-requirement`](examples/from-a-requirement/) (the AI layer), [`external-apis`](examples/external-apis/) (Swagger Petstore) |
 | [`teams/`](teams/) | Two small teams, each shaped like its own repository, using the reusable CI workflow |
 | [`docs/`](docs/) | Getting started, the guide, the design |

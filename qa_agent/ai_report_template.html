@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI report: __TEAM__</title>
+<style>
+:root{
+  --paper:#F6F7F9; --sheet:#FFFFFF; --ink:#1B2430; --muted:#5B6472; --rule:#DDE1E7;
+  --approved:#0F766E; --approved-bg:#E3F3F1; --changed_since:#B42318; --changed_since-bg:#FDECEA;
+  --changes_needed:#A15C07; --changes_needed-bg:#FDF3E1; --draft:#3B5BA9; --draft-bg:#E8EEFA;
+  --rejected:#7A7268; --rejected-bg:#F1EEEA; --focus:#1E40AF;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#141A22; --sheet:#1B2330; --ink:#E6EAF0; --muted:#9AA4B2; --rule:#2C3646;
+    --approved:#5EC4B8; --approved-bg:#173532; --changed_since:#F2877C; --changed_since-bg:#3A1F1D;
+    --changes_needed:#F0B866; --changes_needed-bg:#3A2C16; --draft:#93AEEA; --draft-bg:#1E2A45;
+    --rejected:#BDB3A6; --rejected-bg:#2B2722; --focus:#93AEEA;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-variant-numeric:tabular-nums}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+.layout{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+aside{border-right:1px solid var(--rule);padding:24px 18px;position:sticky;top:0;height:100vh;overflow:auto;background:var(--sheet)}
+main{padding:28px 36px 60px;max-width:1080px;min-width:0}
+h1,h2,h3{font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua",Palatino,Georgia,serif;font-weight:650;letter-spacing:-.01em;margin:0}
+h1{font-size:30px;line-height:1.15}
+h2{font-size:21px;margin:36px 0 10px;scroll-margin-top:16px}
+.lede{color:var(--muted);max-width:68ch;margin:8px 0 0}
+.brand{font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua",Palatino,Georgia,serif;font-size:18px;font-weight:650}
+.brand small{display:block;font-family:inherit;font-size:12.5px;color:var(--muted);font-weight:400;margin-top:2px}
+.search{width:100%;margin:18px 0 14px;padding:9px 11px;border:1px solid var(--rule);border-radius:6px;background:var(--paper);color:var(--ink);font:inherit}
+nav a{display:block;padding:7px 8px;border-radius:6px;text-decoration:none}
+nav a:hover{background:var(--paper)}
+nav a span{float:right;color:var(--muted);font-size:12.5px}
+.note{font-size:12.5px;color:var(--muted);margin-top:22px;line-height:1.5}
+.exhibit{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px 28px;padding:14px 16px;border:1px solid var(--rule);border-left:4px solid var(--ink);background:var(--sheet);border-radius:6px;font-size:14px}
+.exhibit b{display:block;font-weight:600}
+.exhibit span{color:var(--muted);font-size:12.5px}
+.recorded{margin-top:14px;padding:10px 14px;border-radius:8px;background:var(--ink);color:var(--paper);font-size:14px}
+.tallies{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:20px}
+.tally{border:1px solid var(--rule);background:var(--sheet);border-radius:8px;padding:12px 14px;text-align:left;cursor:pointer;font:inherit}
+.tally[aria-pressed="true"]{outline:2px solid currentColor}
+.tally .n{font-size:28px;font-weight:700;line-height:1}
+.tally .t{display:block;font-size:13.5px;margin-top:6px}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:999px;padding:3px;margin-top:14px;background:var(--sheet)}
+.seg button{border:0;background:transparent;color:inherit;font:inherit;font-size:14px;padding:5px 14px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper);font-weight:600}
+.box{border:1px solid var(--changed_since);border-radius:8px;background:var(--changed_since-bg);padding:14px 16px;margin-top:22px}
+.box h2{margin:0 0 6px;font-size:19px;color:var(--changed_since)}
+.box ul{margin:0;padding-left:18px}
+.box.clear{border-color:var(--approved);background:var(--approved-bg)}
+.box.clear h2{color:var(--approved)}
+.box a{font-weight:600}
+.row{border:1px solid var(--rule);background:var(--sheet);border-radius:8px;margin-top:8px;scroll-margin-top:16px}
+.row:target{outline:2px solid var(--focus)}
+.head{display:grid;grid-template-columns:90px 1fr auto;gap:14px;align-items:center;width:100%;border:0;background:none;color:inherit;font:inherit;text-align:left;padding:12px 14px;cursor:pointer}
+.cid{font-weight:700;font-size:14px}
+.title{font-weight:500}
+.short{display:block;color:var(--muted);font-size:13.5px;margin-top:2px}
+.label{font-size:12.5px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.body{display:none;padding:0 14px 14px 118px;font-size:14px}
+.row.open .body{display:block}
+.body dl{display:grid;grid-template-columns:150px 1fr;gap:6px 14px;margin:0}
+.body dt{color:var(--muted)} .body dd{margin:0;overflow-wrap:anywhere}
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chain span{padding:2px 8px;border:1px solid var(--rule);border-radius:6px;background:var(--paper);font-size:13px}
+.chain i{color:var(--muted);font-style:normal}
+.tools{margin-top:10px;font-size:13px}
+.tools button{border:0;background:none;color:var(--focus);font:inherit;cursor:pointer;padding:0;text-decoration:underline}
+.table{width:100%;border-collapse:collapse;background:var(--sheet);border:1px solid var(--rule);border-radius:8px;font-size:14px}
+.table th,.table td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+.table th{font-size:12.5px;color:var(--muted);font-weight:600}
+.table tr:last-child td{border-bottom:0}
+.scroll{overflow-x:auto}
+.bar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--rule);margin:8px 0}
+.bar i{display:block}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:14px}
+.legend b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
+.empty{color:var(--muted);padding:12px 0}
+.failed{color:var(--changed_since)}
+.disclaimer{margin-top:40px;font-size:13px;color:var(--muted);max-width:75ch;border-top:1px solid var(--rule);padding-top:14px}
+.l-approved{background:var(--approved-bg);color:var(--approved)} .t-approved{color:var(--approved)}
+.l-changes_needed{background:var(--changes_needed-bg);color:var(--changes_needed)} .t-changes_needed{color:var(--changes_needed)}
+.l-rejected{background:var(--rejected-bg);color:var(--rejected)} .t-rejected{color:var(--rejected)}
+.l-draft{background:var(--draft-bg);color:var(--draft)} .t-draft{color:var(--draft)}
+.l-changed_since{background:var(--changed_since-bg);color:var(--changed_since)} .t-changed_since{color:var(--changed_since)}
+@media (max-width:860px){
+  .layout{grid-template-columns:1fr} aside{order:2;position:static;height:auto;border-right:0;border-bottom:1px solid var(--rule)}
+  main{padding:20px 16px 48px} .tallies{grid-template-columns:repeat(2,1fr)}
+  .head{grid-template-columns:1fr auto} .cid{grid-column:1/-1} .body{padding:0 14px 14px} .body dl{grid-template-columns:1fr}
+}
+@media print{
+  aside,.tools,.search,.seg{display:none} .layout{display:block} .body{display:block!important;padding-left:14px}
+  body{background:#fff} .row{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside aria-label="Sections">
+  <div class="brand">AI report<small id="brandSub"></small></div>
+  <input class="search" id="q" type="search" placeholder="Find: TC005, AC-3, rejected, qa-lead" aria-label="Find a draft or a question">
+  <nav id="nav"></nav>
+  <p class="note">Built from the audit log and the project's files. No prompt and no reply is in this report: those stay in the audit log.</p>
+</aside>
+<main>
+  <h1 id="title"></h1>
+  <p class="lede">Every draft the AI wrote, the person who decided on it, and the call behind it. Nothing the AI writes becomes a test until a person approves it.</p>
+  <div class="exhibit" id="exhibit" aria-label="Where this report comes from"></div>
+  <div id="recorded"></div>
+  <div id="attention"></div>
+  <h2 id="drafts">AI drafts and decisions</h2>
+  <div class="tallies" id="tallies"></div>
+  <div class="seg" role="group" aria-label="Kind of draft" id="kinds"></div>
+  <div id="ledger"></div>
+  <h2 id="questions">Questions the model raised</h2>
+  <div id="qlist"></div>
+  <h2 id="origins">Where the approved cases came from</h2>
+  <div id="olist"></div>
+  <h2 id="calls">AI calls</h2>
+  <div id="clist"></div>
+  <p class="disclaimer" id="disclaimer"></p>
+</main>
+</div>
+<script>
+const DATA = __DATA__;
+const ORDER = Object.keys(DATA.statuses);
+let filter = null, kind = "all", query = "";
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const $ = id => document.getElementById(id);
+const anchor = id => "d-" + String(id).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const callsNamed = name => DATA.calls.filter(c => c.name === name);
+const redacted = r => Object.entries(r || {}).map(([k, n]) => `${n} ${k}`).join(", ") || "nothing";
+
+function header(){
+  const t = DATA.totals, log = DATA.log;
+  $("title").textContent = DATA.team + ": how AI was used, and who approved it";
+  $("brandSub").textContent = "qa-agent, team " + DATA.team;
+  const red = Object.entries(t.redactions).map(([k, n]) => `${n} ${k}`).join(", ");
+  $("exhibit").innerHTML =
+    `<div><b>${t.calls} AI calls</b><span>${t.failed} failed</span></div>
+     <div><b>${DATA.drafts.length} AI drafts</b><span>${DATA.counts.approved} approved</span></div>
+     <div><b>Redacted before sending</b><span>${esc(red || "nothing found to redact")}</span></div>
+     <div><b>Usage</b><span>${esc(t.usage)}</span></div>
+     <div><b>${esc(log.file)}</b><span>${log.found ? (log.lines ? `${log.lines} lines, ${esc(log.first)} to ${esc(log.last)}` : "empty") : "missing"}</span></div>`;
+  $("recorded").innerHTML = DATA.recorded ? '<div class="recorded"><b>Recorded replies, not a live model.</b> This project replays hand-written replies, so it shows the workflow, not real usage.</div>' : "";
+  const items = DATA.look_at_first;
+  $("attention").innerHTML = items.length
+    ? `<div class="box"><h2>Look at first</h2><ul>${items.map(i => `<li><b>${esc(i.title)}</b>${i.ids.length ? ": " + i.ids.map(id => DATA.drafts.some(d => d.id === id) ? `<a href="#${anchor(id)}" data-open="${anchor(id)}">${esc(id)}</a>` : esc(id)).join(", ") : ""}<br><span class="short">${esc(i.why[0].toUpperCase() + i.why.slice(1))}.</span></li>`).join("")}</ul></div>`
+    : '<div class="box clear"><h2>Nothing to look at first</h2>Every AI draft is decided, by a named person, and unchanged since; every call is in the log.</div>';
+  $("disclaimer").textContent = DATA.disclaimer + " Generated by " + DATA.generated_by + ".";
+  $("kinds").innerHTML = [["all","All"],["criterion","Criteria"],["case","Cases"]].map(([k, l]) => `<button data-k="${k}" aria-pressed="${k === kind}">${l}</button>`).join("");
+  document.querySelectorAll("#kinds button").forEach(b => b.onclick = () => { kind = b.dataset.k; render(); });
+  $("nav").innerHTML = [["drafts","AI drafts", DATA.drafts.length],["questions","Questions", DATA.questions.length],
+    ["origins","Approved cases", Object.values(DATA.origins).reduce((a, b) => a + b, 0)],["calls","AI calls", DATA.calls.length]]
+    .map(([id, l, n]) => `<a href="#${id}">${l}<span>${n}</span></a>`).join("");
+}
+function source(d){
+  if (d.kind === "criterion") return `<span>requirement ${esc(d.requirement)}</span><i>→</i><span>${esc(d.id)}</span>`;
+  const req = d.requirement ? `<span>requirement ${esc(d.requirement)}</span><i>→</i>` : "";
+  const from = d.criteria.length ? d.criteria.map(esc).join(", ") : "gap " + esc(d.gap);
+  return `${req}<span>${from}</span><i>→</i>${d.replaces ? `<span>replaces ${esc(d.replaces)}</span><i>→</i>` : ""}<span>${esc(d.id)}</span>`;
+}
+function rowHtml(d){
+  const calls = callsNamed(d.call), who = d.by ? `${d.by}${d.date ? ", " + d.date : ""}` : (d.status === "draft" ? "not reviewed yet" : "nobody named");
+  const callText = calls.length ? calls.map(c => `${esc(c.time)} · ${esc(c.model)} · redacted: ${esc(redacted(c.redactions))}${c.error ? ` · <span class="failed">failed: ${esc(c.error)}</span>` : ""}`).join("<br>")
+                                : '<span class="failed">not in the audit log</span>';
+  return `<article class="row" id="${anchor(d.id)}">
+    <button class="head" aria-expanded="false"><span class="cid">${esc(d.id)}</span>
+      <span><span class="title">${esc(d.text)}</span><span class="short">${d.kind === "criterion" ? "Criterion" : "Case"} · ${esc(who)}</span></span>
+      <span class="label l-${esc(d.status)}">${esc(DATA.statuses[d.status] || d.status)}</span></button>
+    <div class="body"><dl>
+      <dt>Decision</dt><dd>${esc(DATA.statuses[d.status] || d.status)}${d.comment ? ": " + esc(d.comment) : ""}</dd>
+      <dt>Decided by</dt><dd>${esc(who)}</dd>
+      <dt>How it came about</dt><dd><div class="chain">${source(d)}</div></dd>
+      <dt>Drafted by</dt><dd>${esc(d.model)}</dd>
+      <dt>AI call</dt><dd><b>${esc(d.call)}</b>${calls.length > 1 ? ` (${calls.length} calls)` : ""}<br>${callText}</dd>
+      <dt>File</dt><dd>${esc(d.file)}</dd>
+    </dl><div class="tools"><button data-copy="${anchor(d.id)}">Copy link to this draft</button></div></div></article>`;
+}
+function visible(d){
+  if (filter && d.status !== filter) return false;
+  if (kind !== "all" && d.kind !== kind) return false;
+  if (query){ const s = [d.id, d.text, d.status, DATA.statuses[d.status], d.by, d.comment, d.requirement, d.gap, d.call, d.criteria.join(" ")].join(" ").toLowerCase(); if (!s.includes(query)) return false; }
+  return true;
+}
+function openRow(id){
+  const el = id && document.getElementById(id);
+  if (el && el.classList.contains("row")){ el.classList.add("open"); el.querySelector(".head").setAttribute("aria-expanded", "true"); el.scrollIntoView({block:"start"}); }
+}
+function render(){
+  document.querySelectorAll("#kinds button").forEach(b => b.setAttribute("aria-pressed", b.dataset.k === kind));
+  const shown = DATA.drafts.filter(d => kind === "all" || d.kind === kind);
+  $("tallies").innerHTML = ORDER.map(k => `<button class="tally t-${k}" data-f="${k}" aria-pressed="${filter === k}"><span class="n">${shown.filter(d => d.status === k).length}</span><span class="t">${esc(DATA.statuses[k])}</span></button>`).join("");
+  document.querySelectorAll(".tally").forEach(b => b.onclick = () => { filter = filter === b.dataset.f ? null : b.dataset.f; render(); });
+  const rows = DATA.drafts.filter(visible);
+  $("ledger").innerHTML = rows.length ? rows.map(rowHtml).join("") : `<p class="empty">${DATA.drafts.length ? "No draft matches. Clear the search or the filter." : "No AI drafts in this project yet."}</p>`;
+  const qs = DATA.questions.filter(q => !query || [q.id, q.text, q.kind, q.status, q.answer, q.answered_by].join(" ").toLowerCase().includes(query));
+  $("qlist").innerHTML = qs.length ? `<div class="scroll"><table class="table"><tr><th>Question</th><th>Kind</th><th>Answer</th></tr>${qs.map(q =>
+    `<tr><td><b>${esc(q.id)}</b> ${esc(q.text)}<br><span class="short">from ${esc(q.requirement)}: "${esc(q.quote)}"</span></td><td>${esc(q.kind)}</td>
+     <td>${q.status === "answered" ? `${esc(q.answer)}<br><span class="short">${esc(q.answered_by)}, ${esc(q.answered_on)}</span>` : '<span class="label l-draft">open</span>'}</td></tr>`).join("")}</table></div>`
+    : `<p class="empty">${DATA.questions.length ? "No question matches the search." : "No questions raised."}</p>`;
+  const o = DATA.origins, total = Object.values(o).reduce((a, b) => a + b, 0) || 1, colours = ["var(--draft)", "var(--approved)", "var(--rejected)"];
+  $("olist").innerHTML = `<div class="bar" aria-hidden="true">${Object.values(o).map((n, i) => `<i style="width:${n / total * 100}%;background:${colours[i]}"></i>`).join("")}</div>
+    <div class="legend">${Object.entries(o).map(([w, n], i) => `<span><b style="background:${colours[i]}"></b>${n} ${esc(w)}</span>`).join("")}</div>
+    <p class="short">Only approved cases, unchanged since approval, become tests.</p>`;
+  $("clist").innerHTML = DATA.calls.length ? `<div class="scroll"><table class="table"><tr><th>Call</th><th>Purpose</th><th>Model</th><th>Tokens in / out</th><th>Time</th><th>Redacted</th></tr>${DATA.calls.map(c =>
+    `<tr><td><b>${esc(c.name)}</b>${c.error ? `<br><span class="failed">failed: ${esc(c.error)}</span>` : ""}${DATA.no_draft_kept.calls.includes(c.name) ? `<br><span class="short">${esc(DATA.no_draft_kept.why)}</span>` : ""}</td>
+     <td>${esc(c.purpose)}</td><td>${esc(c.model)}</td><td>${c.input_tokens} / ${c.output_tokens}</td><td>${c.duration_ms} ms<br><span class="short">${esc(c.time)}</span></td><td>${esc(redacted(c.redactions))}</td></tr>`).join("")}</table></div>`
+    : `<p class="empty">${DATA.log.found ? "The audit log is empty." : "No audit log: " + esc(DATA.log.file) + " is missing."}</p>`;
+  document.querySelectorAll(".head").forEach(h => h.onclick = () => { const r = h.parentElement; r.classList.toggle("open"); h.setAttribute("aria-expanded", r.classList.contains("open")); });
+  document.querySelectorAll("[data-copy]").forEach(b => b.onclick = () => { const u = location.href.split("#")[0] + "#" + b.dataset.copy; if (navigator.clipboard) navigator.clipboard.writeText(u); b.textContent = "Link copied"; });
+  document.querySelectorAll("[data-open]").forEach(a => a.onclick = () => { filter = null; kind = "all"; query = ""; $("q").value = ""; render(); openRow(a.dataset.open); });
+}
+$("q").oninput = e => { query = e.target.value.trim().toLowerCase(); render(); };
+window.addEventListener("hashchange", () => openRow(location.hash.slice(1)));
+header(); render(); openRow(location.hash.slice(1));
+</script>
+</body>
+</html>
