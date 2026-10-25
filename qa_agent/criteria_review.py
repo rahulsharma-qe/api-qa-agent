@@ -4,7 +4,7 @@
 
     Criteria    each drafted criterion not yet approved or rejected: its text (editable), the words it
                 came from (locked), and Decision, Reviewer, Date, Comment, as for cases
-    Questions   each open question: its kind, the words it came from, and Answer, Answered by
+    Questions   each open question: its kind, the words it came from, and Answer, Answered by, Date
 
 `qa-agent review apply` applies them: a criterion's decision, only if its text in the file is still what
 the sheet was made from; an answer, with who gave it and when.
@@ -18,7 +18,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 
 from qa_agent.criteria_drafts import CriteriaDrafts
 from qa_agent.project import TeamProject
-from qa_agent.review_common import DECIDE_FILL, DECISIONS, HEADER_FILL, LOCKED_FILL, row_problem, text_value
+from qa_agent.review_common import DATE, DECIDE_FILL, DECISIONS, HEADER_FILL, LOCKED_FILL, row_problem, text_value
 
 CRITERIA_SHEET, QUESTIONS_SHEET = "Criteria", "Questions"
 CRITERIA_COLUMNS = [  # header, width, editable
@@ -27,7 +27,7 @@ CRITERIA_COLUMNS = [  # header, width, editable
     ("Comment", 40, True), ("Text at export", 10, False)]
 QUESTION_COLUMNS = [
     ("ID", 7, False), ("Kind", 14, False), ("Question", 60, False), ("From the requirement", 50, False),
-    ("Answer", 50, True), ("Answered by", 16, True)]
+    ("Answer", 50, True), ("Answered by", 16, True), ("Date", 12, True)]
 DECIDE = ("Decision", "Reviewer", "Date", "Comment", "Answer", "Answered by")
 
 
@@ -58,7 +58,7 @@ def add_criteria_sheets(workbook, project: TeamProject) -> None:
         sheet.append([name for name, _, _ in QUESTION_COLUMNS])
         for question in questions:
             sheet.append([question.get("id"), question.get("kind"), question.get("text"), question.get("quote"),
-                          "", ""])
+                          "", "", ""])
         _format(sheet, QUESTION_COLUMNS, len(questions))
 
 
@@ -95,9 +95,12 @@ def apply_criteria_sheets(path, project: TeamProject, result) -> None:
         if not row.get("Answered by"):
             result.refused.append(f"{row['ID']}: Answered by is empty: an answer needs a name")
             continue
-        question.update(status="answered", answer=row["Answer"], answered_by=row["Answered by"],
-                        answered_on=datetime.date.today().isoformat())
-        result.applied.append(f"{row['ID']}: answered by {row['Answered by']}")
+        if row.get("Date") and not DATE.match(row["Date"]):
+            result.refused.append(f"{row['ID']}: Date '{row['Date']}' (write it as 2026-10-24, or leave it empty for today)")
+            continue
+        answered_on = row.get("Date") or datetime.date.today().isoformat()
+        question.update(status="answered", answer=row["Answer"], answered_by=row["Answered by"], answered_on=answered_on)
+        result.applied.append(f"{row['ID']}: answered by {row['Answered by']}, {answered_on}")
         changed = True
     if changed:
         drafts.save()

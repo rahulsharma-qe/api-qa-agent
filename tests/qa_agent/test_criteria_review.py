@@ -1,5 +1,7 @@
 """The review sheet's Criteria and Questions tabs: drafted criteria approved by a person, questions answered."""
 
+import datetime
+
 from openpyxl import load_workbook
 
 from qa_agent.cli import main
@@ -83,3 +85,21 @@ def test_without_drafts_the_sheet_has_only_cases(make_project, tmp_path):
     sheet = root / "review" / "cases.xlsx"
     export_review_sheet(TeamProject.load(root), sheet)
     assert load_workbook(sheet).sheetnames == ["Cases", "How to review"]
+
+
+def test_an_answer_keeps_the_date_the_sheet_gives_or_today(make_project, tmp_path):
+    project, sheet = sheet_with(make_project, tmp_path)
+    fill(sheet, "Questions", {2: {"Answer": "Yes", "Answered by": "product-owner", "Date": "2026-10-20"},
+                              3: {"Answer": "It retries", "Answered by": "payments-lead"}})
+    import_review_sheet(project, sheet)
+    first, second = CriteriaDrafts.load(project).questions
+    assert first["answered_on"] == "2026-10-20"
+    assert second["answered_on"] == datetime.date.today().isoformat()
+
+
+def test_an_answer_with_a_date_that_isnt_one_is_refused(make_project, tmp_path):
+    project, sheet = sheet_with(make_project, tmp_path)
+    fill(sheet, "Questions", {2: {"Answer": "Yes", "Answered by": "product-owner", "Date": "20/10/2026"}})
+    refused = "\n".join(import_review_sheet(project, sheet).refused)
+    assert "Q-1: Date '20/10/2026' (write it as 2026-10-24, or leave it empty for today)" in refused
+    assert [q["id"] for q in CriteriaDrafts.load(project).open_questions()] == ["Q-1", "Q-2"]

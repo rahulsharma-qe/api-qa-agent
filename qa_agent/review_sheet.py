@@ -46,7 +46,7 @@ HOW_TO = [
     "",
     "Criteria tab (when there is one): drafted acceptance criteria. Approve, send back or reject each, as for",
     "cases; you may reword the criterion. Questions tab: what the requirement leaves open. Write the Answer",
-    "and who gave it (Answered by); the product owner is often the one to ask.",
+    "and who gave it (Answered by), and its Date (today if left empty); the product owner is often the one to ask.",
     "",
     "Only approved cases become tests. A case edited after this sheet was made is not applied:",
     "export the sheet again. A case with check errors, or with steps only in words, can't be approved.",
