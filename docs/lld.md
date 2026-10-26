@@ -1090,6 +1090,11 @@ On the bookings example:
 
 A wrong or missing setting says what to add; a missing key names the environment variable.
 
+`ai.base_url` (provider `openai` only) points `OpenAIModel` at any OpenAI-compatible server (Ollama,
+vLLM, LM Studio), for a model inside the team's own network; the key is then optional (the client
+library is given a placeholder when none is set). Redaction, the audit log and `ai-report` work the
+same; the audit log shows provider `openai` and the server's model name. Tested with a stand-in client.
+
 ### 11.7 As built: drafting cases (6-2)
 
 | Part | What |

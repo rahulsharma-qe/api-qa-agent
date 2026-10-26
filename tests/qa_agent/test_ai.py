@@ -60,6 +60,27 @@ def test_a_key_comes_only_from_the_environment(monkeypatch, tmp_path):
     assert model_from_settings({"provider": "openai", "model": "m"}, tmp_path)._client == ("client", "k")
 
 
+def test_a_model_on_your_own_server_through_base_url(monkeypatch, tmp_path):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)                  # a local server needs no key
+    monkeypatch.setitem(sys.modules, "openai", types.SimpleNamespace(
+        OpenAI=lambda api_key, base_url=None: ("client", api_key, base_url)))
+    local = {"provider": "openai", "model": "llama3.1", "base_url": "http://localhost:11434/v1"}
+    model = model_from_settings(local, tmp_path)
+    assert model._client == ("client", "not-needed", "http://localhost:11434/v1")
+    assert (model.provider, model.model) == ("openai", "llama3.1")     # what the audit log and ai-report show
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    assert model_from_settings(local, tmp_path)._client == ("client", "k", "http://localhost:11434/v1")
+
+
+@pytest.mark.parametrize("settings, problem", [
+    ({"provider": "anthropic", "model": "m", "base_url": "http://localhost:11434/v1"}, "works with ai.provider openai"),
+    ({"provider": "openai", "model": "m", "base_url": "localhost:11434"}, "should start with http:// or https://"),
+])
+def test_base_url_is_checked(tmp_path, settings, problem):
+    with pytest.raises(ModelSetupError, match=problem):
+        model_from_settings(settings, tmp_path)
+
+
 def test_each_provider_sends_the_request_and_reads_the_reply_and_tokens():
     sent = {}
 

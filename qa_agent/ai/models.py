@@ -10,6 +10,9 @@ tests, CI and the examples run with no key and give the same answer every time.
       provider: anthropic                  # anthropic, openai or recorded
       model: <the provider's model name>
       recorded: ai/recorded                # provider recorded: the folder of replies
+      base_url: http://localhost:11434/v1  # provider openai only: any OpenAI-compatible server (Ollama,
+                                           # vLLM, LM Studio), e.g. a model in your own network; the key
+                                           # is then optional
       input_price_per_million: 3.0         # optional: the audit log then shows each call's cost
       output_price_per_million: 15.0
 """
@@ -22,6 +25,7 @@ from typing import Optional, Protocol
 
 KEY_VARIABLES = {"anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY"}
 PROVIDERS = ("anthropic", "openai", "recorded")
+NO_KEY = "not-needed"           # a local server ignores the key, but the client library wants one
 
 
 class ModelError(Exception):
@@ -75,9 +79,12 @@ class AnthropicModel:
 class OpenAIModel:
     provider = "openai"
 
-    def __init__(self, model: str, client=None):
+    def __init__(self, model: str, client=None, base_url: Optional[str] = None):
         self.model = model
-        self._client = client or _sdk_client("openai", lambda sdk, key: sdk.OpenAI(api_key=key))
+        self.base_url = base_url
+        build = (lambda sdk, key: sdk.OpenAI(api_key=key, base_url=base_url)) if base_url else \
+            (lambda sdk, key: sdk.OpenAI(api_key=key))
+        self._client = client or _sdk_client("openai", build, key_required=not base_url)
 
     def complete(self, request: ModelRequest) -> ModelReply:
         try:
@@ -121,8 +128,16 @@ def model_from_settings(settings: Optional[dict], root: Path) -> Model:
         return RecordedModel(Path(root) / str(settings["recorded"]))
     if not settings.get("model"):
         raise ModelSetupError(f"ai.provider {provider} needs ai.model: the provider's model name")
-    model_class = AnthropicModel if provider == "anthropic" else OpenAIModel
-    return model_class(str(settings["model"]))
+    base_url = str(settings.get("base_url") or "")
+    if base_url and provider != "openai":
+        raise ModelSetupError("ai.base_url works with ai.provider openai (any OpenAI-compatible server), "
+                              f"not {provider}")
+    if base_url and not base_url.startswith(("http://", "https://")):
+        raise ModelSetupError(f"ai.base_url '{base_url}' should start with http:// or https://, "
+                              "e.g. http://localhost:11434/v1")
+    if provider == "anthropic":
+        return AnthropicModel(str(settings["model"]))
+    return OpenAIModel(str(settings["model"]), base_url=base_url or None)
 
 
 def file_name(name: str) -> str:
@@ -130,11 +145,12 @@ def file_name(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "reply"
 
 
-def _sdk_client(package: str, build):
+def _sdk_client(package: str, build, key_required: bool = True):
     variable = KEY_VARIABLES[package]
     key = os.getenv(variable)
-    if not key:
+    if not key and key_required:
         raise ModelSetupError(f"set {variable} in the environment (never in a file) to use ai.provider {package}")
+    key = key or NO_KEY
     try:
         sdk = __import__(package)
     except ImportError as error:

@@ -62,6 +62,16 @@ ai:
   # recorded: ai/recorded
 ```
 
+A model on your own server, so nothing leaves your network: any OpenAI-compatible server (Ollama,
+vLLM, LM Studio) with `provider: openai` and its address. The key is then optional.
+
+```yaml
+ai:
+  provider: openai
+  model: llama3.1
+  base_url: http://localhost:11434/v1     # Ollama on this machine: ollama pull llama3.1, then ollama serve
+```
+
 What is sent is redacted (tokens, keys, passwords, emails) and every call is logged in
 `reports/ai-audit-log.jsonl`. Drafts go to their own files (`cases/<area>-drafts.yaml`,
 `acceptance-criteria-drafts.yaml`); the review sheet gains Criteria and Questions tabs.
