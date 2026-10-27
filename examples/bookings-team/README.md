@@ -244,8 +244,13 @@ Operations      5 of 8   missing: POST /auth/token, GET /bookings, GET /bookings
 Response codes  9 of 19   missing: POST /auth/token 200, POST /auth/token 422, GET /bookings 200, POST /bookings 422, PUT /bookings/{pnr} 404, DELETE /bookings/{pnr} 404, POST /bookings/{pnr}/cancel 422, GET /bookings/{pnr}/refund 200, GET /bookings/{pnr}/refund 404, 401 (bookings, any operation)
 Cases to tests  9 of 9
 Not tested      on purpose: GET /health-check: env_check calls it before every run; POST /test/reset: a test-only route; it resets the data; GET /health-check (notifications): env_check calls it before every run
+Case types      9 approved: 5 positive · 4 negative · 0 auth · 1 edge
 Results         pytest 12 passed · restassured 12 passed
 ```
+
+`Case types` comes from what each case expects: a 4xx makes it negative, 401 or 403 auth, a tag
+`edge` or `boundary` edge. No case here calls without a token, so auth is 0: the
+same gap as `401 (bookings, any operation)` under Response codes. A criterion whose approved cases were all positive would be named on a `Happy path only` line.
 
 It also writes the traceability matrix, `reports/trace.md` (for a pull request) and `reports/trace.xlsx`: every criterion,
 its cases with their review status, each case's tests in both frameworks, and the latest result per

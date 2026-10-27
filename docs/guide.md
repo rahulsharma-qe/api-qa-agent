@@ -34,7 +34,9 @@ Every command takes `--project <folder>` (default: the current folder) and `--he
    `review apply` records it. A case edited after approval goes back to review by itself.
 4. **Generate and run.** `generate` writes the tests; they run in your framework as always.
    In CI, `generate --check` stops a build whose tests are older than its cases.
-5. **Trace.** `trace` shows what is covered and what isn't; `--min-coverage` sets a floor.
+5. **Trace.** `trace` shows what is covered and what isn't; `--min-coverage` sets a floor. It
+   also counts the cases by type (positive, negative, auth, edge) and names a criterion tested on
+   the happy path only.
 6. **When the API changes.** Import it again, then `impact-analysis --since <last release>`
    lists the cases to rerun.
 

@@ -11,6 +11,8 @@ layer's job. `--check` fails only when an approved case has no test.
     Response codes  each documented code of each operation is expected by an approved step;
                     401 counts once per service, 422 only where the operation takes a body
     Cases -> tests  each approved case has its test in every framework
+    Case types      approved cases by type (positive, negative, auth, edge: see case_types.py), and the
+                    criteria whose approved cases are all positive: the happy path only
 """
 
 import re
@@ -19,8 +21,8 @@ from pathlib import Path
 from typing import Optional
 
 from qa_agent.api_model import ApiModel, ApiModelError, Operation, load_api_model
+from qa_agent.case_types import NOT_HAPPY, TYPES, case_types, expected_statuses, label
 from qa_agent.cases import Case, load_case_file
-from qa_agent.data_files import DataFileError, rows
 from qa_agent.project import TeamProject
 from qa_agent.renderers import RENDERERS
 from qa_agent.results import read_results
@@ -60,6 +62,7 @@ class TraceRow:
     suite: str
     tests: list
     result: str
+    types: str = "-"
 
 
 @dataclass
@@ -72,11 +75,24 @@ class TraceReport:
     below_floor: list = field(default_factory=list)       # "Operations 62% (floor 80%)", with --min-coverage
     orphan_tests: list = field(default_factory=list)
     results_read: dict = field(default_factory=dict)      # framework -> {"passed": n, ...}
+    case_types: dict = field(default_factory=dict)        # "positive" -> how many approved cases
+    approved: int = 0
+    untyped: list = field(default_factory=list)           # approved cases with no type yet: no steps, status TBD
+    happy_path_only: list = field(default_factory=list)   # criteria whose approved cases are all positive
+
+    def types_line(self) -> str:
+        counts = " · ".join(f"{self.case_types.get(kind, 0)} {kind}" for kind in TYPES)
+        line = f"{self.approved} approved: {counts}"
+        return line + (f"   no type yet: {', '.join(self.untyped)}" if self.untyped else "")
 
     def as_text(self) -> str:
         lines = [f"qa-agent trace: {self.team}", ""] + [item.as_line() for item in self.coverage]
         if self.not_tested:
             lines.append(f"{'Not tested':<15} on purpose: " + "; ".join(self.not_tested))
+        if self.approved:
+            lines.append(f"{'Case types':<15} {self.types_line()}")
+        if self.happy_path_only:
+            lines.append(f"{'Happy path only':<15} {', '.join(self.happy_path_only)}: no negative, auth or edge case")
         lines.append(f"{'Results':<15} " + (" · ".join(f"{framework} " + ", ".join(f"{n} {kind}" for kind, n in counts.items())
                                                      for framework, counts in self.results_read.items())
                                             or "none given (--results reports/junit.xml target/surefire-reports)"))
@@ -101,11 +117,15 @@ class TraceReport:
                          f"{', '.join(item.missing) or '-'} |")
         if self.not_tested:
             lines += ["", "Not tested, on purpose: " + "; ".join(self.not_tested)]
-        lines += ["", "| Criterion | Case | Title | Review | Suite | Tests | Latest result |",
-                  "|---|---|---|---|---|---|---|"]
+        if self.approved:
+            lines += ["", f"Case types: {self.types_line()}"]
+        if self.happy_path_only:
+            lines += ["", f"Happy path only: {', '.join(self.happy_path_only)} (no negative, auth or edge case)"]
+        lines += ["", "| Criterion | Case | Title | Type | Review | Suite | Tests | Latest result |",
+                  "|---|---|---|---|---|---|---|---|"]
         for row in self.rows:
-            lines.append(f"| {row.criterion} | {row.case_id or '-'} | {row.title} | {row.review} | {row.suite} | "
-                         f"{'<br>'.join(f'`{test}`' for test in row.tests) or '-'} | {row.result} |")
+            lines.append(f"| {row.criterion} | {row.case_id or '-'} | {row.title} | {row.types} | {row.review} | "
+                         f"{row.suite} | {'<br>'.join(f'`{test}`' for test in row.tests) or '-'} | {row.result} |")
         return "\n".join(lines) + "\n"
 
     def write_excel(self, path: Path) -> None:
@@ -114,15 +134,19 @@ class TraceReport:
         book = Workbook()
         matrix = book.active
         matrix.title = "Traceability matrix"
-        matrix.append(["Criterion", "Case", "Title", "Review", "Suite", "Tests", "Latest result"])
+        matrix.append(["Criterion", "Case", "Title", "Type", "Review", "Suite", "Tests", "Latest result"])
         for row in self.rows:
-            matrix.append([row.criterion, row.case_id, row.title, row.review, row.suite, "\n".join(row.tests),
-                           row.result])
+            matrix.append([row.criterion, row.case_id, row.title, row.types, row.review, row.suite,
+                           "\n".join(row.tests), row.result])
         coverage = book.create_sheet("Coverage")
         coverage.append(["Coverage", "Covered", "Of", "Missing"])
         for item in self.coverage:
             coverage.append([item.name, item.covered, item.total, item.note or "\n".join(item.missing)])
-        for sheet, widths in ((matrix, (11, 10, 44, 18, 12, 60, 14)), (coverage, (16, 9, 6, 70))):
+        if self.approved:
+            coverage.append(["Case types", self.types_line()])
+        if self.happy_path_only:
+            coverage.append(["Happy path only", ", ".join(self.happy_path_only)])
+        for sheet, widths in ((matrix, (11, 10, 44, 16, 18, 12, 60, 14)), (coverage, (16, 9, 6, 70))):
             for index, width in enumerate(widths):
                 sheet.column_dimensions[chr(65 + index)].width = width
             for cell in sheet[1]:
@@ -157,7 +181,9 @@ def build_trace(project: TeamProject, result_paths: Optional[list] = None) -> Tr
                     report.missing_tests.append(f"{case.id} ({framework})")
     report.orphan_tests = sorted(f"{framework}: {label}" for framework in project.frameworks
                                  for name, label in written[framework].items() if name not in expected_names)
-    report.rows = _rows(cases, criteria, tests_by_case, outcomes, project)
+    types = {case.id: case_types(case, project) for case in approved}
+    report.rows = _rows(cases, criteria, tests_by_case, outcomes, project, types)
+    _count_types(report, approved, criteria, types)
     report.coverage = [_criteria_coverage(criteria, cases)]
     api = read_api(project)
     if api is None:
@@ -209,7 +235,18 @@ def _review_label(case: Case) -> str:
     return case.review.status.replace("_", " ")
 
 
-def _rows(cases: list, criteria: dict, tests_by_case: dict, outcomes: dict, project: TeamProject) -> list:
+def _count_types(report: TraceReport, approved: list, criteria: dict, types: dict) -> None:
+    report.approved = len(approved)
+    report.case_types = {kind: sum(1 for case in approved if kind in types[case.id]) for kind in TYPES}
+    report.untyped = [case.id for case in approved if not types[case.id]]
+    for criterion in criteria:
+        seen = set().union(*(types[case.id] for case in approved if criterion in case.criteria))
+        if seen and not seen & set(NOT_HAPPY):
+            report.happy_path_only.append(criterion)
+
+
+def _rows(cases: list, criteria: dict, tests_by_case: dict, outcomes: dict, project: TeamProject,
+          types: dict) -> list:
     found = []
     for criterion in list(criteria) + ["(no criterion)"]:
         linked = [case for case in cases if criterion in case.criteria
@@ -219,7 +256,8 @@ def _rows(cases: list, criteria: dict, tests_by_case: dict, outcomes: dict, proj
         for case in linked:
             tests = tests_by_case.get(case.id, [])
             result = _result(case, project, outcomes) if case.is_approved else "-"
-            found.append(TraceRow(criterion, case.id, case.title, _review_label(case), case.suite, tests, result))
+            found.append(TraceRow(criterion, case.id, case.title, _review_label(case), case.suite, tests, result,
+                                  label(types.get(case.id, set())) if case.is_approved else "-"))
     return found
 
 
@@ -267,7 +305,7 @@ def api_items(api: ApiModel, approved: list, project: TeamProject) -> tuple[list
             operation = api.find(service, step.request.method, step.request.path)
             if operation is not None:
                 called.setdefault((service, operation.method, operation.path), set()).update(
-                    _statuses(step.expect.get("status"), case, project))
+                    expected_statuses(step.expect.get("status"), case, project))
     operations, codes, not_tested, services_with_401 = [], [], [], {}
     for service, service_operations in sorted(api.services.items()):
         for operation in service_operations:
@@ -297,17 +335,3 @@ def _api_coverage(api: ApiModel, approved: list, project: TeamProject, report: T
 
 def _coverage(name: str, items: list) -> Coverage:
     return Coverage(name, sum(1 for _, seen in items if seen), len(items), [label for label, seen in items if not seen])
-
-
-def _statuses(status, case: Case, project: TeamProject) -> set:
-    """The status a step expects; for {{row.x}}, every value of column x in the case's data file."""
-    if isinstance(status, int):
-        return {status}
-    match = re.match(r"^\{\{\s*row\.(\w+)\s*\}\}$", str(status or ""))
-    if not match or not case.data_file:
-        return set()
-    try:
-        values = [row.get(match.group(1)) for row in rows(project.root / case.data_file)]
-    except DataFileError:
-        return set()
-    return {int(float(value)) for value in values if str(value).strip().replace(".0", "").isdigit()}

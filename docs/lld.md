@@ -670,11 +670,11 @@ and JUnit XML results (files or folders: pytest's `--junitxml` and Maven Surefir
 other XML is skipped), prints the coverage, and writes `reports/trace.md` (for a pull request) and
 `reports/trace.xlsx` (a Traceability matrix sheet and a Coverage sheet): the traceability matrix,
 
-| Criterion | Case | Title | Review | Suite | Tests | Latest result |
-|---|---|---|---|---|---|---|
-| AC-4 | TC003 | A second cancel is refused | approved | functional | `test_cancellation.py::test_tc003_…` · `CancellationTest.java::tc003…` | python passed 1/1 · restassured passed 1/1 |
-| AC-4 | TC041 | Cancelling twice tells the passenger … | draft (needs steps) | functional | - | - |
-| AC-6 | - | no case | - | - | - | - |
+| Criterion | Case | Title | Type | Review | Suite | Tests | Latest result |
+|---|---|---|---|---|---|---|---|
+| AC-4 | TC003 | A second cancel is refused | negative | approved | functional | `test_cancellation.py::test_tc003_…` · `CancellationTest.java::tc003…` | python passed 1/1 · restassured passed 1/1 |
+| AC-4 | TC041 | Cancelling twice tells the passenger … | - | draft (needs steps) | functional | - | - |
+| AC-6 | - | no case | - | - | - | - | - |
 
 A data-driven case shows a run per row (`passed 3/3`). A case under two criteria is listed under
 both; a case under none is listed under "(no criterion)". A generated test whose case is no longer
@@ -690,6 +690,23 @@ to test (drafting cases for the gaps is the AI layer's job, phase 6).
 | Operations | Each operation in `api/api.yaml` has at least one approved case. An operation not meant to be tested is marked `not_tested: <reason>` there (`/test/reset`; a health check env_check already calls) and listed with its reason, not counted |
 | Response codes | Each documented code of each operation is expected by at least one approved step. 401 counts once per service (one call without a token is enough); 422 counts only for operations that take input |
 | Cases to tests | Each approved case has at least one test; a test with no case is listed |
+
+**Case types.** Each approved case has a type, read from what it already says (`case_types.py`; no
+new field to fill in):
+
+| Type | When |
+|---|---|
+| positive | every step expects a 2xx or 3xx |
+| negative | a step expects a 4xx or 5xx other than 401 and 403; refused, then read back unchanged (422, then 200) is negative |
+| auth | a step expects 401 or 403 |
+| edge | the case is tagged `edge` or `boundary`, on top of its other type; the drafting prompt asks for the tag |
+
+A data-driven case whose status comes from its data file has the type of every row. A case in words,
+or with its status still TBD, has no type yet and is named. The trace prints
+`Case types  9 approved: 5 positive · 4 negative · 0 auth · 1 edge` (a case can count twice: positive
+and edge), and `Happy path only` with the criteria whose approved cases are all positive. Response
+codes already show a missing 404 per operation; this shows it per criterion: a requirement tested
+only where everything goes right.
 
 Coverage is reported, not enforced. `--check` exits 1 only when an approved case has no test (the CI
 check of section 5 in the high-level design). A coverage threshold (`--min-coverage 80`) can come in

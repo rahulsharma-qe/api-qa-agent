@@ -20,6 +20,7 @@ Rules:
    TBD in its place and say in notes what has to be confirmed.
 7. If the gap can't be tested with these operations, reply with cases: [] and a top-level reason.
 8. Don't write id, review, source or suite: the tool adds them.
+9. A case that tests a limit (exactly at a boundary, the largest value allowed) has the tag edge.
 
 Reply with YAML only, in this shape:
 
@@ -27,7 +28,7 @@ cases:
   - title: A cancelled order reads back as cancelled
     criteria: [AC-4]              # ids from the acceptance criteria given; [] if none applies
     priority: P1                  # P0 (critical) to P3
-    tags: [regression]            # optional
+    tags: [orders]                # optional; edge too, for a case at a limit (rule 9)
     steps:
       - request: {method: POST, path: /orders, body: {customer: "C {{unique}}", amount: 120}}
         expect: {status: 201, exists: [id]}
