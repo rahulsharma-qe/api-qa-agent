@@ -28,7 +28,7 @@ def case_types(case: Case, project) -> set:
         status = step.expect.get("status")
         if isinstance(status, int):
             fixed.add(status)
-        else:
+        elif status is not None:                  # {{row.x}} or TBD; a step with no status checks fields only
             row_steps += 1
             from_rows |= expected_statuses(status, case, project)
     found = set()

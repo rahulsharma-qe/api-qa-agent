@@ -23,6 +23,9 @@ def test_the_type_comes_from_the_statuses_the_steps_expect(tmp_path):
     assert case_types(case(401), project) == {"auth"}
     assert case_types(case(201, 403), project) == {"auth"}
     assert case_types(case("TBD"), project) == set()
+    no_status = case(201)
+    no_status.steps.append(Step(Request("GET", "/bookings/AB12CD"), {"fields": {"status": "cancelled"}}))
+    assert case_types(no_status, project) == {"positive"}           # a step that checks fields only
     assert case_types(Case("TC2", "in words", manual_steps=["cancel it"]), project) == set()
 
 
