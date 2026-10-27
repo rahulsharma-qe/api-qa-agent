@@ -15,6 +15,7 @@ How a team uses `qa-agent`, one command at a time. To try it first, see
 | `qa-agent generate [--check]` | Approved cases become pytest and REST Assured tests; `--check` fails when they are out of date |
 | `qa-agent trace --results reports/junit.xml [--check] [--min-coverage 80]` | The traceability matrix: criteria to cases to tests to results, with coverage |
 | `qa-agent promote --runs r1 r2 r3 [--apply]` | Functional cases stable in three runs join regression |
+| `qa-agent flaky --runs r1 r2 r3` | Tests that passed in some runs and failed in others, with the case and the last failure |
 | `qa-agent suite TC010 functional --by --reason` | A person moves a case between suites, on the record |
 | `qa-agent impact-analysis --since v4.2` | What changed in the API since a release, and the cases to rerun, P0 first |
 | `qa-agent bug-detection --framework pytest` | The tests run once per seeded bug: which bugs they catch, and by which cases |

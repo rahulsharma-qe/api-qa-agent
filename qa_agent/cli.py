@@ -9,6 +9,7 @@
     qa-agent trace --results reports/junit.xml       criteria -> cases -> tests -> results, and coverage
     qa-agent promote --runs r1 r2 r3 [--apply]       stable functional cases -> regression; a person applies it
                      [--feature x] [--priority P0 P1] [--reason "released in 4.3"]
+    qa-agent flaky --runs r1 r2 r3                   tests that passed in some runs and failed in others
     qa-agent suite TC010 functional --by --reason    a person moves a case between suites, on the record
     qa-agent impact-analysis --since v4.2            what changed in the API since a release, and the cases to run
     qa-agent bug-detection --seeded-bugs seeded-bugs.yaml --framework pytest   the bug-detection rate: seeded bugs, one at a time
@@ -41,6 +42,7 @@ from qa_agent.criteria_drafting import draft_criteria, read_requirement
 from qa_agent.criteria_drafting import plan as criteria_plan
 from qa_agent.criteria_review import pending as pending_criteria
 from qa_agent.drafting import DEFAULT_MAX, draft_cases, plan, redo
+from qa_agent.flaky import find_flaky
 from qa_agent.generate import generate
 from qa_agent.impact_analysis import impact_analysis
 from qa_agent.init_project import init_project
@@ -141,6 +143,13 @@ def _parser() -> argparse.ArgumentParser:
                         help="only these priorities (default: regression: priorities in qa-agent.yaml, else all)")
     stable.add_argument("--reason", default="", help="why, kept in each case's notes, e.g. \"released in 4.3\"")
     stable.set_defaults(run=run_promote)
+
+    flaky = commands.add_parser("flaky", help="tests that passed in some runs and failed in others, on the same "
+                                              "build; writes reports/flaky.md")
+    flaky.add_argument("--runs", nargs="+", type=Path, required=True,
+                       help="two or more runs of the same build, each a JUnit file or folder")
+    flaky.add_argument("--out", type=Path, default=Path("reports"), help="where flaky.md goes")
+    flaky.set_defaults(run=run_flaky)
 
     move = commands.add_parser("suite", help="move a case to another suite, with who and why")
     move.add_argument("case_id")
@@ -281,6 +290,21 @@ def run_promote(args) -> int:
     if missing:
         raise SetupError(f"no such runs: {', '.join(missing)}")
     print(promote(project, runs, args.apply, args.feature, tuple(args.priority), args.reason).as_text(len(runs)))
+    return DONE
+
+
+def run_flaky(args) -> int:
+    project = TeamProject.load(args.project)
+    runs = [path if path.is_absolute() else project.root / path for path in args.runs]
+    missing = [project.relative(path) for path in runs if not path.exists()]
+    if missing:
+        raise SetupError(f"no such runs: {', '.join(missing)}")
+    report = find_flaky(project, runs)
+    out = args.out if args.out.is_absolute() else project.root / args.out
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "flaky.md").write_text(report.as_markdown(), encoding="utf-8")
+    print(report.as_text())
+    print(f"\nWritten: {project.relative(out / 'flaky.md')}")
     return DONE
 
 
