@@ -11,7 +11,8 @@
 # 2. The drift check; start the reference API (unless it is already up); the environment; the tests;
 #    what each suite and priority picks (pytest -m regression, sanity, p0; -Dgroups=p0).
 # 3. Trace: criteria -> cases -> tests -> results, with coverage; fail if an approved case has no test.
-# 4. Promote: the Python tests twice more, then the cases stable enough for regression (listed only).
+# 4. Promote: the Python tests twice more, then the cases stable enough for regression (listed only);
+#    flaky: this run's three, then three recorded nightly runs with one flaky test.
 # 5. The bug-detection rate: the Python tests once per seeded bug in the reference API.
 # 6. Impact analysis: in the scratch copy, the next release's API is imported; which cases does it affect?
 set -euo pipefail
@@ -76,6 +77,8 @@ for run in 2 3; do
   python -m pytest -q --junitxml="reports/run$run.xml" > /dev/null
 done
 qa-agent promote --runs reports/run1.xml reports/run2.xml reports/run3.xml
+qa-agent flaky --runs reports/run1.xml reports/run2.xml reports/run3.xml --out reports/this-run
+qa-agent flaky --runs recorded-runs/run1.xml recorded-runs/run2.xml recorded-runs/run3.xml
 
 echo "== 5. Bug-detection rate (seeded bugs, one at a time)"
 if [[ -n "${demo:-}" ]]; then

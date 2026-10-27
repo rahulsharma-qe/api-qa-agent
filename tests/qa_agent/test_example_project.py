@@ -117,3 +117,14 @@ def test_the_examples_seeded_bugs_file_lists_every_seeded_bug():
     from qa_agent.yaml_files import read_yaml
     seeded = read_yaml(EXAMPLE / "seeded-bugs.yaml")
     assert list(seeded["bugs"]) == list(BUGS)
+
+
+def test_the_recorded_runs_show_the_flaky_test_the_readme_shows():
+    from qa_agent.flaky import find_flaky
+    runs = [EXAMPLE / "recorded-runs" / f"run{number}.xml" for number in (1, 2, 3)]
+    report = find_flaky(TeamProject.load(EXAMPLE), runs)
+    assert [item.as_line() for item in report.flaky] == [
+        "TC003   test_tc003_a_second_cancel_is_refused   passed 2 of 3   "
+        "last failure, run 2: ExpectationFailed: expected status 409, got 200"]
+    assert report.failing == [] and report.stable == 11
+    assert report.as_text().splitlines()[3] in (EXAMPLE / "README.md").read_text()

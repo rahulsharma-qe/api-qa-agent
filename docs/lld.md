@@ -852,6 +852,27 @@ qa-agent promote --runs ... --apply
     writes the suite and adds who, when and why to the case's notes.
 - Each argument to `--runs` is one run (a JUnit file, or a folder of them, as Surefire writes).
 
+**Flaky tests: `qa-agent flaky`.** Promote keeps a case that failed in a run out of regression, and
+says no more. `flaky` names the tests that passed in some runs and failed in others, on the same
+build, so someone fixes the test, the data or the bug:
+
+```
+qa-agent flaky --runs recorded-runs/run1.xml recorded-runs/run2.xml recorded-runs/run3.xml
+
+Flaky (1): passed in some runs, failed in others
+  TC003   test_tc003_a_second_cancel_is_refused   passed 2 of 3   last failure, run 2: ExpectationFailed: expected status 409, got 200
+Passed in every run: 11
+```
+
+- Compared test by test, and a data-driven test row by row (`test_tc002_…[23 hours]` is its own
+  test). The case comes from the `case_id` property the generated pytest tests record, else from the
+  case's generated test name.
+- A test that failed in every run is listed apart: failing, not flaky. A skipped run counts neither
+  way. A test missing from a run is compared where it ran, and named.
+- At least two runs, each with results, and tests in common; otherwise exit 2 with the reason.
+  Whether the runs are of the same build is the caller's to know: JUnit files don't say.
+- Writes `reports/flaky.md`; changes nothing; exit 0, because it reports and doesn't gate a build.
+
 ### 10.3 Bug-detection rate: do the tests catch bugs?
 
 The reference API can switch on small seeded bugs, one at a time:

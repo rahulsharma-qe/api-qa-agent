@@ -294,6 +294,30 @@ qa-agent suite TC010 functional --by qa-lead --reason "refund rule changing in t
 (If the case's steps change instead, its fingerprint no longer matches and it goes back to review by
 itself; the reviewer can set Suite there.)
 
+**Flaky tests.** A test that passes on one run and fails on the next, with no change to the code,
+costs reruns and teaches the team to ignore red. `recorded-runs/` holds three nightly runs of this
+example in which TC003 failed once:
+
+```bash
+qa-agent flaky --runs recorded-runs/run1.xml recorded-runs/run2.xml recorded-runs/run3.xml
+```
+
+```
+qa-agent flaky: bookings, 3 runs, 12 tests compared
+
+Flaky (1): passed in some runs, failed in others
+  TC003   test_tc003_a_second_cancel_is_refused   passed 2 of 3   last failure, run 2: ExpectationFailed: expected status 409, got 200
+Passed in every run: 11
+
+Written: reports/flaky.md
+```
+
+TC003 cancels a booking twice and expects 409 the second time; one night the second cancel got 200.
+That is worth a look before it's waved away: two cancels racing is a real bug in some services.
+On these runs `promote` keeps TC003 out of regression (`not yet: TC003: failed in run 2 (pytest)`) and says
+no more; `flaky` names it with the failure. It only reports (exit 0). Runs from different builds aren't flaky, they're a change: compare runs of
+one build.
+
 ## 9. Do the tests catch bugs?
 
 The reference API can switch on one seeded bug at a time (`python -m demo_api --bug
