@@ -130,3 +130,39 @@ def test_the_command_writes_html_markdown_and_json(make_project, capsys):
     first = (folder / "ai-report.json").read_text()
     write_ai_report(build_ai_report(project), folder)
     assert (folder / "ai-report.json").read_text() == first                     # the same project, the same report
+
+
+def test_since_keeps_the_calls_from_that_day_and_the_drafts_they_made(make_project, capsys):
+    project = a_project(make_project)
+    log = project.root / "reports/ai-audit-log.jsonl"
+    lines = log.read_text().splitlines()
+    lines[0] = lines[0].replace("2026-10-24T09:30", "2026-10-20T09:30")        # the criteria call: the week before
+    log.write_text("\n".join(lines) + "\n")
+    report = build_ai_report(project, since="2026-10-24")
+    assert [call.name for call in report.calls] == ["draft AC-1", "draft POST /bookings", "draft AC-2"]
+    assert [draft.id for draft in report.drafts] == ["TC001", "TC002", "TC003"]   # AC-1, AC-2: the older call
+    assert report.questions == []                                                  # raised by the older call
+    assert report.unknown_calls == ["TC004"]                       # still named: its call is in no log at all
+    assert report.origins == {"drafted by AI": 2, "imported": 1, "written by hand": 1}     # the whole project
+    assert build_ai_report(project, since="2026-10-25").calls == []
+    assert main(["--project", str(project.root), "ai-report", "--since", "24-10-2026"]) == 0
+    assert capsys.readouterr().out.startswith("ai-report for t, since 24-10-2026")
+    assert (project.root / "reports/ai-report/ai-report.md").read_text().startswith("# AI report: t, since 24-10-2026")
+    assert json.loads((project.root / "reports/ai-report/ai-report.json").read_text())["since"] == "24-10-2026"
+
+
+def test_since_must_be_a_day(make_project, capsys):
+    import pytest
+    project = a_project(make_project)
+    with pytest.raises(SystemExit) as stopped:
+        main(["--project", str(project.root), "ai-report", "--since", "2026-10-24"])
+    assert stopped.value.code == 2 and "use DD-MM-YYYY, e.g. 20-10-2026" in capsys.readouterr().err
+
+
+def test_since_with_no_log_still_says_the_log_is_missing(make_project):
+    report = build_ai_report(a_project(make_project, log=False), since="2026-10-24")
+    assert report.drafts == [] and report.drafted == 6
+    attention = {title: note for title, _, note in report.look_at_first()}
+    assert "missing: the calls behind 6 AI drafts can't be shown" in attention["No audit log"]
+    text = report.as_text()
+    assert "No AI calls since 24-10-2026: and no audit log to read." in text and "No AI used" not in text

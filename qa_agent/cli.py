@@ -18,7 +18,7 @@
     qa-agent draft criteria ... --plan               what changed in the requirement since the last run; no model call
     qa-agent draft cases [--plan] [--max 10]         the AI layer: a draft case per coverage gap, for a person to review
     qa-agent draft cases --redo TC045 [TC048]        the AI layer: a new draft for one a reviewer rejected or sent back
-    qa-agent ai-report                               what the AI layer did and who approved it: reports/ai-report/
+    qa-agent ai-report [--since 20-10-2026]          what the AI layer did and who approved it: reports/ai-report/
 
 Exit codes: 0 done (no errors), 1 errors found, 2 the project or an input can't be read.
 """
@@ -189,6 +189,8 @@ def _parser() -> argparse.ArgumentParser:
                                                    "HTML, Markdown and JSON, from the audit log and the drafts")
     report.add_argument("--out", type=Path, default=Path("reports") / "ai-report",
                         help="the folder to write to (default: reports/ai-report)")
+    report.add_argument("--since", type=_day, default=None, metavar="DD-MM-YYYY",
+                        help="only the calls on or after this day (UTC), and the drafts they made")
     report.set_defaults(run=run_ai_report)
     return parser
 
@@ -351,12 +353,21 @@ def run_draft_cases(args) -> int:
 
 def run_ai_report(args) -> int:
     project = TeamProject.load(args.project)
-    report = build_ai_report(project)
+    report = build_ai_report(project, args.since or "")
     out = args.out if args.out.is_absolute() else project.root / args.out
     paths = write_ai_report(report, out)
     print(report.as_text())
     print("\nWritten: " + ", ".join(_shown(path, project) for path in paths))
     return DONE
+
+
+def _day(text: str) -> str:
+    """20-10-2026 (DD-MM-YYYY, as people write it) -> 2026-10-20, to compare with the log's times."""
+    import datetime
+    try:
+        return datetime.datetime.strptime(text, "%d-%m-%Y").date().isoformat()
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"'{text}' is not a day: use DD-MM-YYYY, e.g. 20-10-2026") from None
 
 
 def _shown(path: Path, project: TeamProject) -> str:

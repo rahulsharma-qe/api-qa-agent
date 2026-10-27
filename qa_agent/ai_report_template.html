@@ -139,7 +139,7 @@ const redacted = r => Object.entries(r || {}).map(([k, n]) => `${n} ${k}`).join(
 function header(){
   const t = DATA.totals, log = DATA.log;
   $("title").textContent = DATA.team + ": how AI was used, and who approved it";
-  $("brandSub").textContent = "qa-agent, team " + DATA.team;
+  $("brandSub").textContent = "qa-agent, team " + DATA.team + (DATA.since ? ", since " + DATA.since : "");
   const red = Object.entries(t.redactions).map(([k, n]) => `${n} ${k}`).join(", ");
   $("exhibit").innerHTML =
     `<div><b>${t.calls} AI calls</b><span>${t.failed} failed</span></div>

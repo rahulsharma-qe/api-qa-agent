@@ -84,6 +84,7 @@ The [example](../examples/from-a-requirement/README.md) shows every step and eve
 
 ```bash
 qa-agent ai-report                  # reports/ai-report/index.html, ai-report.md, ai-report.json
+qa-agent ai-report --since 20-10-2026   # only this sprint: the calls since that day, and their drafts
 ```
 
 One report for a reviewer, a QA manager or an auditor, read from the audit log and the drafts:

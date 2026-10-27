@@ -22,6 +22,7 @@ def report_data(report: AiReport) -> dict:
         calls_by_name.setdefault(call.name, []).append(call)
     return {
         "team": report.team,
+        "since": report.since_shown,
         "recorded": report.recorded,
         "generated_by": f"qa-agent {__version__}",
         "disclaimer": DISCLAIMER,
@@ -49,7 +50,7 @@ def report_data(report: AiReport) -> dict:
 def render_markdown(report: AiReport) -> str:
     data = report_data(report)
     totals, log = data["totals"], data["log"]
-    lines = [f"# AI report: {report.team}", ""]
+    lines = [f"# AI report: {report.team}" + (f", since {report.since_shown}" if report.since else ""), ""]
     if report.recorded:
         lines += ["_Recorded replies, not a live model: this shows the workflow, not real usage._", ""]
     lines += [f"{totals['calls']} AI calls, {totals['failed']} failed; {totals['usage']}. "

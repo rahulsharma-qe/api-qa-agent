@@ -7,6 +7,10 @@
     Look at first     approved then changed, approved with no reviewer, drafts with no call in the log,
                       failed calls, drafts and questions still waiting
 
+--since 20-10-2026 (DD-MM-YYYY) keeps the calls made on or after that day (UTC), and the drafts and questions
+those calls made: what AI did this sprint, and who approved it. Approved cases by origin stay the whole
+project's.
+
 Read-only: it reads the files the other commands write, and changes none of them. Evidence of how AI was
 used and reviewed, not a compliance decision. ai_report_files.py writes it as HTML, Markdown and JSON.
 """
@@ -82,6 +86,13 @@ class AiReport:
     team: str
     log_file: str
     log_found: bool
+    since: str = ""                                      # 2026-10-20: only calls on or after it
+    drafted: int = 0                                     # AI drafts in the project, before --since
+
+    @property
+    def since_shown(self) -> str:
+        """2026-10-20 -> 20-10-2026: DD-MM-YYYY, as it was typed."""
+        return "-".join(reversed(self.since.split("-"))) if self.since else ""
     calls: list = field(default_factory=list)            # Call, in the log's order
     drafts: list = field(default_factory=list)           # Draft: criteria first, then cases
     questions: list = field(default_factory=list)        # dicts, as in acceptance-criteria-drafts.yaml
@@ -139,9 +150,9 @@ class AiReport:
         if unnamed:
             items.append(("Approved with no reviewer named", unnamed, "the review has no 'by': who approved it "
                           "can't be shown"))
-        if self.drafts and not self.log_found:
+        if self.drafted and not self.log_found:
             items.append(("No audit log", [], f"{self.log_file} is missing: the calls behind "
-                          f"{plural(len(self.drafts), 'AI draft')} can't be shown"))
+                          f"{plural(self.drafted, 'AI draft')} can't be shown"))
         elif self.unknown_calls:
             items.append(("AI drafts with no call in the log", self.unknown_calls, "the log was cleared or moved, "
                           "or the draft's source was edited by hand"))
@@ -160,7 +171,7 @@ class AiReport:
         redacted = self.redactions()
         questions = Counter(q.get("status", "open") for q in self.questions)
         origins = self.origins
-        lines = [f"ai-report for {self.team}" + (" (recorded replies, not a live model)" if self.recorded else ""),
+        lines = [f"ai-report for {self.team}" + (f", since {self.since_shown}" if self.since else "") + (" (recorded replies, not a live model)" if self.recorded else ""),
                  f"AI calls        {len(self.calls)}, {len(self.failed)} failed · {self.usage_line()}",
                  "Redacted        " + (", ".join(f"{n} {kind}" for kind, n in sorted(redacted.items()))
                                        or "nothing: no email, token, key or secret found in what was sent"),
@@ -175,15 +186,21 @@ class AiReport:
         without = self.calls_without_drafts()
         if without:
             lines.append(f"Calls with {NO_DRAFT_KEPT}: {', '.join(without)}")
-        if not self.calls and not self.drafts:
+        if self.since and not self.calls:
+            lines.append(f"No AI calls since {self.since_shown}" + ("." if self.log_found else ": and no audit log to read."))
+        elif not self.calls and not self.drafts:
             lines.append("No AI used in this project yet: qa-agent draft criteria or draft cases would show here.")
         return "\n".join(lines)
 
 
-def build_ai_report(project: TeamProject) -> AiReport:
+def build_ai_report(project: TeamProject, since: str = "") -> AiReport:
     log_path = project.root / LOG_FILE
-    report = AiReport(project.team, project.relative(log_path), log_path.is_file())
-    report.calls = [_call(entry) for entry in AuditLog(log_path).entries()]
+    report = AiReport(project.team, project.relative(log_path), log_path.is_file(), since)
+    entries = AuditLog(log_path).entries()
+    all_names = {str(entry.get("name", "")) for entry in entries}
+    if since:
+        entries = [entry for entry in entries if _day(str(entry.get("time", ""))) >= since]
+    report.calls = [_call(entry) for entry in entries]
     drafts = CriteriaDrafts.load(project)
     report.drafts = [_criterion(entry, project) for entry in drafts.criteria
                      if (entry.get("source") or {}).get("kind") == DRAFTED_BY]
@@ -200,9 +217,21 @@ def build_ai_report(project: TeamProject) -> AiReport:
             if case.is_approved:
                 origins[_origin(case.source)] += 1
     report.origins = {where: origins.get(where, 0) for where in ("drafted by AI", "imported", "written by hand")}
-    names = {call.name for call in report.calls}
-    report.unknown_calls = [draft.id for draft in report.drafts if draft.call not in names]
+    report.unknown_calls = [draft.id for draft in report.drafts if draft.call not in all_names]
+    report.drafted = len(report.drafts)
+    if since:
+        kept = {call.name for call in report.calls}
+        report.drafts = [draft for draft in report.drafts if draft.call in kept]
+        report.questions = [question for question in report.questions if question["call"] in kept]
     return report
+
+
+def _day(time: str) -> str:
+    """2026-10-25T17:04:53+00:00 -> 2026-10-25, in UTC; '' when it can't be read."""
+    try:
+        return datetime.fromisoformat(time).astimezone(timezone.utc).date().isoformat()
+    except ValueError:
+        return ""
 
 
 def _call(entry: dict) -> Call:

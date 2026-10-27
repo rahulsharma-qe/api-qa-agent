@@ -1254,8 +1254,12 @@ image on a copy of `examples/from-a-requirement` (recorded replies) and imports 
 ### 11.12 As built: the AI report
 
 ```
-qa-agent ai-report [--out reports/ai-report]
+qa-agent ai-report [--out reports/ai-report] [--since 20-10-2026]
 ```
+
+`--since` (DD-MM-YYYY) keeps the calls made on or after that day (UTC) and the drafts and questions they made:
+one sprint's AI work and who approved it. Approved cases by origin stay the whole project's, and a
+draft whose call is in no log is still named under "look at first".
 
 | Part | What it does |
 |---|---|
