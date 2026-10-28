@@ -17,8 +17,8 @@ from openpyxl.worksheet.datavalidation import DataValidation
 
 from qa_agent.criteria_drafts import CriteriaDrafts
 from qa_agent.project import TeamProject
-from qa_agent.review_common import (DATE, DECIDE_FILL, DECISIONS, HEADER_FILL, LOCKED_FILL, open_workbook, row_problem,
-                                    text_value)
+from qa_agent.review_common import (DECIDE_FILL, DECISIONS, HEADER_FILL, LOCKED_FILL, open_workbook, review_date,
+                                    row_problem, shown_date, text_value)
 
 CRITERIA_SHEET, QUESTIONS_SHEET = "Criteria", "Questions"
 CRITERIA_COLUMNS = [  # header, width, editable
@@ -80,10 +80,10 @@ def apply_criteria_sheets(path, project: TeamProject, result) -> None:
             result.refused.append(f"{row['ID']}: {problem}")
             continue
         status = DECISIONS[row["Decision"].lower()]
-        date = row["Date"] or datetime.date.today().isoformat()
+        date = review_date(row["Date"])
         entry.update(text=row["Criterion"], status=status)
         entry["review"] = {"by": row["Reviewer"], "date": date, "comment": row["Comment"]}
-        result.applied.append(f"{row['ID']}: {status.replace('_', ' ')} by {row['Reviewer']}, {date}")
+        result.applied.append(f"{row['ID']}: {status.replace('_', ' ')} by {row['Reviewer']}, {shown_date(date)}")
         changed = True
     for row in _rows(book, QUESTIONS_SHEET):
         if not row.get("Answer"):
@@ -95,12 +95,13 @@ def apply_criteria_sheets(path, project: TeamProject, result) -> None:
         if not row.get("Answered by"):
             result.refused.append(f"{row['ID']}: Answered by is empty: an answer needs a name")
             continue
-        if row.get("Date") and not DATE.match(row["Date"]):
-            result.refused.append(f"{row['ID']}: Date '{row['Date']}' (write it as 2026-10-24, or leave it empty for today)")
+        answered_on = review_date(row.get("Date", ""))
+        if not answered_on:
+            result.refused.append(f"{row['ID']}: Date '{row['Date']}' isn't a date (write it as 28-10-2026, or leave "
+                                  "it empty for today)")
             continue
-        answered_on = row.get("Date") or datetime.date.today().isoformat()
         question.update(status="answered", answer=row["Answer"], answered_by=row["Answered by"], answered_on=answered_on)
-        result.applied.append(f"{row['ID']}: answered by {row['Answered by']}, {answered_on}")
+        result.applied.append(f"{row['ID']}: answered by {row['Answered by']}, {shown_date(answered_on)}")
         changed = True
     if changed:
         drafts.save()

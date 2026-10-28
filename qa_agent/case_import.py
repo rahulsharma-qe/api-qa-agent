@@ -35,6 +35,7 @@ from qa_agent.project import TeamProject
 class ImportSummary:
     written: dict = field(default_factory=dict)       # case file -> ids added or replaced
     skipped: list = field(default_factory=list)       # "TC003: already in cases/x.yaml"
+    unreadable: int = 0                               # skipped because they can't be read (exit 1)
     notes: list = field(default_factory=list)
     data_files: list = field(default_factory=list)
     new_ids: list = field(default_factory=list)       # "TC042: Health check": cases that came without an id
@@ -54,7 +55,7 @@ class ImportSummary:
             lines.append(f"{plural(total, 'case')} imported: {approved} approved by {self.approved_by}, "
                          f"{len(self.stayed_draft)} left as drafts (check found an error), {len(self.skipped)} skipped")
         else:
-            lines.append(f"{total} cases imported as drafts, {len(self.skipped)} skipped")
+            lines.append(f"{plural(total, 'case')} imported as drafts, {len(self.skipped)} skipped")
         return "\n".join(lines)
 
 
@@ -164,6 +165,7 @@ def _add_case(raw: dict, case_file: CaseFile, files: dict, overwrite: bool, proj
         case = parse_case_file({"feature": case_file.feature, "cases": [raw]}, case_file.path).cases[0]
     except CaseFormatError as error:
         summary.skipped.append(f"{raw.get('id')}: " + "; ".join(error.problems))
+        summary.unreadable += 1
         return False
     holder = next((f for f in files.values() if any(c.id == case.id for c in f.cases)), None)
     if holder is not None and not overwrite:

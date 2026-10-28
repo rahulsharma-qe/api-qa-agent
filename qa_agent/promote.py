@@ -37,10 +37,13 @@ class PromoteResult:
     priorities: tuple = ()                             # the priorities moved; empty: every one
     frameworks: list = field(default_factory=list)         # the frameworks the runs had results for
     without_results: list = field(default_factory=list)
+    identical: list = field(default_factory=list)          # runs whose files are byte for byte the same
     applied: bool = False
 
     def as_text(self, runs: int) -> str:
         lines = [f"From {runs} runs, with results for: {', '.join(self.frameworks) or 'no framework'}"]
+        lines += [f"Note: {' and '.join(names)} are byte for byte the same: if one is a copy, this isn't stability"
+                  for names in self.identical]
         lines += [f"No results for {framework}: promotion here rests on {', '.join(self.frameworks)} only"
                   for framework in self.without_results]
         verb = "promoted to regression" if self.applied else "ready for regression"
@@ -59,8 +62,18 @@ def promote(project: TeamProject, runs: list, apply: bool = False, feature: str 
             priorities: tuple = (), reason: str = "") -> PromoteResult:
     if len(runs) < MIN_RUNS:
         raise SetupError(f"give at least {MIN_RUNS} runs (--runs run1 run2 run3): one pass is not stability")
+    paths = [Path(path).resolve() for path in runs]
+    twice = sorted({str(path) for path in paths if paths.count(path) > 1})
+    if twice:
+        raise SetupError(f"{', '.join(twice)} is given more than once: one run given twice is not stability; "
+                         "give results from different runs")
+    same = {}
+    for path in runs:
+        same.setdefault(_content(Path(path)), []).append(Path(path).name)
     per_run = [read_results([path]) for path in runs]
+    copies = [names for names in same.values() if len(names) > 1]
     result = PromoteResult(frameworks=sorted(set().union(*(run.frameworks for run in per_run)) & set(project.frameworks)))
+    result.identical = copies
     if not result.frameworks:
         raise SetupError("the runs have no results for this project's frameworks")
     result.without_results = [framework for framework in project.frameworks if framework not in result.frameworks]
@@ -94,6 +107,16 @@ def promote(project: TeamProject, runs: list, apply: bool = False, feature: str 
             save_case_file(case_file)
     result.applied = apply
     return result
+
+
+def _content(path: Path) -> str:
+    """A run's results, as a hash: a file, or every XML file in a folder."""
+    import hashlib
+    files = sorted(path.glob("*.xml")) if path.is_dir() else [path]
+    digest = hashlib.sha256()
+    for item in files:
+        digest.update(item.read_bytes())
+    return digest.hexdigest()
 
 
 def _of_feature(files: list, feature: str, project: TeamProject) -> list:

@@ -113,6 +113,8 @@ def _parser() -> argparse.ArgumentParser:
     export = review.add_parser("export", help="write review/cases.xlsx: every case still to review")
     export.add_argument("--all", action="store_true", help="every case, approved ones too")
     export.add_argument("--sheet", type=Path, default=Path("review/cases.xlsx"))
+    export.add_argument("--force", action="store_true",
+                        help="write a new sheet even over decisions not yet applied (they are lost)")
     export.set_defaults(run=review_export)
     apply = review.add_parser("apply", help="apply the decisions in review/cases.xlsx; exit 1 if any is refused")
     apply.add_argument("--sheet", type=Path, default=Path("review/cases.xlsx"))
@@ -236,13 +238,13 @@ def import_existing_cases(args) -> int:
     print(summary.as_text())
     print("Next: qa-agent check, then qa-agent review export" +
           (" for the drafts left" if summary.approved_by else ""))
-    return DONE
+    return FINDINGS if summary.unreadable else DONE
 
 
 def review_export(args) -> int:
     project = TeamProject.load(args.project)
     sheet = args.sheet if args.sheet.is_absolute() else project.root / args.sheet
-    count = export_review_sheet(project, sheet, args.all)
+    count = export_review_sheet(project, sheet, args.all, args.force)
     criteria, questions = pending_criteria(project)
     extra = (f", {plural(len(criteria), 'criterion', 'criteria')} and {plural(len(questions), 'open question')}"
              if criteria or questions else "")

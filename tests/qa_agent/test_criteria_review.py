@@ -57,7 +57,7 @@ def test_decisions_and_answers_are_applied_with_who_and_when(make_project, tmp_p
     fill(sheet, "Questions", {2: {"Answer": "Yes, 24 hours exactly is refunded", "Answered by": "product-owner"}})
     assert main(["--project", str(project.root), "review", "apply"]) == 0
     out = capsys.readouterr().out
-    assert "AC-2: approved by qa-lead, 2026-10-24" in out and "Q-1: answered by product-owner" in out
+    assert "AC-2: approved by qa-lead, 24-10-2026" in out and "Q-1: answered by product-owner" in out
     assert project.read_criteria()["AC-2"].text == "A booking cancelled within 24 hours, 24 included, gets a full refund."
     assert project.read_all_criteria()["AC-3"].status == "rejected"
     drafts = CriteriaDrafts.load(project)
@@ -101,5 +101,5 @@ def test_an_answer_with_a_date_that_isnt_one_is_refused(make_project, tmp_path):
     project, sheet = sheet_with(make_project, tmp_path)
     fill(sheet, "Questions", {2: {"Answer": "Yes", "Answered by": "product-owner", "Date": "20/10/2026"}})
     refused = "\n".join(import_review_sheet(project, sheet).refused)
-    assert "Q-1: Date '20/10/2026' (write it as 2026-10-24, or leave it empty for today)" in refused
+    assert "Q-1: Date '20/10/2026' isn't a date (write it as 28-10-2026, or leave it empty for today)" in refused
     assert [q["id"] for q in CriteriaDrafts.load(project).open_questions()] == ["Q-1", "Q-2"]

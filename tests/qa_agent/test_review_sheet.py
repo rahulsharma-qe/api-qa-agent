@@ -93,7 +93,7 @@ def test_decisions_are_applied_with_who_and_when_and_edits(make_project):
            edits={"TC1": {"Title": "Create a booking", "Priority": "P0", "Tags": "smoke"}})
     result = import_review_sheet(project, sheet)
     case = load_case_file(project.cases_dir / "bookings.yaml").cases[0]
-    assert result.applied == ["TC1: approved by qa-lead, 2026-10-21"] and not result.refused
+    assert result.applied == ["TC1: approved by qa-lead, 21-10-2026"] and not result.refused
     assert (case.title, case.priority, case.tags) == ("Create a booking", "P0", ["smoke"])
     assert case.is_approved and case.review.by == "qa-lead" and case.review.date == "2026-10-21"
 
@@ -142,3 +142,23 @@ def test_a_sheet_with_a_column_removed_is_a_setup_problem(make_project, capsys):
     book.save(sheet)
     assert main(["--project", str(project.root), "review", "apply"]) == 2
     assert "columns missing: Reviewer" in capsys.readouterr().err
+
+
+def test_export_keeps_a_sheet_whose_decisions_are_not_applied_yet(make_project, capsys):
+    project, sheet, _ = exported(make_project)
+    decide(sheet, {"TC1": {"Decision": "Approve", "Reviewer": "qa-lead"}})
+    assert main(["--project", str(project.root), "review", "export"]) == 2
+    assert "has 1 decision not yet applied (TC1): run qa-agent review apply first" in capsys.readouterr().err
+    assert main(["--project", str(project.root), "review", "apply"]) == 0
+    assert main(["--project", str(project.root), "review", "export"]) == 0                 # applied: free to replace
+    decide(sheet, {"TC3": {"Decision": "Reject", "Reviewer": "qa-lead", "Comment": "dup"}})
+    assert main(["--project", str(project.root), "review", "export", "--force"]) == 0      # on purpose
+
+
+def test_a_date_is_a_real_date_written_as_people_write_it(make_project):
+    project, sheet, _ = exported(make_project)
+    decide(sheet, {"TC1": {"Decision": "Approve", "Reviewer": "qa-lead", "Date": "2027-13-45"}})
+    assert "TC1: Date '2027-13-45' isn't a date (write it as 28-10-2026" in import_review_sheet(project, sheet).refused[0]
+    decide(sheet, {"TC1": {"Decision": "Approve", "Reviewer": "qa-lead", "Date": "21-10-2026"}})
+    assert import_review_sheet(project, sheet).applied == ["TC1: approved by qa-lead, 21-10-2026"]
+    assert load_case_file(project.cases_dir / "bookings.yaml").cases[0].review.date == "2026-10-21"   # kept sortable

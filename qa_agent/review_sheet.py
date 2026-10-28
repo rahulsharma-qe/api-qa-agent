@@ -23,8 +23,8 @@ from openpyxl.worksheet.datavalidation import DataValidation
 from qa_agent.cases import PRIORITIES, SUITES, Case, load_case_file, save_case_file
 from qa_agent.checks import ERROR, check_project, plural
 from qa_agent.criteria_review import add_criteria_sheets, apply_criteria_sheets
-from qa_agent.review_common import (DECIDE_FILL, DECISIONS, HEADER_FILL, LOCKED_FILL, open_workbook, row_problem,
-                                    text_value)
+from qa_agent.review_common import (DECIDE_FILL, DECISIONS, HEADER_FILL, LOCKED_FILL, open_workbook, review_date,
+                                    row_problem, shown_date, text_value)
 from qa_agent.importers.common import split_list
 from qa_agent.project import SetupError, TeamProject
 
@@ -40,7 +40,7 @@ HOW_TO = [
     "",
     "1. Read each case: its steps and expected results (grey, locked), and what qa-agent check found.",
     "2. You may change Title, Criteria, Priority, Suite and Tags. Steps are changed in the case file.",
-    "3. Pick a Decision: Approve, Changes needed or Reject. Fill Reviewer; Date is today if left empty.",
+    "3. Pick a Decision: Approve, Changes needed or Reject. Fill Reviewer; Date (28-10-2026) is today if left empty.",
     "4. Changes needed and Reject need a Comment, so the author knows why.",
     "5. Save, then run: qa-agent review apply",
     "",
@@ -64,8 +64,15 @@ class ReviewImportResult:
         return "\n".join(lines)
 
 
-def export_review_sheet(project: TeamProject, path: Path, every_case: bool = False) -> int:
-    """Writes the sheet; returns the number of cases in it."""
+def export_review_sheet(project: TeamProject, path: Path, every_case: bool = False, force: bool = False) -> int:
+    """Writes the sheet; returns the number of cases in it. A sheet holding decisions not yet applied is kept,
+    unless force: writing over it would lose a reviewer's work."""
+    if path.is_file() and not force:
+        waiting = _not_applied(project, path)
+        if waiting:
+            raise SetupError(f"{project.relative(path)} has {plural(len(waiting), 'decision')} not yet applied "
+                             f"({', '.join(waiting[:5])}{', ...' if len(waiting) > 5 else ''}): run qa-agent review "
+                             "apply first, or review export --force to start a new sheet and lose them")
     report = check_project(project)
     rows = [(case_file, case) for case_file in report.case_files for case in case_file.cases
             if every_case or (not case.is_approved and case.review.status != "rejected")]
@@ -125,7 +132,7 @@ def import_review_sheet(project: TeamProject, path: Path) -> ReviewImportResult:
         case.review.status, case.review.by, case.review.date = status, row["Reviewer"], row["Date"]
         case.review.comment = row["Comment"]
         case.review.fingerprint = case.fingerprint() if status == "approved" else ""
-        result.applied.append(f"{case.id}: {status.replace('_', ' ')} by {row['Reviewer']}, {row['Date']}")
+        result.applied.append(f"{case.id}: {status.replace('_', ' ')} by {row['Reviewer']}, {shown_date(row['Date'])}")
     for case_file in {case_file.path: case_file for case_file, _, _ in accepted}.values():
         save_case_file(case_file)
     apply_criteria_sheets(path, project, result)
@@ -217,6 +224,17 @@ def _format(sheet, count: int) -> None:
     sheet.protection.formatRows = False
 
 
+def _not_applied(project: TeamProject, path: Path) -> list:
+    """The ids of rows with a decision that the case files don't show yet."""
+    try:
+        rows = _decided_rows(path, ReviewImportResult())
+    except SetupError:
+        return []                                  # not a sheet we can read: nothing in it can be applied either
+    cases = {case.id: case for case_file in map(load_case_file, project.case_files()) for case in case_file.cases}
+    return [row["ID"] for row in rows
+            if row["ID"] in cases and cases[row["ID"]].review.status != DECISIONS[row["Decision"].lower()]]
+
+
 def _decided_rows(path: Path, result: ReviewImportResult) -> list[dict]:
     book = open_workbook(path)
     if SHEET not in book.sheetnames:
@@ -235,7 +253,7 @@ def _decided_rows(path: Path, result: ReviewImportResult) -> list[dict]:
         if problem:
             result.refused.append(f"{row.get('ID') or f'row {number}'}: {problem}")
             continue
-        row["Date"] = row["Date"] or datetime.date.today().isoformat()
+        row["Date"] = review_date(row["Date"])
         decided.append(row)
     return decided
 

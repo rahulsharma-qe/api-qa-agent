@@ -31,8 +31,9 @@ Every command takes `--project <folder>` (default: the current folder) and `--he
 2. **Check.** `check` finds what would make a test wrong: a call to an operation the API doesn't
    have, a value still to confirm (`TBD`), a case that checks nothing, a criterion that doesn't exist,
    a case that repeats another's steps under a different id.
-3. **Review.** `review export` writes the sheet; a person fills Decision, Reviewer and Comment;
-   `review apply` records it. A case edited after approval goes back to review by itself: its
+3. **Review.** `review export` writes the sheet; a person fills Decision, Reviewer, Date (28-10-2026;
+   today if empty) and Comment; `review apply` records it. `review export` won't write over a sheet whose
+   decisions aren't applied yet (`--force` to start over). A case edited after approval goes back to review by itself: its
    steps, or a row of its data file.
 4. **Generate and run.** `generate` writes the tests; they run in your framework as always.
    In CI, `generate --check` stops a build whose tests are older than its cases.

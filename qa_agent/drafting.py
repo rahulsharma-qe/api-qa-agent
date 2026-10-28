@@ -289,7 +289,7 @@ def _read_reply(reply: str):
     if not data["cases"]:
         return f"the model drafted nothing: {data.get('reason') or 'no reason given'}"
     if len(data["cases"]) > MAX_CASES_PER_GAP:
-        return f"{len(data['cases'])} cases for one gap (at most {MAX_CASES_PER_GAP})"
+        return f"{plural(len(data['cases']), 'case')} for one gap (at most {MAX_CASES_PER_GAP})"
     if not all(isinstance(raw, dict) for raw in data["cases"]):
         return "a case in the reply is not a mapping"
     return data["cases"]

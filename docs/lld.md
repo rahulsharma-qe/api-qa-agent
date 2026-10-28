@@ -586,7 +586,8 @@ steps in Steps and its expected result in words (a manual sheet's Expected Resul
   produce a case that doesn't parse.
 - The reviewer may change Title, Criteria, Priority, Suite and Tags (Priority and Suite are
   drop-downs), and fills **Decision** (a drop-down: Approve, Changes needed, Reject), **Reviewer**,
-  **Date** (today when left empty) and **Comment**. Check findings and a Postman case's unread
+  **Date** (28-10-2026, or Excel's own date; a real date; today when left empty; kept as 2026-10-28 in
+  the case file, so it sorts) and **Comment**. Check findings and a Postman case's unread
   script lines are in the sheet, so the reviewer sees them.
 - A hidden column holds each case's fingerprint at export. `qa-agent review apply` applies a row
   only if the case is unchanged since export; otherwise it reports "the case changed after this
@@ -860,7 +861,9 @@ qa-agent promote --runs ... --apply
   - only the suite changes (the feature is being reworked, the steps stay):
     `qa-agent suite TC010 functional --by qa-lead --reason "refund rule changing in the next release"`
     writes the suite and adds who, when and why to the case's notes.
-- Each argument to `--runs` is one run (a JUnit file, or a folder of them, as Surefire writes).
+- Each argument to `--runs` is one run (a JUnit file, or a folder of them, as Surefire writes). The same
+  path given twice is refused; two runs whose files are byte for byte the same are noted (a copy is
+  not a run).
 
 **Flaky tests: `qa-agent flaky`.** Promote keeps a case that failed in a run out of regression, and
 says no more. `flaky` names the tests that passed in some runs and failed in others, on the same

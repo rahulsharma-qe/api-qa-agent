@@ -91,3 +91,13 @@ cases:
     out = capsys.readouterr().out
     assert "a key is written into the case, and case files are committed" in out
     assert "SECRET1234567890" not in out
+
+
+def test_import_exits_1_when_a_case_couldnt_be_read_and_says_which(make_project, tmp_path, capsys):
+    root = make_project({"cases/.keep": ""})
+    source = tmp_path / "existing.csv"
+    source.write_text("ID,Title,Method,Path,Expected Status\nTC900,Bad method,FETCH,/bookings,200\n"
+                      "TC901,Good,GET,/bookings,200\n")
+    assert main(["--project", str(root), "import", "cases", str(source)]) == 1
+    out = capsys.readouterr().out
+    assert "skipped TC900: TC900 step 1: method 'FETCH'" in out and "1 case imported as drafts, 1 skipped" in out

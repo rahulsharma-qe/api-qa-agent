@@ -136,3 +136,12 @@ def test_the_cli_takes_feature_priority_and_reason(make_project, tmp_path, capsy
     assert main(["--project", str(project.root), "promote", "--runs", *map(str, runs), "--feature", "cancellation",
                  "--priority", "P0", "--reason", "released"]) == 0
     assert "ready for regression: TC7" in capsys.readouterr().out
+
+
+def test_one_run_given_three_times_is_not_stability(tmp_path):
+    from qa_agent.promote import promote
+    from qa_agent.project import SetupError
+    run = tmp_path / "junit.xml"
+    run.write_text('<testsuite><testcase classname="c" name="test_tc1_x"/></testsuite>')
+    with pytest.raises(SetupError, match="junit.xml is given more than once: one run given twice is not stability"):
+        promote(None, [run, run, run])

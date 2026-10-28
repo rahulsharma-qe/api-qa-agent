@@ -10,6 +10,7 @@ missing or left over, and exits 1 if there is any.
 
 from dataclasses import dataclass, field
 
+from qa_agent.checks import plural
 from qa_agent.cases import load_case_file
 from qa_agent.project import TeamProject
 from qa_agent.renderers import RENDERERS, RenderError
@@ -46,7 +47,8 @@ class GenerateResult:
         lines += [f"left alone {path} (not written by qa-agent)" for path in self.left_alone]
         lines += [f"not generated: {item}" for item in self.not_generated]
         lines += [f"problem: {item}" for item in self.problems]
-        lines.append(" · ".join(f"{framework}: {count} tests" for framework, count in self.tests.items()) or "no frameworks")
+        lines.append(" · ".join(f"{framework}: {plural(count, 'test')}" for framework, count in self.tests.items())
+                     or "no frameworks")
         return "\n".join(lines)
 
 
@@ -58,7 +60,7 @@ def generate(project: TeamProject, check: bool = False) -> GenerateResult:
     result.not_generated = [f"{case.id}: {_why_not(case)}" for case in left_out]
     for framework in project.frameworks:
         renderer = RENDERERS[framework]
-        expected, approved_everywhere, count = {}, [], 0
+        expected, approved_everywhere, count, failed = {}, [], 0, False
         for case_file in case_files:
             cases = []
             for case in (c for c in case_file.cases if c.is_approved):
@@ -66,6 +68,7 @@ def generate(project: TeamProject, check: bool = False) -> GenerateResult:
                     renderer.render_file(project.relative(case_file.path), case_file, [case])
                 except RenderError as error:
                     result.problems.append(f"{framework}: {error}")
+                    failed = True
                     continue
                 cases.append(case)
             if cases:
@@ -76,12 +79,17 @@ def generate(project: TeamProject, check: bool = False) -> GenerateResult:
         if approved_everywhere:
             for generated in renderer.support_files(approved_everywhere):
                 expected[generated.path] = generated.text
-        (_compare if check else _write)(project, renderer, expected, result)
+        if check:
+            _compare(project, renderer, expected, result)
+        else:
+            _write(project, renderer, expected, result, remove_left_over=not failed)
         result.tests[framework] = count
     return result
 
 
-def _write(project: TeamProject, renderer, expected: dict, result: GenerateResult) -> None:
+def _write(project: TeamProject, renderer, expected: dict, result: GenerateResult, remove_left_over: bool = True) -> None:
+    """Writes what changed. A generated file no case needs any more is removed, unless a case couldn't be written
+    in this framework: then its old test stays until the case is fixed (exit 1 says so)."""
     for relative, text in sorted(expected.items()):
         path = project.root / relative
         if path.is_file() and path.read_text(encoding="utf-8") == text:
@@ -98,6 +106,9 @@ def _write(project: TeamProject, renderer, expected: dict, result: GenerateResul
         if not path.is_file() or path.suffix not in SUFFIXES or relative in expected:
             continue
         if path.read_text(encoding="utf-8").startswith(renderer.header_mark):
+            if not remove_left_over:
+                result.left_alone.append(f"{relative} (kept: a case couldn't be written)")
+                continue
             path.unlink()
             result.removed.append(relative)
         else:

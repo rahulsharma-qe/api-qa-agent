@@ -65,6 +65,7 @@ def test_a_case_edited_after_approval_is_taken_out_and_its_file_removed(make_pro
 
 def test_the_command_exits_1_when_a_case_cant_be_written(make_project, capsys):
     project = approved_project(make_project)
+    generate(project)                                                         # its Java test exists
     path = project.root / "cases/bookings.yaml"
     case_file = load_case_file(path)
     case = case_file.cases[0]
@@ -73,7 +74,9 @@ def test_the_command_exits_1_when_a_case_cant_be_written(make_project, capsys):
     save_case_file(case_file)
     assert main(["--project", str(project.root), "generate"]) == 1
     out = capsys.readouterr().out
-    assert "problem: restassured: TC1 step 1: a null value" in out and "pytest: 1 tests · restassured: 0 tests" in out
+    assert "problem: restassured: TC1 step 1: a null value" in out and "pytest: 1 test · restassured: 0 tests" in out
+    assert (project.root / "src/test/java/generated/BookingsTest.java").is_file()   # kept until the case is fixed
+    assert "kept: a case couldn't be written" in out
 
 
 def test_the_drift_check_writes_nothing_and_names_what_is_out_of_date(make_project, capsys):
