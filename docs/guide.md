@@ -34,7 +34,9 @@ Every command takes `--project <folder>` (default: the current folder) and `--he
 3. **Review.** `review export` writes the sheet; a person fills Decision, Reviewer, Date (28-10-2026;
    today if empty) and Comment; `review apply` records it. `review export` won't write over a sheet whose
    decisions aren't applied yet (`--force` to start over). A case edited after approval goes back to review by itself: its
-   steps, or a row of its data file.
+   steps, or a row of its data file. An approval is a few lines of YAML, so anyone who can edit the case
+   file can write one: the control is the pull request, where a second person sees who approved what.
+   Protect the `cases/` folder with a CODEOWNERS entry for the QA lead.
 4. **Generate and run.** `generate` writes the tests; they run in your framework as always.
    In CI, `generate --check` stops a build whose tests are older than its cases.
 5. **Trace.** `trace` shows what is covered and what isn't; `--min-coverage` sets a floor. It
