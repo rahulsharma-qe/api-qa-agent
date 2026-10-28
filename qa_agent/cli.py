@@ -295,6 +295,9 @@ def run_trace(args) -> int:
         if not read.runs:
             raise SetupError(f"no JUnit test results in: {', '.join(project.relative(path) for path in results)}")
     report = build_trace(project, results)
+    if results and not report.results_read:
+        raise SetupError(f"none of the results are of tests that exist now ({plural(report.results_left_out, 'result')} "
+                         "of tests no longer generated): run the tests again, then trace")
     if args.min_coverage is not None:
         report.apply_floor(args.min_coverage)
     out = args.out if args.out.is_absolute() else project.root / args.out

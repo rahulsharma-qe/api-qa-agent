@@ -157,3 +157,19 @@ def test_results_of_tests_that_no_longer_exist_are_left_out(make_project, tmp_pa
     report = build_trace(project, [old])
     assert report.results_read == {"pytest": {"passed": 1}} and report.results_left_out == 1
     assert "1 result of tests that no longer exist left out" in report.as_text()
+    markdown = report.as_markdown()
+    assert "Results: pytest 1 passed · 1 result of tests that no longer exist left out" in markdown
+    assert "Covered means an approved case exists" in markdown
+    report.write_excel(tmp_path / "trace.xlsx")
+    from openpyxl import load_workbook
+    sheet = load_workbook(tmp_path / "trace.xlsx")["Coverage"]
+    shown = [str(cell.value) for row in sheet.iter_rows() for cell in row if cell.value]
+    assert any("no longer exist left out" in value for value in shown)
+    assert any(value.startswith("Covered means") for value in shown)
+
+
+def test_results_only_of_tests_that_no_longer_exist_stop_the_trace(make_project, tmp_path, capsys):
+    project = project_with_tests(make_project)
+    old = junit(tmp_path / "junit.xml", [("test_tc8_gone", ""), ("test_tc9_removed_since", "")])
+    assert main(["--project", str(project.root), "trace", "--check", "--results", str(old)]) == 2
+    assert "none of the results are of tests that exist now (2 results" in capsys.readouterr().err

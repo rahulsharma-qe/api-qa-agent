@@ -717,12 +717,13 @@ only where everything goes right.
 **What covered means.** Covered means an approved case exists (and, for Cases to tests, its test);
 whether those tests pass is the Results line, which counts only tests that exist now: results of tests
 since removed (an older JUnit file) are left out and counted. Results that can't be read, or a
-`--results` path with no JUnit test results in it, stop the trace with exit 2 rather than letting a CI
-step pass with no results.
+`--results` path with no JUnit test results in it, or results only of tests that no longer exist, stop
+the trace with exit 2 rather than letting a CI step pass with no results. The note and the Results line
+are in trace.md and trace.xlsx too, since those are what CI keeps.
 
 Coverage is reported, not enforced. `--check` exits 1 only when an approved case has no test (the CI
-check of section 5 in the high-level design). A coverage threshold (`--min-coverage 80`) can come in
-phase 3b if teams want one.
+check of section 5 in the high-level design), or, with `--min-coverage 80`, when criteria or operations
+coverage is below that floor.
 
 ### 9.9 `qa-agent init`
 

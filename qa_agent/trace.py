@@ -87,20 +87,23 @@ class TraceReport:
         line = f"{self.approved} approved: {counts} (a case can be of more than one type)"
         return line + (f"   no type yet: {', '.join(self.untyped)}" if self.untyped else "")
 
+    def results_line(self) -> str:
+        read = " · ".join(f"{framework} " + ", ".join(f"{n} {kind}" for kind, n in counts.items())
+                          for framework, counts in self.results_read.items())
+        left_out = (f" · {plural(self.results_left_out, 'result')} of tests that no longer exist left out"
+                    if self.results_left_out else "")
+        return (read or "none given (--results reports/junit.xml target/surefire-reports)") + left_out
+
     def as_text(self) -> str:
         lines = [f"qa-agent trace: {self.team}", ""] + [item.as_line() for item in self.coverage]
-        lines.append(f"{'':<15} (covered means an approved case exists; whether its tests pass is under Results)")
+        lines.append(f"{'':<15} ({COVERED_MEANS})")
         if self.not_tested:
             lines.append(f"{'Not tested':<15} on purpose: " + "; ".join(self.not_tested))
         if self.approved:
             lines.append(f"{'Case types':<15} {self.types_line()}")
         if self.happy_path_only:
             lines.append(f"{'Happy path only':<15} {', '.join(self.happy_path_only)}: no negative, auth or edge case")
-        lines.append(f"{'Results':<15} " + (" · ".join(f"{framework} " + ", ".join(f"{n} {kind}" for kind, n in counts.items())
-                                                     for framework, counts in self.results_read.items())
-                                            or "none given (--results reports/junit.xml target/surefire-reports)")
-                     + (f" · {plural(self.results_left_out, 'result')} of tests that no longer exist left out"
-                        if self.results_left_out else ""))
+        lines.append(f"{'Results':<15} {self.results_line()}")
         if self.missing_tests:
             lines.append(f"{'No test':<15} " + ", ".join(self.missing_tests) + ": run qa-agent generate")
         if self.orphan_tests:
@@ -120,6 +123,8 @@ class TraceReport:
         for item in self.coverage:
             lines.append(f"| {item.name} | {item.note or f'{item.covered} of {item.total}'} | "
                          f"{', '.join(item.missing) or '-'} |")
+        lines += ["", COVERED_MEANS[0].upper() + COVERED_MEANS[1:] + ".",
+                  "", f"Results: {self.results_line()}"]
         if self.not_tested:
             lines += ["", "Not tested, on purpose: " + "; ".join(self.not_tested)]
         if self.approved:
@@ -147,6 +152,8 @@ class TraceReport:
         coverage.append(["Coverage", "Covered", "Of", "Missing"])
         for item in self.coverage:
             coverage.append([item.name, item.covered, item.total, item.note or "\n".join(item.missing)])
+        coverage.append(["", COVERED_MEANS[0].upper() + COVERED_MEANS[1:]])
+        coverage.append(["Results", self.results_line()])
         if self.approved:
             coverage.append(["Case types", self.types_line()])
         if self.happy_path_only:
@@ -161,6 +168,9 @@ class TraceReport:
                     cell.alignment = Alignment(wrap_text=True, vertical="top")
         path.parent.mkdir(parents=True, exist_ok=True)
         book.save(path)
+
+
+COVERED_MEANS = "covered means an approved case exists; whether its tests pass is under Results"
 
 
 def build_trace(project: TeamProject, result_paths: Optional[list] = None) -> TraceReport:
