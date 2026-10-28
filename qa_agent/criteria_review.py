@@ -12,13 +12,13 @@ the sheet was made from; an answer, with who gave it and when.
 
 import datetime
 
-from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Font, Protection
 from openpyxl.worksheet.datavalidation import DataValidation
 
 from qa_agent.criteria_drafts import CriteriaDrafts
 from qa_agent.project import TeamProject
-from qa_agent.review_common import DATE, DECIDE_FILL, DECISIONS, HEADER_FILL, LOCKED_FILL, row_problem, text_value
+from qa_agent.review_common import (DATE, DECIDE_FILL, DECISIONS, HEADER_FILL, LOCKED_FILL, open_workbook, row_problem,
+                                    text_value)
 
 CRITERIA_SHEET, QUESTIONS_SHEET = "Criteria", "Questions"
 CRITERIA_COLUMNS = [  # header, width, editable
@@ -63,7 +63,7 @@ def add_criteria_sheets(workbook, project: TeamProject) -> None:
 
 
 def apply_criteria_sheets(path, project: TeamProject, result) -> None:
-    book = load_workbook(path, data_only=True)
+    book = open_workbook(path)
     drafts = CriteriaDrafts.load(project)
     by_id = {str(entry.get("id")): entry for entry in drafts.criteria}
     questions = {str(question.get("id")): question for question in drafts.questions}

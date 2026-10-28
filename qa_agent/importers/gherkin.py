@@ -72,8 +72,10 @@ def _scenarios(lines: list[str]) -> tuple[list, list]:
             tags, section = [], "scenario"
         elif line.startswith(("Examples:", "Scenarios:")):
             section = "examples"
+            if current is not None:
+                current["examples"].append([])                              # each Examples: is a table
         elif line.startswith("|") and section == "examples" and current is not None:
-            current["examples"].append([cell.strip() for cell in line.strip("|").split("|")])
+            current["examples"][-1].append([cell.strip() for cell in line.strip("|").split("|")])
         elif KEYWORD.match(line):
             keyword, text = KEYWORD.match(line).groups()
             _target(current, background, section).append({"keyword": keyword, "text": text})
@@ -107,8 +109,14 @@ def _case(scenario: dict, background: list, source: str, result: ImportResult) -
         result.notes.append(f"{source}, '{scenario['name']}': not in the fixed phrasing; kept in words (needs steps)")
         return case
     case["steps"] = steps
-    if scenario["outline"] and len(scenario["examples"]) > 1:
-        header, *rows = scenario["examples"]
+    tables = [table for table in scenario["examples"] if len(table) > 1]
+    if scenario["outline"] and tables:
+        header = tables[0][0]
+        rows = [row for table in tables if table[0] == header for row in table[1:]]   # each table's header once
+        for number, table in enumerate(tables, start=1):
+            if table[0] != header:
+                result.notes.append(f"{source}, '{scenario['name']}': Examples table {number} has other columns "
+                                    f"({', '.join(table[0])}) than the first ({', '.join(header)}); left out")
         case["_data_rows"] = [dict(zip(header, row)) for row in rows]      # written to data/ on import
     return case
 

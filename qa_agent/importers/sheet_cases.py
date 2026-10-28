@@ -73,11 +73,22 @@ def read_sheet_cases(path: Path, source_name: str) -> ImportResult:
 
 def _tables(path: Path) -> list[tuple[str, list[list]]]:
     if path.suffix.lower() == ".csv":
-        with path.open(newline="", encoding="utf-8-sig") as handle:
-            return [(path.stem, [row for row in csv.reader(handle)])]
+        for encoding in ("utf-8-sig", "cp1252"):                         # Excel's "CSV" (not "CSV UTF-8") is cp1252
+            try:
+                with path.open(newline="", encoding=encoding) as handle:
+                    return [(path.stem, [row for row in csv.reader(handle)])]
+            except UnicodeDecodeError:
+                continue
     if path.suffix.lower() == ".xlsx":
+        from zipfile import BadZipFile
+
         from openpyxl import load_workbook
-        workbook = load_workbook(path, read_only=True, data_only=True)
+        from openpyxl.utils.exceptions import InvalidFileException
+        try:
+            workbook = load_workbook(path, read_only=True, data_only=True)
+        except (BadZipFile, InvalidFileException, KeyError, OSError) as error:
+            raise CaseImportError(f"{path.name} can't be opened as an Excel file ({type(error).__name__}): it may be "
+                                  "damaged, or an older .xls renamed; save it again as .xlsx (Excel Workbook)") from None
         return [(sheet.title, [list(row) for row in sheet.iter_rows(values_only=True)]) for sheet in workbook.worksheets]
     raise CaseImportError(f"{path}: use a .xlsx or .csv file")
 

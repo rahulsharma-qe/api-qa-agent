@@ -16,14 +16,14 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from openpyxl import Workbook, load_workbook
+from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, Protection
 from openpyxl.worksheet.datavalidation import DataValidation
 
 from qa_agent.cases import PRIORITIES, SUITES, Case, load_case_file, save_case_file
 from qa_agent.checks import ERROR, check_project, plural
 from qa_agent.criteria_review import add_criteria_sheets, apply_criteria_sheets
-from qa_agent.review_common import (DECIDE_FILL, DECISIONS, HEADER_FILL, LOCKED_FILL, row_problem,
+from qa_agent.review_common import (DECIDE_FILL, DECISIONS, HEADER_FILL, LOCKED_FILL, open_workbook, row_problem,
                                     text_value)
 from qa_agent.importers.common import split_list
 from qa_agent.project import SetupError, TeamProject
@@ -218,7 +218,7 @@ def _format(sheet, count: int) -> None:
 
 
 def _decided_rows(path: Path, result: ReviewImportResult) -> list[dict]:
-    book = load_workbook(path, data_only=True)
+    book = open_workbook(path)
     if SHEET not in book.sheetnames:
         raise SetupError(f"{path}: no '{SHEET}' sheet; export the review sheet again")
     rows = list(book[SHEET].iter_rows(values_only=True))

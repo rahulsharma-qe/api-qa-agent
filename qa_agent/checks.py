@@ -193,6 +193,10 @@ def _case_findings(case: Case, case_file: CaseFile, project: TeamProject, api: O
         if _has_tbd([step.request.path, step.request.query, step.request.headers, step.request.body, step.expect]):
             found.append((ERROR, f"{where}: has TBD, a value still to confirm. Fix: replace TBD with the value "
                                  "the API should give (see the case's notes)"))
+        secret = _secret_in(step)
+        if secret:
+            found.append((WARNING, f"{where}: a {secret} is written into the case, and case files are committed. "
+                                   "Fix: take it from a captured value or the environment, and change the real one"))
         found += _value_findings(step, where, captured, columns, case.data_file)
         if api is not None:
             found += _api_findings(step, where, api, step.request.service or project.main_service)
@@ -202,6 +206,14 @@ def _case_findings(case: Case, case_file: CaseFile, project: TeamProject, api: O
                                "is wrong (a wrong amount, a missing field). Fix: add fields, exists or types to "
                                "the step that matters"))
     return found
+
+
+def _secret_in(step: Step) -> str:
+    """'token', 'key' or 'secret' when the request carries something that looks like one; '' otherwise."""
+    from qa_agent.ai.redaction import redact
+    text = json.dumps([step.request.headers, step.request.query, step.request.body], default=str)
+    counts = redact(text).counts
+    return next((kind for kind in ("key", "token", "secret") if counts.get(kind)), "")
 
 
 def _has_tbd(value: Any) -> bool:

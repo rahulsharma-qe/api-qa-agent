@@ -1,7 +1,8 @@
 """A Postman collection (v2.1 or v2.0) -> cases.
 
-A folder of requests is one case: its requests are the steps, in order. A request outside a folder
-is a case of its own. These test-script lines become expectations and captured values:
+A folder whose name starts with a case id ("TC030 Create and read a booking") is one case: its
+requests are the steps, in order. Any other folder only groups: each request in it is a case of its own,
+with the id its name starts with, if any (folders by feature are the usual layout). These test-script lines become expectations and captured values:
 
     pm.response.to.have.status(201)                         -> status
     pm.expect(pm.response.code).to.eql(201)                 -> status
@@ -59,9 +60,11 @@ def _walk(items: list, feature: ImportedFeature, result: ImportResult, source: s
     for item in items:
         if "item" in item:
             requests = [child for child in item["item"] if "request" in child]
-            if requests:
+            if requests and leading_id(item.get("name", ""))[0]:             # "TC030 ...": a case of steps
                 feature.cases.append(_case(item.get("name", ""), requests, result, source))
-            _walk([child for child in item["item"] if "item" in child], feature, result, source)
+                _walk([child for child in item["item"] if "item" in child], feature, result, source)
+            else:                                                           # "Bookings": a group of cases
+                _walk(item["item"], feature, result, source)
         elif "request" in item:
             loose.append(item)
     for item in loose:

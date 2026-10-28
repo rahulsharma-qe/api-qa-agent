@@ -522,7 +522,10 @@ Excel sheet (each sheet is a feature), the CSV file, the Postman collection or t
 (or `--into cases/cancellation.yaml`), each with `review.status: draft` and its `source` (file,
 sheet and row, item or scenario). An id already in the project is skipped and reported, unless
 `--overwrite`. Anything that can't be read is reported, never guessed: a row with no Case ID, a Body
-that isn't JSON, a priority qa-agent doesn't know (set to P2), a Postman script line.
+that isn't JSON, a priority qa-agent doesn't know (set to P2), a Postman script line. A CSV in
+Excel's own encoding ("CSV", not "CSV UTF-8") is read too; a damaged .xlsx is refused with what to do,
+not a traceback. `check` warns when a request carries something that looks like a key, token or
+secret, since case files are committed.
 
 **Case ids.** The team's own ids are kept, never renumbered: TestRail, Jira and old reports know a
 case by them. They come from a sheet's Case ID or ID column, a Gherkin tag `@TC040`, or a Postman
@@ -538,8 +541,8 @@ Medium and Normal P2, Low, Minor and Trivial P3.
 |---|---|
 | **Excel or CSV, API layout** (one row per step: Case ID, Title, Criteria, Priority, Tags, Step, Method, Path, Body, Expected Status, Expected Fields, Capture) | A full case, ready to generate. Body is JSON; Expected Fields and Capture are `name=value; name=value`. The layout is in `qa-agent init`'s project as a blank sheet |
 | **Excel or CSV, manual layout** (ID, Title, Preconditions, Steps, Expected Result, Priority, Criteria) | A case with `manual_steps` (`Before: …`, each step, `Expected: …`; numbered steps in one cell are split): kept, traced to its criteria, flagged "needs steps". A person writes the steps; in phase 6 the AI drafts them |
-| **Postman collection (v2.1 or v2.0)** | One folder of requests is one case (its requests are the steps, in order); a request outside a folder is a case. The host (`{{baseUrl}}`) is dropped from the path, `:pnr` becomes `{{pnr}}`, Postman's dynamic values (`{{$guid}}`, `{{$randomInt}}`) become `{{unique}}`; Authorization and Cookie headers are never kept. `pm.response.to.have.status(…)`, `pm.expect(json.x).to.eql(…)`, `.to.include(…)`, `pm.expect(pm.response.responseTime).to.be.below(…)` and `pm.environment.set("x", json.y)` become `status`, `fields`, `contains`, `max_response_ms` and `capture`. Any other script line is kept in the case's notes, shown in the review sheet, and reported |
-| **Gherkin (`.feature`)** | One scenario is one case, with the Background's steps first; tags `@TC040`, `@P1`, `@AC-2` become the id, priority and criteria, other tags (the feature's too) stay tags. A scenario whose every step is in the fixed phrasing below becomes `steps`; any other scenario is kept whole as `manual_steps` (half a scenario as steps would run without its preconditions). A Scenario Outline's Examples become a data file, `data/<feature>-<id>.csv`, and `<column>` becomes `{{row.column}}` |
+| **Postman collection (v2.1 or v2.0)** | A folder whose name starts with a case id (`TC030 Create and read`) is one case, its requests the steps, in order; any other folder only groups (folders by feature), and each request in it is a case, with the id its name starts with. The host (`{{baseUrl}}`) is dropped from the path, `:pnr` becomes `{{pnr}}`, Postman's dynamic values (`{{$guid}}`, `{{$randomInt}}`) become `{{unique}}`; Authorization and Cookie headers are never kept. `pm.response.to.have.status(…)`, `pm.expect(json.x).to.eql(…)`, `.to.include(…)`, `pm.expect(pm.response.responseTime).to.be.below(…)` and `pm.environment.set("x", json.y)` become `status`, `fields`, `contains`, `max_response_ms` and `capture`. Any other script line is kept in the case's notes, shown in the review sheet, and reported |
+| **Gherkin (`.feature`)** | One scenario is one case, with the Background's steps first; tags `@TC040`, `@P1`, `@AC-2` become the id, priority and criteria, other tags (the feature's too) stay tags. A scenario whose every step is in the fixed phrasing below becomes `steps`; any other scenario is kept whole as `manual_steps` (half a scenario as steps would run without its preconditions). A Scenario Outline's Examples become a data file, `data/<feature>-<id>.csv`, and `<column>` becomes `{{row.column}}`; several Examples tables become one file (a table with other columns is left out, and said) |
 
 The fixed Gherkin phrasing, the same one phase 3c generates (so a feature file can go both ways):
 `When I POST "/bookings" with` (a doc string body) · `Then the status is 201` ·

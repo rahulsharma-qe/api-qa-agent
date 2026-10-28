@@ -32,3 +32,18 @@ def text_value(value) -> str:
     if isinstance(value, float) and value.is_integer():
         value = int(value)
     return "" if value is None else str(value).strip()
+
+
+def open_workbook(path):
+    """An .xlsx a person filled, or a SetupError that says what to do (no zipfile traceback)."""
+    from zipfile import BadZipFile
+
+    from openpyxl import load_workbook
+    from openpyxl.utils.exceptions import InvalidFileException
+
+    from qa_agent.project import SetupError
+    try:
+        return load_workbook(path, data_only=True)
+    except (BadZipFile, InvalidFileException, KeyError, OSError) as error:
+        raise SetupError(f"{path} can't be opened as an Excel sheet ({type(error).__name__}): it may be damaged, or "
+                         "saved in another format; save it again as .xlsx (Excel Workbook)") from None
