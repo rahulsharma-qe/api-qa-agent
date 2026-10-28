@@ -1100,7 +1100,7 @@ per million tokens. The key comes only from the environment.
 | G5 | Only operations in `api/api.yaml` (today's `check` already refuses others) |
 | G6 | Drafts go to their own files (`cases/<area>-drafts.yaml`); no file a person wrote is touched, its comments included |
 | G7 | The same gap drafted again adds nothing (known by its source) |
-| G8 | Sent to the model: the criterion, the operation's structure, one or two approved cases as examples; redacted first (emails, tokens, keys, secret values) |
+| G8 | Sent to the model: the criterion, the operation's structure, one or two approved cases as examples; redacted first (emails, tokens, keys, secret values, card and phone numbers) |
 | G9 | Every call logged to `reports/ai-audit-log.jsonl`: what was sent, the reply, tokens, cost |
 | G10 | A reply that isn't the case format is refused with the reason; nothing is written |
 
@@ -1135,7 +1135,7 @@ On the bookings example:
 | File | What |
 |---|---|
 | `models.py` | `complete(ModelRequest) -> ModelReply` (text, input and output tokens). `AnthropicModel`, `OpenAIModel` (temperature 0; the SDK is imported only when used: `pip install .[anthropic]` or `.[openai]`), `RecordedModel` (`<folder>/<request name>.txt`) |
-| `redaction.py` | Bearer and Basic tokens, JWTs, `sk-`/`gh*_`/AWS keys, values of password and secret keys, emails. Placeholders (`{{row.x}}`) and field names stay |
+| `redaction.py` | Bearer, Basic and Token values, JWTs, `sk-`/`gh*_`/AWS keys, values of password and secret keys, of API-key and token keys when the value has a digit, card numbers (Luhn-checked), Indian mobile and +country-code phone numbers, emails. Placeholders (`{{row.x}}`) and field names stay. Rules catch the shapes they know, not every secret |
 | `audit.py` | `reports/ai-audit-log.jsonl`, appended: time, name, provider, model, what was sent, what was redacted, reply, tokens, cost, duration, error |
 | `session.py` | `AiSession.ask(name, system, user)`: redact, call, log. The only way the AI layer calls a model |
 

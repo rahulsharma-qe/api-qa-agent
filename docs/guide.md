@@ -77,7 +77,8 @@ ai:
   base_url: http://localhost:11434/v1     # Ollama on this machine: ollama pull llama3.1, then ollama serve
 ```
 
-What is sent is redacted (tokens, keys, passwords, emails) and every call is logged in
+What is sent is redacted by fixed rules (tokens, keys, secret values, card and phone numbers, emails:
+the list is in `qa_agent/ai/redaction.py`) and every call is logged in
 `reports/ai-audit-log.jsonl`. Drafts go to their own files (`cases/<area>-drafts.yaml`,
 `acceptance-criteria-drafts.yaml`); the review sheet gains Criteria and Questions tabs.
 The [example](../examples/from-a-requirement/README.md) shows every step and every guardrail.

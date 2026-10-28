@@ -140,3 +140,16 @@ def test_a_project_without_ai_settings_still_loads_and_a_wrong_one_is_named(make
 def _request(name):
     from qa_agent.ai import ModelRequest
     return ModelRequest(name, "rules", "the question")
+
+
+def test_redaction_also_covers_api_key_headers_access_tokens_cards_and_phones():
+    text = ('"X-Api-Key": "a1b2c3d4e5f6g7h8"\naccess_token: 9f8e7d6c5b4a3210\nAuthorization: Token abcdef1234567890xyz\n'
+            "card 4111 1111 1111 1111, order 1234567890123\nphone +91 98765 43210, 9876543210\n"
+            "epoch 1761638400, amount 4000\ncapture: {token: access_token}")
+    redacted = redact(text)
+    for gone in ("a1b2c3d4e5f6g7h8", "9f8e7d6c5b4a3210", "abcdef1234567890xyz", "4111 1111 1111 1111", "98765 43210",
+                 "9876543210"):
+        assert gone not in redacted.text
+    for kept in ("order 1234567890123", "epoch 1761638400", "amount 4000", "capture: {token: access_token}"):
+        assert kept in redacted.text                                          # not a card (Luhn), not a phone, a name
+    assert dict(redacted.counts) == {"card": 1, "token": 1, "secret": 2, "phone": 2}

@@ -92,8 +92,11 @@ before any AI is switched on.
   framework, and a person who doesn't write code can review a case.
 - **Existing cases first.** A team brings what it has; the AI drafts only what no case covers.
 - **Regression needs no AI.** Generated code is committed; it runs on every build without a model.
-- **Careful with data.** What is sent to a model is redacted and every call is logged; running the
-  model in the organisation's own cloud is next.
+- **Careful with data.** Before anything is sent to a model, tokens, keys, secret values, card numbers,
+  phone numbers and emails are replaced by labels, by fixed rules (listed in
+  [`redaction.py`](qa_agent/ai/redaction.py)), and every call is logged with what was replaced. Rules
+  catch the shapes they know, not every secret; running the model in the organisation's own cloud is
+  next.
 - **An environment problem is not a bug.** env_check stops a run with its own exit code.
 - **Many teams.** Frameworks are versioned libraries; each team works in its own repository and
   builds only its own framework.
