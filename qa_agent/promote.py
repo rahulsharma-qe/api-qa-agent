@@ -72,6 +72,9 @@ def promote(project: TeamProject, runs: list, apply: bool = False, feature: str 
         same.setdefault(_content(Path(path)), []).append(Path(path).name)
     per_run = [read_results([path]) for path in runs]
     copies = [names for names in same.values() if len(names) > 1]
+    if copies and apply:
+        raise SetupError(f"{' and '.join(copies[0])} are byte for byte the same: two real runs never are (each has "
+                         "its own times), so one is a copy; give results from different runs")
     result = PromoteResult(frameworks=sorted(set().union(*(run.frameworks for run in per_run)) & set(project.frameworks)))
     result.identical = copies
     if not result.frameworks:

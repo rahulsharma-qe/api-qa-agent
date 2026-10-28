@@ -29,7 +29,7 @@ def project_with_runs(make_project, tmp_path, flaky_run=2):
         cases = (f'<testcase name="test_tc1_stable_one"/><testcase name="test_tc2_flaky_one">{failed}</testcase>'
                  f'<testcase name="test_tc3_old_one">{failed}</testcase>')
         path = tmp_path / f"run{number}.xml"
-        path.write_text(f"<testsuite>{cases}</testsuite>")
+        path.write_text(f'<testsuite timestamp="2026-10-2{number}T10:00:00">{cases}</testsuite>')   # each run its own time
         runs.append(path)
     return TeamProject.load(root), runs
 
@@ -92,7 +92,7 @@ def with_a_released_feature(make_project, tmp_path, config=""):
     for number in (1, 2, 3):
         path = tmp_path / f"run{number}.xml"
         names = ("test_tc1_stable_one", "test_tc7_cancel_in_time", "test_tc8_cancel_copy_text")
-        path.write_text("<testsuite>" + "".join(f'<testcase name="{name}"/>' for name in names) + "</testsuite>")
+        path.write_text(f'<testsuite timestamp="2026-10-2{number}T10:00:00">' + "".join(f'<testcase name="{name}"/>' for name in names) + "</testsuite>")
         runs.append(path)
     return TeamProject.load(root), runs
 
@@ -145,3 +145,13 @@ def test_one_run_given_three_times_is_not_stability(tmp_path):
     run.write_text('<testsuite><testcase classname="c" name="test_tc1_x"/></testsuite>')
     with pytest.raises(SetupError, match="junit.xml is given more than once: one run given twice is not stability"):
         promote(None, [run, run, run])
+
+
+def test_a_run_copied_under_another_name_is_noted_and_refused_for_apply(make_project, tmp_path):
+    project, runs = project_with_runs(make_project, tmp_path, flaky_run=0)
+    copy = tmp_path / "copy.xml"
+    copy.write_bytes(runs[0].read_bytes())
+    runs = [runs[0], copy, runs[1]]
+    assert "run1.xml and copy.xml are byte for byte the same" in promote(project, runs).as_text(3)
+    with pytest.raises(SetupError, match="run1.xml and copy.xml are byte for byte the same: .* one is a copy"):
+        promote(project, runs, apply=True)

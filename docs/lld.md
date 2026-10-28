@@ -865,8 +865,9 @@ qa-agent promote --runs ... --apply
     `qa-agent suite TC010 functional --by qa-lead --reason "refund rule changing in the next release"`
     writes the suite and adds who, when and why to the case's notes.
 - Each argument to `--runs` is one run (a JUnit file, or a folder of them, as Surefire writes). The same
-  path given twice is refused; two runs whose files are byte for byte the same are noted (a copy is
-  not a run).
+  path given twice is refused, and so is `--apply` with two runs whose files are byte for byte the same:
+  two real runs never are, since each carries its own times, so one is a copy (without `--apply` it is
+  noted).
 
 **Flaky tests: `qa-agent flaky`.** Promote keeps a case that failed in a run out of regression, and
 says no more. `flaky` names the tests that passed in some runs and failed in others, on the same
