@@ -16,7 +16,7 @@ pip install -r requirements.txt            # the framework
 {% endif %}
 python -m demo_api &                       # the reference API (your environment replaces it)
 python -m env_check --env demo             # is the environment ready?
-{{ "pytest --junitxml=reports/junit.xml" if framework == "pytest" else "./mvnw test" }}
+{{ "python -m pytest --junitxml=reports/junit.xml" if framework == "pytest" else "./mvnw test" }}
 qa-agent trace --results {{ "reports/junit.xml" if framework == "pytest" else "target/surefire-reports" }}
 ```
 

@@ -387,12 +387,15 @@ def run_ai_report(args) -> int:
 
 
 def _day(text: str) -> str:
-    """20-10-2026 (DD-MM-YYYY, as people write it) -> 2026-10-20, to compare with the log's times."""
+    """20-10-2026 (DD-MM-YYYY, as people write it; 2026-10-20 too, as the review sheet takes) -> 2026-10-20."""
+    from qa_agent.review_common import DATE_FORMATS
     import datetime
-    try:
-        return datetime.datetime.strptime(text, "%d-%m-%Y").date().isoformat()
-    except ValueError:
-        raise argparse.ArgumentTypeError(f"'{text}' is not a day: use DD-MM-YYYY, e.g. 20-10-2026") from None
+    for form in DATE_FORMATS:
+        try:
+            return datetime.datetime.strptime(text, form).date().isoformat()
+        except ValueError:
+            continue
+    raise argparse.ArgumentTypeError(f"'{text}' is not a day: use DD-MM-YYYY, e.g. 20-10-2026")
 
 
 def _shown(path: Path, project: TeamProject) -> str:

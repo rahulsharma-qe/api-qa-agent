@@ -155,8 +155,10 @@ def test_since_must_be_a_day(make_project, capsys):
     import pytest
     project = a_project(make_project)
     with pytest.raises(SystemExit) as stopped:
-        main(["--project", str(project.root), "ai-report", "--since", "2026-10-24"])
+        main(["--project", str(project.root), "ai-report", "--since", "31-02-2026"])
     assert stopped.value.code == 2 and "use DD-MM-YYYY, e.g. 20-10-2026" in capsys.readouterr().err
+    assert main(["--project", str(project.root), "ai-report", "--since", "2026-10-24"]) == \
+        main(["--project", str(project.root), "ai-report", "--since", "24-10-2026"])   # the sheet's two forms
 
 
 def test_since_with_no_log_still_says_the_log_is_missing(make_project):

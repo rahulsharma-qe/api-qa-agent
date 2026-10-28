@@ -27,7 +27,13 @@ The same examples in Java, with the reference API still running:
 cd frameworks/restassured_api
 ./mvnw test
 cd ../..
-kill $demo                                         # stop the reference API: the next step starts its own
+```
+
+Then stop the reference API (with or without the Java step): the next section starts its own, and
+measures how many seeded bugs the tests catch only when it does.
+
+```bash
+kill $demo
 ```
 
 When a test fails, the report shows the expectation that broke and every request and response of

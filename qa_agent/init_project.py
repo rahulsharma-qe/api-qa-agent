@@ -46,7 +46,7 @@ class InitResult:
 
     def as_text(self, framework: str) -> str:
         test_folder = "tests/generated" if framework == "pytest" else "src/test/java/generated"
-        run = "pytest" if framework == "pytest" else "./mvnw test"
+        run = "python -m pytest" if framework == "pytest" else "./mvnw test"
         return "\n".join([f"created {self.root}: {len(self.files)} files, one starter case and its test in "
                           f"{test_folder}", "", "Next:", f"  cd {self.root}",
                           "  python -m demo_api &              # the reference API",

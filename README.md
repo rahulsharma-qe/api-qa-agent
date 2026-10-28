@@ -69,7 +69,7 @@ before any AI is switched on.
 |---|---|
 | [Getting started](docs/getting-started.md) | Install, the examples, a project of your own, Docker |
 | [Using qa-agent](docs/guide.md) | Every command, the day-to-day flow, the AI layer, suites, regression, Docker, CI |
-| [Architecture](docs/architecture.md) · [Design](docs/lld.md) | High-level and low-level design, as built |
+| [Architecture](docs/architecture.md) · [Design](docs/lld.md) | High-level and low-level design: what is built, and what is designed but not built yet |
 | [The first version](docs/history/first-version.md) | Where this started: one requirement, two models, five frameworks |
 
 ## What's inside
