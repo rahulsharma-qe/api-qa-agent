@@ -27,6 +27,7 @@ class Results:
     outcomes: dict = field(default_factory=dict)      # test name -> ["passed", "failed", ...]
     counts: dict = field(default_factory=dict)        # framework -> {"passed": n, ...}
     runs: list = field(default_factory=list)          # every TestRun, in file order
+    unreadable: list = field(default_factory=list)    # files that aren't valid XML or can't be opened
 
     def for_names(self, names: list) -> list:
         return [outcome for name in names for outcome in self.outcomes.get(name, [])]
@@ -45,6 +46,7 @@ def read_results(paths: list) -> Results:
         try:
             root = ElementTree.parse(path).getroot()
         except (ElementTree.ParseError, OSError):
+            results.unreadable.append(path)
             continue
         if root.tag not in ("testsuite", "testsuites"):
             continue

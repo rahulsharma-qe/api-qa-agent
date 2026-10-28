@@ -709,6 +709,12 @@ and edge), and `Happy path only` with the criteria whose approved cases are all 
 codes already show a missing 404 per operation; this shows it per criterion: a requirement tested
 only where everything goes right.
 
+**What covered means.** Covered means an approved case exists (and, for Cases to tests, its test);
+whether those tests pass is the Results line, which counts only tests that exist now: results of tests
+since removed (an older JUnit file) are left out and counted. Results that can't be read, or a
+`--results` path with no JUnit test results in it, stop the trace with exit 2 rather than letting a CI
+step pass with no results.
+
 Coverage is reported, not enforced. `--check` exits 1 only when an approved case has no test (the CI
 check of section 5 in the high-level design). A coverage threshold (`--min-coverage 80`) can come in
 phase 3b if teams want one.

@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Optional
 
 from qa_agent.api_model import ApiModel, ApiModelError, Operation, load_api_model
+from qa_agent.checks import plural
 from qa_agent.case_types import NOT_HAPPY, TYPES, case_types, expected_statuses, label
 from qa_agent.cases import Case, load_case_file
 from qa_agent.project import TeamProject
@@ -75,6 +76,7 @@ class TraceReport:
     below_floor: list = field(default_factory=list)       # "Operations 62% (floor 80%)", with --min-coverage
     orphan_tests: list = field(default_factory=list)
     results_read: dict = field(default_factory=dict)      # framework -> {"passed": n, ...}
+    results_left_out: int = 0                             # results of tests no longer generated (older files)
     case_types: dict = field(default_factory=dict)        # "positive" -> how many approved cases
     approved: int = 0
     untyped: list = field(default_factory=list)           # approved cases with no type yet: no steps, status TBD
@@ -82,11 +84,12 @@ class TraceReport:
 
     def types_line(self) -> str:
         counts = " · ".join(f"{self.case_types.get(kind, 0)} {kind}" for kind in TYPES)
-        line = f"{self.approved} approved: {counts}"
+        line = f"{self.approved} approved: {counts} (a case can be of more than one type)"
         return line + (f"   no type yet: {', '.join(self.untyped)}" if self.untyped else "")
 
     def as_text(self) -> str:
         lines = [f"qa-agent trace: {self.team}", ""] + [item.as_line() for item in self.coverage]
+        lines.append(f"{'':<15} (covered means an approved case exists; whether its tests pass is under Results)")
         if self.not_tested:
             lines.append(f"{'Not tested':<15} on purpose: " + "; ".join(self.not_tested))
         if self.approved:
@@ -95,7 +98,9 @@ class TraceReport:
             lines.append(f"{'Happy path only':<15} {', '.join(self.happy_path_only)}: no negative, auth or edge case")
         lines.append(f"{'Results':<15} " + (" · ".join(f"{framework} " + ", ".join(f"{n} {kind}" for kind, n in counts.items())
                                                      for framework, counts in self.results_read.items())
-                                            or "none given (--results reports/junit.xml target/surefire-reports)"))
+                                            or "none given (--results reports/junit.xml target/surefire-reports)")
+                     + (f" · {plural(self.results_left_out, 'result')} of tests that no longer exist left out"
+                        if self.results_left_out else ""))
         if self.missing_tests:
             lines.append(f"{'No test':<15} " + ", ".join(self.missing_tests) + ": run qa-agent generate")
         if self.orphan_tests:
@@ -166,7 +171,6 @@ def build_trace(project: TeamProject, result_paths: Optional[list] = None) -> Tr
     approved = [case for case in cases if case.is_approved]
     written = {framework: _written_tests(project, framework) for framework in project.frameworks}
     results = read_results(result_paths or [])
-    report.results_read = results.counts
     outcomes = results.outcomes
     expected_names = set()
     tests_by_case = {}
@@ -181,6 +185,7 @@ def build_trace(project: TeamProject, result_paths: Optional[list] = None) -> Tr
                     report.missing_tests.append(f"{case.id} ({framework})")
     report.orphan_tests = sorted(f"{framework}: {label}" for framework in project.frameworks
                                  for name, label in written[framework].items() if name not in expected_names)
+    report.results_read, report.results_left_out = _current_results(results, expected_names)
     types = {case.id: case_types(case, project) for case in approved}
     report.rows = _rows(cases, criteria, tests_by_case, outcomes, project, types)
     _count_types(report, approved, criteria, types)
@@ -194,6 +199,19 @@ def build_trace(project: TeamProject, result_paths: Optional[list] = None) -> Tr
     report.coverage.append(Coverage("Cases to tests", with_tests, len(approved),
                                     [item for item in report.missing_tests]))
     return report
+
+
+def _current_results(results, expected_names: set) -> tuple:
+    """Counts per framework for the tests that exist now; results of others (an older file) are left out."""
+    counts, left_out = {}, 0
+    for test in results.runs:
+        if test.name not in expected_names:
+            left_out += 1
+            continue
+        framework = "pytest" if test.name.startswith("test_") else "restassured"
+        counts.setdefault(framework, {})
+        counts[framework][test.outcome] = counts[framework].get(test.outcome, 0) + 1
+    return counts, left_out
 
 
 def _written_tests(project: TeamProject, framework: str) -> dict:

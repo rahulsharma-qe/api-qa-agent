@@ -243,8 +243,9 @@ Criteria        4 of 6   missing: AC-5 (not approved: TC006, TC020, TC021), AC-6
 Operations      5 of 8   missing: POST /auth/token, GET /bookings, GET /bookings/{pnr}/refund
 Response codes  9 of 19   missing: POST /auth/token 200, POST /auth/token 422, GET /bookings 200, POST /bookings 422, PUT /bookings/{pnr} 404, DELETE /bookings/{pnr} 404, POST /bookings/{pnr}/cancel 422, GET /bookings/{pnr}/refund 200, GET /bookings/{pnr}/refund 404, 401 (bookings, any operation)
 Cases to tests  9 of 9
+                (covered means an approved case exists; whether its tests pass is under Results)
 Not tested      on purpose: GET /health-check: env_check calls it before every run; POST /test/reset: a test-only route; it resets the data; GET /health-check (notifications): env_check calls it before every run
-Case types      9 approved: 5 positive · 4 negative · 0 auth · 1 edge
+Case types      9 approved: 5 positive · 4 negative · 0 auth · 1 edge (a case can be of more than one type)
 Results         pytest 12 passed · restassured 12 passed
 ```
 

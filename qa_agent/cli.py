@@ -47,6 +47,7 @@ from qa_agent.generate import generate
 from qa_agent.impact_analysis import impact_analysis
 from qa_agent.init_project import init_project
 from qa_agent.promote import move_to_suite, promote
+from qa_agent.results import read_results
 from qa_agent.trace import build_trace
 from qa_agent.importers.common import CaseImportError
 from qa_agent.importers.curl import CurlError, read_curl
@@ -272,6 +273,13 @@ def run_trace(args) -> int:
     missing = [project.relative(path) for path in results if not path.exists()]
     if missing:
         raise SetupError(f"no such results: {', '.join(missing)}")
+    if results:
+        read = read_results(results)
+        if read.unreadable:
+            raise SetupError("results can't be read (not valid XML): "
+                             + ", ".join(project.relative(path) for path in read.unreadable))
+        if not read.runs:
+            raise SetupError(f"no JUnit test results in: {', '.join(project.relative(path) for path in results)}")
     report = build_trace(project, results)
     if args.min_coverage is not None:
         report.apply_floor(args.min_coverage)

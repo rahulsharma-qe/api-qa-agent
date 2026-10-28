@@ -94,13 +94,13 @@ def test_the_trace_counts_types_and_names_the_criteria_tested_on_the_happy_path_
         item.review.status, item.review.by, item.review.fingerprint = "approved", "qa-lead", item.fingerprint()
     save_case_file(case_file)
     report = build_trace(TeamProject.load(root))
-    assert report.types_line() == "4 approved: 3 positive · 1 negative · 0 auth · 1 edge"
+    assert report.types_line() == "4 approved: 3 positive · 1 negative · 0 auth · 1 edge (a case can be of more than one type)"
     assert report.happy_path_only == ["AC-1"]           # TC5's 422 isn't approved: it doesn't count
     assert {row.case_id: row.types for row in report.rows if row.case_id} == {
         "TC1": "positive", "TC5": "-", "TC2": "positive", "TC3": "negative", "TC4": "positive, edge"}
     assert main(["--project", str(root), "trace"]) == 0
     out = capsys.readouterr().out
-    assert "Case types      4 approved: 3 positive · 1 negative · 0 auth · 1 edge" in out
+    assert "Case types      4 approved: 3 positive · 1 negative · 0 auth · 1 edge (a case can be" in out
     assert "Happy path only AC-1: no negative, auth or edge case" in out
     markdown = (root / "reports/trace.md").read_text()
     assert "Happy path only: AC-1 (no negative, auth or edge case)" in markdown

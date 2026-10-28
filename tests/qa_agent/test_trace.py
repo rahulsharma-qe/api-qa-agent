@@ -137,3 +137,23 @@ def test_a_rejected_case_is_not_listed_as_waiting_for_approval(make_project):
              Case("TC2", "rejected one", criteria=["AC-1"], review=Review(status="rejected")),
              Case("TC3", "rejected only", criteria=["AC-2"], review=Review(status="rejected"))]
     assert _criteria_coverage(criteria, cases).missing == ["AC-1 (not approved: TC1)", "AC-2 (no case)"]
+
+
+def test_results_that_cant_be_read_or_hold_no_tests_stop_the_trace(make_project, tmp_path, capsys):
+    project = project_with_tests(make_project)
+    broken = tmp_path / "broken.xml"
+    broken.write_text("<testsuite><testcase name=")
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    assert main(["--project", str(project.root), "trace", "--check", "--results", str(broken)]) == 2
+    assert "results can't be read (not valid XML)" in capsys.readouterr().err
+    assert main(["--project", str(project.root), "trace", "--check", "--results", str(empty)]) == 2
+    assert "no JUnit test results in" in capsys.readouterr().err
+
+
+def test_results_of_tests_that_no_longer_exist_are_left_out(make_project, tmp_path):
+    project = project_with_tests(make_project)
+    old = junit(tmp_path / "junit.xml", [("test_tc1_make_one", ""), ("test_tc9_removed_since", "")])
+    report = build_trace(project, [old])
+    assert report.results_read == {"pytest": {"passed": 1}} and report.results_left_out == 1
+    assert "1 result of tests that no longer exist left out" in report.as_text()
