@@ -29,7 +29,7 @@ cases:
       status: approved
       by: qa-lead
       date: '2026-10-21'
-      fingerprint: a761a34a4590
+      fingerprint: c21f958eed76
   - id: TC003
     title: A second cancel is refused
     criteria: [AC-4]

@@ -173,12 +173,14 @@ class CaseFile:
 
 
 def _file_hash(path: Path) -> str:
-    """The data file's contents, with line endings made the same (a file saved on Windows is the same data)."""
+    """The data file's rows as read, not its bytes: a file saved again by Excel, or with Windows line endings,
+    holds the same data and stays approved."""
+    from qa_agent.data_files import DataFileError, rows
     try:
-        data = path.read_bytes().replace(b"\r\n", b"\n")
-    except OSError:
-        return "missing"
-    return hashlib.sha256(data).hexdigest()
+        found = rows(path)
+    except DataFileError:
+        return "missing" if not path.is_file() else "unreadable"
+    return hashlib.sha256(json.dumps(found, sort_keys=True, default=str).encode()).hexdigest()
 
 
 def project_root_of(path: Path) -> Path:

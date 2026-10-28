@@ -112,7 +112,31 @@ def test_a_changed_row_in_the_data_file_sends_an_approved_case_back_to_review(tm
     save_case_file(case_file)
     rows.write_bytes(b"hours,refund\r\n24,true\r\n25,false\r\n")              # saved on Windows: the same data
     assert load_case_file(tmp_path / "cases" / "refunds.yaml").cases[0].is_approved
+    rows.write_bytes(b"\xef\xbb\xbfhours,refund\n24,true\n25,false\n")         # Excel's "CSV UTF-8": the same data
+    assert load_case_file(tmp_path / "cases" / "refunds.yaml").cases[0].is_approved
     rows.write_text("hours,refund\n24,false\n25,false\n")                    # the 24-hour rule changed
     assert load_case_file(tmp_path / "cases" / "refunds.yaml").cases[0].changed_after_approval
     rows.unlink()
+    assert load_case_file(tmp_path / "cases" / "refunds.yaml").cases[0].changed_after_approval
+
+
+def test_an_excel_data_file_saved_again_with_the_same_rows_stays_approved(tmp_path):
+    from openpyxl import Workbook
+    (tmp_path / "qa-agent.yaml").write_text("team: t\n")
+    (tmp_path / "cases").mkdir()
+    book = Workbook()
+    book.active.append(["hours", "refund"])
+    book.active.append([24, True])
+    book.save(tmp_path / "refunds.xlsx")
+    (tmp_path / "cases" / "refunds.yaml").write_text(
+        "feature: Refunds\ncases:\n  - id: TC1\n    title: Refund by hours\n    data_file: refunds.xlsx\n"
+        "    steps:\n      - request: {method: GET, path: /refund}\n        expect: {status: 200}\n")
+    case_file = load_case_file(tmp_path / "cases" / "refunds.yaml")
+    case_file.cases[0].review.status, case_file.cases[0].review.fingerprint = "approved", case_file.cases[0].fingerprint()
+    save_case_file(case_file)
+    book.properties.lastModifiedBy = "someone else"              # a re-save changes the bytes, not the rows
+    book.save(tmp_path / "refunds.xlsx")
+    assert load_case_file(tmp_path / "cases" / "refunds.yaml").cases[0].is_approved
+    book.active["B2"] = False
+    book.save(tmp_path / "refunds.xlsx")
     assert load_case_file(tmp_path / "cases" / "refunds.yaml").cases[0].changed_after_approval

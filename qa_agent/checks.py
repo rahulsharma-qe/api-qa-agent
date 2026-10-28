@@ -181,7 +181,8 @@ def _case_findings(case: Case, case_file: CaseFile, project: TeamProject, api: O
     if case.needs_steps:
         found.append((INFO, ": needs steps (it has manual steps only). It is kept and traced, and can't be "
                             "generated until it has steps"))
-    if case.changed_after_approval:
+    data_missing = bool(case.data_file) and not (project.root / case.data_file).is_file()
+    if case.changed_after_approval and not data_missing:      # a missing data file is its own error, below
         found.append((WARNING, ": changed after it was approved. Review it again; until then it is not generated"))
     found += _criteria_findings(case, criteria)
     columns = _data_columns(case, project, found)

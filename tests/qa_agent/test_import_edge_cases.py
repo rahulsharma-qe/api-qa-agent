@@ -101,3 +101,37 @@ def test_import_exits_1_when_a_case_couldnt_be_read_and_says_which(make_project,
     assert main(["--project", str(root), "import", "cases", str(source)]) == 1
     out = capsys.readouterr().out
     assert "skipped TC900: TC900 step 1: method 'FETCH'" in out and "1 case imported as drafts, 1 skipped" in out
+
+
+DATA_CASE = """
+feature: Refunds
+cases:
+  - id: TC1
+    title: Refund by hours
+    criteria: []
+    data_file: data/refunds.csv
+    steps:
+      - request: {method: GET, path: "/refund/{{row.hours}}"}
+        expect: {status: 200}
+"""
+
+
+def test_a_data_file_saved_by_excel_is_read_in_either_encoding(make_project, capsys):
+    root = make_project({"cases/a.yaml": DATA_CASE, "data/refunds.csv": ""})
+    for data in (b"\xef\xbb\xbfhours,refund\n24,true\n", "hours,café\n24,true\n".encode("cp1252")):
+        (root / "data/refunds.csv").write_bytes(data)
+        main(["--project", str(root), "check"])
+        out = capsys.readouterr().out
+        assert "has no column" not in out and "can't be read" not in out
+
+
+def test_a_missing_data_file_is_one_error_not_also_a_changed_approval(make_project, capsys):
+    from qa_agent.cases import load_case_file, save_case_file
+    root = make_project({"cases/a.yaml": DATA_CASE, "data/refunds.csv": "hours,refund\n24,true\n"})
+    case_file = load_case_file(root / "cases/a.yaml")
+    case_file.cases[0].review.status, case_file.cases[0].review.fingerprint = "approved", case_file.cases[0].fingerprint()
+    save_case_file(case_file)
+    (root / "data/refunds.csv").unlink()
+    main(["--project", str(root), "check"])
+    out = capsys.readouterr().out
+    assert "no such data file" in out and "changed after it was approved" not in out
