@@ -2,8 +2,9 @@
 #
 #   jobs:
 #     api-tests:
-#       uses: rahulsharma-qe/api-qa-agent/.github/workflows/qa-agent-team.yml@main
+#       uses: rahulsharma-qe/api-qa-agent/.github/workflows/qa-agent-team.yml@v0.5.0   # a release tag
 #       with:
+#         platform-ref: v0.5.0         # the same release (qa-agent init writes both)
 #         framework: pytest                # or restassured
 #         environment: demo            # an environment in config/environments.yaml
 #         start-reference-api: true    # only when testing the reference API

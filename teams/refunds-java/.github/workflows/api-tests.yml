@@ -8,6 +8,8 @@ on:
 
 jobs:
   api-tests:
+    # @main because this project tests this repository's own code; a team's project pins a release,
+    # as qa-agent init writes it.
     uses: rahulsharma-qe/api-qa-agent/.github/workflows/qa-agent-team.yml@main
     with:
       framework: restassured
