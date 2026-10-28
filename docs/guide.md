@@ -32,7 +32,8 @@ Every command takes `--project <folder>` (default: the current folder) and `--he
    have, a value still to confirm (`TBD`), a case that checks nothing, a criterion that doesn't exist,
    a case that repeats another's steps under a different id.
 3. **Review.** `review export` writes the sheet; a person fills Decision, Reviewer and Comment;
-   `review apply` records it. A case edited after approval goes back to review by itself.
+   `review apply` records it. A case edited after approval goes back to review by itself: its
+   steps, or a row of its data file.
 4. **Generate and run.** `generate` writes the tests; they run in your framework as always.
    In CI, `generate --check` stops a build whose tests are older than its cases.
 5. **Trace.** `trace` shows what is covered and what isn't; `--min-coverage` sets a floor. It

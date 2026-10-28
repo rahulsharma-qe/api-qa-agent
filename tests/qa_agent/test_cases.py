@@ -91,4 +91,28 @@ def test_renaming_an_expectation_or_the_data_file_keeps_every_approval():
         {"request": {"method": "GET", "path": "/bookings/{{row.pnr}}"},
          "expect": {"status": 200, "max_response_ms": 2000}}]}]}
     cases = parse_case_file(data, Path("x.yaml")).cases
+    for case in cases:
+        case.project_root = None                     # the format alone: the data file's contents are added below
     assert [case.fingerprint() for case in cases] == ["ebf305a4de5c"]
+
+
+def test_a_changed_row_in_the_data_file_sends_an_approved_case_back_to_review(tmp_path):
+    """The expected results of a data-driven case live in its data file: editing a row is editing the case."""
+    (tmp_path / "qa-agent.yaml").write_text("team: t\n")
+    (tmp_path / "data").mkdir()
+    (tmp_path / "cases").mkdir()
+    rows = tmp_path / "data" / "refunds.csv"
+    rows.write_text("hours,refund\n24,true\n25,false\n")
+    (tmp_path / "cases" / "refunds.yaml").write_text(
+        "feature: Refunds\ncases:\n  - id: TC1\n    title: Refund by hours\n    data_file: data/refunds.csv\n"
+        "    steps:\n      - request: {method: GET, path: /refund}\n        expect: {status: 200}\n")
+    case_file = load_case_file(tmp_path / "cases" / "refunds.yaml")
+    case = case_file.cases[0]
+    case.review.status, case.review.fingerprint = "approved", case.fingerprint()
+    save_case_file(case_file)
+    rows.write_bytes(b"hours,refund\r\n24,true\r\n25,false\r\n")              # saved on Windows: the same data
+    assert load_case_file(tmp_path / "cases" / "refunds.yaml").cases[0].is_approved
+    rows.write_text("hours,refund\n24,false\n25,false\n")                    # the 24-hour rule changed
+    assert load_case_file(tmp_path / "cases" / "refunds.yaml").cases[0].changed_after_approval
+    rows.unlink()
+    assert load_case_file(tmp_path / "cases" / "refunds.yaml").cases[0].changed_after_approval

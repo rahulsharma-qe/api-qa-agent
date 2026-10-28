@@ -114,13 +114,17 @@ class Case:
     manual_steps: list = field(default_factory=list)
     notes: str = ""
     review: Review = field(default_factory=Review)
+    project_root: Optional[Path] = field(default=None, repr=False, compare=False)    # set when read from a file
 
     def fingerprint(self) -> str:
-        """A hash of what the test does (id, steps, data file). Editing any of it after approval shows up."""
+        """A hash of what the test does (id, steps, and the data file's name and contents). Editing any of it
+        after approval shows up: a changed row in the data file changes what the test checks."""
         # The names inside are the ones the format had when approvals began (data, steps_text, within_ms):
         # renaming a field in the file must not change the fingerprint of a case already approved.
         steps = [_with_names_at_approval(step.to_dict()) for step in self.steps]
         content = {"id": self.id, "steps": steps, "data": self.data_file, "steps_text": self.manual_steps}
+        if self.data_file and self.project_root is not None:
+            content["data_contents"] = _file_hash(self.project_root / self.data_file)
         return hashlib.sha256(json.dumps(content, sort_keys=True, default=str).encode()).hexdigest()[:12]
 
     @property
@@ -168,6 +172,23 @@ class CaseFile:
         return {"feature": self.feature, "cases": [case.to_dict() for case in self.cases]}
 
 
+def _file_hash(path: Path) -> str:
+    """The data file's contents, with line endings made the same (a file saved on Windows is the same data)."""
+    try:
+        data = path.read_bytes().replace(b"\r\n", b"\n")
+    except OSError:
+        return "missing"
+    return hashlib.sha256(data).hexdigest()
+
+
+def project_root_of(path: Path) -> Path:
+    """The folder with qa-agent.yaml above a case file (data files are named from there)."""
+    for folder in Path(path).resolve().parents:
+        if (folder / "qa-agent.yaml").is_file():
+            return folder
+    return Path(path).resolve().parent.parent
+
+
 def load_case_file(path: Path) -> CaseFile:
     try:
         data = read_yaml(path)
@@ -193,6 +214,7 @@ def parse_case_file(data: Any, path: Path) -> CaseFile:
         if case.id in seen:
             problems.append(f"{case.id}: the id is used twice in this file")
         seen.add(case.id)
+        case.project_root = project_root_of(path)
         cases.append(case)
     if problems:
         raise CaseFormatError(path, problems)

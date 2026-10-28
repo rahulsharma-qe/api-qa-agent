@@ -485,7 +485,8 @@ cases:
 - **One file per feature or resource** (`cases/cancellation.yaml`), holding a list of cases, as
   Gherkin, Karate and Postman do. Each case keeps its own id, review and fingerprint, so approval
   stays per case.
-- **The fingerprint** is a hash of the case's id, steps, data and expectations. A case edited after
+- **The fingerprint** is a hash of the case's id, steps and expectations, and of its data file's name
+  and contents (line endings aside), since a data-driven case keeps its expected results there. A case edited after
   approval no longer matches its fingerprint: `check` reports it, and `generate` treats it as a
   draft until it is approved again. Nothing unapproved becomes code.
 - A step with no expectation is an error: a test must check something.

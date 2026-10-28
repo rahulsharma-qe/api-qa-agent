@@ -33,7 +33,7 @@ cases:
       status: approved
       by: qa-lead
       date: '2026-10-21'
-      fingerprint: 73683198e071
+      fingerprint: 1fdf4e01a987
   - id: TC041
     title: Cancelling twice tells the passenger it is already cancelled
     criteria: [AC-4]
