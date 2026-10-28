@@ -140,7 +140,7 @@ Each case is approved by that name, with the reason; a case `check` finds an err
 
 ```bash
 cd your-team-project
-docker run --rm -v "$PWD:/project" ghcr.io/rahulsharma-qe/qa-agent:0.4.0 check
+docker run --rm -v "$PWD:/project" ghcr.io/rahulsharma-qe/qa-agent:0.5.0 check
 ```
 
 A version number keeps every run the same; `:latest` follows each release. Or build the image

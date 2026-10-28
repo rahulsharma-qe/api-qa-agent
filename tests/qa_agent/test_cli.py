@@ -53,3 +53,9 @@ def test_a_missing_api_file_is_a_setup_problem(make_project, capsys):
 def test_no_command_shows_the_help(capsys):
     assert main([]) == 2
     assert "import" in capsys.readouterr().out
+
+
+def test_project_goes_before_or_after_the_command(make_project):
+    root = make_project({"cases/a.yaml": "feature: A\ncases: []\n"})
+    assert main(["--project", str(root), "check"]) == main(["check", "--project", str(root)]) == 0
+    assert main(["review", "export", "--project", str(root)]) == 0

@@ -16,7 +16,7 @@ on:
   workflow_call:
     inputs:
       framework:
-        description: python or restassured
+        description: pytest or restassured
         required: true
         type: string
       environment:
@@ -76,6 +76,10 @@ jobs:
       - name: Install the framework (${{ inputs.framework }})
         working-directory: .
         run: |
+          case "${{ inputs.framework }}" in
+            pytest|restassured) ;;
+            *) echo "framework: '${{ inputs.framework }}' (use pytest or restassured)"; exit 1 ;;
+          esac
           if [ "${{ inputs.platform-from-checkout }}" = "true" ]; then
             platform="$PWD"
           else

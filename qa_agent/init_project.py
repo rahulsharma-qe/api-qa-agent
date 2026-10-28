@@ -17,6 +17,7 @@ from pathlib import Path
 
 from jinja2 import Environment, StrictUndefined
 
+from qa_agent import __version__
 from qa_agent.cases import load_case_file, save_case_file
 from qa_agent.generate import generate
 from qa_agent.project import FRAMEWORKS, SetupError, TeamProject
@@ -61,7 +62,7 @@ def init_project(root: Path, framework: str, team: str = "", service: str = "boo
         raise SetupError(f"{root} is not empty: qa-agent init makes a new project in an empty folder")
     team = team or root.resolve().name
     artifact = re.sub(r"[^a-z0-9]+", "-", team.lower()).strip("-") or "team"
-    values = {"team": team, "service": service, "framework": framework, "artifact": artifact,
+    values = {"team": team, "service": service, "framework": framework, "artifact": artifact, "release": f"v{__version__}",
               "package": artifact.replace("-", "")}
     result = InitResult(root)
     for part in ("common", framework):

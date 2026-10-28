@@ -7,7 +7,7 @@ runs on day one: replace it with your own.
 ## Run it
 
 ```bash
-pip install "api-qa-agent @ git+https://github.com/rahulsharma-qe/api-qa-agent.git"   # qa-agent, env_check, the reference API
+pip install "api-qa-agent @ git+https://github.com/rahulsharma-qe/api-qa-agent.git@{{ release }}"   # qa-agent, env_check, the reference API
 {% if framework == "pytest" %}
 pip install -r requirements.txt            # the framework
 {% else %}
@@ -23,7 +23,7 @@ qa-agent trace --results {{ "reports/junit.xml" if framework == "pytest" else "t
 ## Bring your own
 
 ```bash
-qa-agent import api api/source/openapi.json          # or a .curl file with a sample response
+qa-agent import api <your openapi.json, or a .curl file with a sample response>
 qa-agent import cases existing/api_cases_template.xlsx   # or your Excel, CSV, Postman or .feature files
 qa-agent check                                       # what to fix before review
 qa-agent review export                               # review/cases.xlsx: approve, send back, reject

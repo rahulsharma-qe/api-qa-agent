@@ -4,11 +4,13 @@
 of the API, the acceptance criteria of a change, and the test cases it already wrote) into runnable API
 tests in the team's own framework, Python or REST Assured. Regression runs need no AI.
 
-Status: **design**. Each phase below is built and checked before the next one starts.
+Status: phases 0 to 3b are built, and part of phase 6 (criteria and cases drafted from a requirement,
+redaction, the audit log, the AI report). Phases 3c, 4 and 5 and the rest of phase 6 are designed, not
+built; the table in section 12 says which is which, and the README's status table is the record.
 
 The command-line tool is `qa-agent`. Its core (case format, importers of existing cases, review
-files, traceability, safety, the model layer) is a package other agents reuse: the user-interface
-agent, `playwright-qa-agent`, is a separate repository that depends on it.
+files, traceability, safety, the model layer) is meant to be reused by other agents: a user-interface
+agent, `playwright-qa-agent`, is planned as a separate repository that would depend on it (not built yet).
 
 ## 1. Goals and non-goals
 
@@ -110,7 +112,7 @@ flowchart TB
   subgraph OUT["4 · What comes out"]
     REP["Reports<br/>Allure for people · JUnit XML for CI"]
     TRACE["Traceability matrix<br/>criteria → cases → tests → results"]
-    MEAS["Measures<br/>bug-detection rate · reviewer agreement · coverage"]
+    MEAS["Measures<br/>bug-detection rate · coverage<br/>(reviewer agreement: planned)"]
   end
   SPEC --> IMP
   AC --> IMP
@@ -300,7 +302,7 @@ flowchart TB
 | Safe | Section 8 |
 | Honest results | An environment problem (exit 3) is never reported as a product bug; a failed test shows the request, the response and the expectation that broke; a test that passes only on retry is reported as such, never as a plain pass |
 | Evidence | Every test's requests and responses, pass or fail, are kept in the Allure report and, on request, in an evidence folder for audits and sign-off |
-| Measured | Bug-detection rate, reviewer agreement and endpoint coverage, section 10 |
+| Measured | Bug-detection rate and endpoint coverage, built; reviewer agreement, designed (section 10) |
 | Traceable | Criteria → cases → tests → results in one matrix; CI fails if an approved case has no test |
 
 ## 10. Measuring the AI's work
@@ -308,7 +310,7 @@ flowchart TB
 | Measure | Question it answers | How |
 |---|---|---|
 | Bug-detection rate (mutation testing) | Do the generated tests catch bugs, not just pass? | The demo API can switch on small seeded bugs (a boundary moved, a deleted booking still returned); the share the suite catches |
-| Reviewer agreement | Can we trust the AI reviewer's comments? | Its comments against the reviewer's decisions in the review sheets; tuning and held-back halves, as in the sibling repository |
+| Reviewer agreement (designed, not built: there is no AI reviewer yet) | Can we trust the AI reviewer's comments? | Its comments against the reviewer's decisions in the review sheets; tuning and held-back halves, as in the sibling repository |
 | Endpoint coverage | Is every endpoint and response code tested? | Approved cases against the API description (API → cases) |
 | Criteria coverage | Is every acceptance criterion tested? | Each criterion's approved cases (criteria → cases) |
 | Case-to-test mapping | Did every approved case become a test? | One case to one test, or one to many (a data-driven case runs once per data row; the same case in two frameworks); flags a case with no test and a test with no case (cases → tests) |
@@ -335,18 +337,18 @@ flowchart TB
 Everything that needs no model comes first, so a team can use the utility end to end with its
 existing cases before any AI is switched on. The AI layer comes last and sits on top.
 
-| Phase | What | Model access |
-|---|---|---|
-| 0 | Demo bookings API (create, read, update, delete, cancel, token, refund status, health check; `booked_at` and `cancelled_at` so time boundaries can be tested), a stand-in notifications service that can be switched down, the OpenAPI description; repository clean-up | No |
-| 1 | Python framework and env_check, with an example for every feature | No |
-| 1b | Python framework, for QA teams: Allure report, `smoke` and `priority` tags, evidence of every test, one retry shown separately | No |
-| 2 | REST Assured framework with TestNG: the familiar layout (`BaseTest`, request specifications, listeners, `testng.xml` suites for smoke, regression and functional, Excel data), Allure, evidence, retry, the Maven wrapper; same environments file | No |
-| 3a | Case format, importers (API descriptions; existing cases from Excel, CSV, Postman collections, Gherkin), the Excel review sheet, renderers, `generate`, `trace`, `init` | No |
-| 3b | Drift check, `promote`, bug-detection rate, two example teams, the reusable workflow, the public-API run, a one-command setup (Docker image for qa-agent) | No |
-| 3c | Cucumber on REST Assured: step definitions written once, `.feature` files generated from the same cases | No |
-| 4 | User-interface track, in its own repository `playwright-qa-agent` (TypeScript, Playwright Test), using this repository's core as a package: the team's UI cases imported, reviewed, generated and run through the same flow; rule-based self-healing (each element has ranked locators: test id, then role and name, then text), every heal logged and approved by a person before it is kept; a small bookings web page on the demo API, with a switch that renames elements to show healing | No |
-| 5 | Jira and wiki: read acceptance criteria from a Jira issue or a wiki page; a failing test goes to a triage file, and a person decides before a Jira bug is raised with the request, response and case attached; results sent back to TestRail, Zephyr or Xray by case id; tested with fakes, confirmed live on a free Atlassian account | No (needs Jira and wiki access) |
-| 6 | The AI layer: AI review of existing cases, drafting of missing cases and test data (API and UI), a suggested locator when rule-based healing fails, a suggested triage; model providers (direct API, AWS Bedrock, Google Vertex, Azure); safety (redaction, minimum sent, audit log); reviewer agreement | Yes |
+| Phase | What | Model access | Built |
+|---|---|---|---|
+| 0 | Demo bookings API (create, read, update, delete, cancel, token, refund status, health check; `booked_at` and `cancelled_at` so time boundaries can be tested), a stand-in notifications service that can be switched down, the OpenAPI description; repository clean-up | No | Yes |
+| 1 | Python framework and env_check, with an example for every feature | No | Yes |
+| 1b | Python framework, for QA teams: Allure report, `smoke` and `priority` tags, evidence of every test, one retry shown separately | No | Yes |
+| 2 | REST Assured framework with TestNG: the familiar layout (`BaseTest`, request specifications, listeners, `testng.xml` suites for smoke, regression and functional, Excel data), Allure, evidence, retry, the Maven wrapper; same environments file | No | Yes |
+| 3a | Case format, importers (API descriptions; existing cases from Excel, CSV, Postman collections, Gherkin), the Excel review sheet, renderers, `generate`, `trace`, `init` | No | Yes |
+| 3b | Drift check, `promote`, bug-detection rate, two example teams, the reusable workflow, the public-API run, a one-command setup (Docker image for qa-agent) | No | Yes |
+| 3c | Cucumber on REST Assured: step definitions written once, `.feature` files generated from the same cases | No | No |
+| 4 | User-interface track, in its own repository `playwright-qa-agent` (TypeScript, Playwright Test), using this repository's core as a package: the team's UI cases imported, reviewed, generated and run through the same flow; rule-based self-healing (each element has ranked locators: test id, then role and name, then text), every heal logged and approved by a person before it is kept; a small bookings web page on the demo API, with a switch that renames elements to show healing | No | No |
+| 5 | Jira and wiki: read acceptance criteria from a Jira issue or a wiki page; a failing test goes to a triage file, and a person decides before a Jira bug is raised with the request, response and case attached; results sent back to TestRail, Zephyr or Xray by case id; tested with fakes, confirmed live on a free Atlassian account | No (needs Jira and wiki access) | No |
+| 6 | The AI layer: AI review of existing cases, drafting of missing cases and test data (API and UI), a suggested locator when rule-based healing fails, a suggested triage; model providers (direct API, AWS Bedrock, Google Vertex, Azure); safety (redaction, minimum sent, audit log); reviewer agreement | Yes | Partly: drafting criteria and cases, safety, the AI report; a model in your own server through an OpenAI-compatible URL |
 
 ## 13. Limits, and what comes later
 
@@ -354,7 +356,7 @@ existing cases before any AI is switched on. The AI layer comes last and sits on
   in its own repository.
 - **MCP:** in `playwright-qa-agent`, the Playwright MCP server lets the AI layer explore a page to
   draft UI cases and suggest locators; a QA MCP server could offer `qa-agent`'s commands to any AI
-  assistant. Both are discussed when the AI layer starts.
+  assistant. Neither is built.
 - **The core in its own repository,** when a third agent needs it.
 - **A full health-check framework** as its own repository: history, schedules, alerts and
   environment booking, when several repositories need it.

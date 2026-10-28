@@ -9,20 +9,25 @@ cd api-qa-agent
 pip install -e . -e frameworks/python_api          # the reference API, env_check, qa-agent, the Python framework
 ```
 
+Every block below starts from the repository's root (`api-qa-agent/`).
+
 ## 1. The frameworks, against the reference API
 
 ```bash
-python -m demo_api &                               # bookings on :8000, notifications on :8001
+python -m demo_api & demo=$!                       # bookings on :8000, notifications on :8001
 cd frameworks/python_api
 python -m env_check --env demo                     # is the environment ready?
-pytest                                             # every example, against the reference API
+python -m pytest                                   # every example, against the reference API
+cd ../..
 ```
 
-The same examples in Java:
+The same examples in Java, with the reference API still running:
 
 ```bash
 cd frameworks/restassured_api
-./mvnw test                                        # with the reference API running, as above
+./mvnw test
+cd ../..
+kill $demo                                         # stop the reference API: the next step starts its own
 ```
 
 When a test fails, the report shows the expectation that broke and every request and response of
@@ -33,9 +38,12 @@ the test, in order, with tokens masked. Each framework's README has the details:
 
 ```bash
 cd examples/bookings-team
-./run_all.sh --pytest-only                         # or ./run_all.sh with the Java framework installed:
-                                                   # cd frameworks/restassured_api && ./mvnw -q install -DskipTests
+./run_all.sh --pytest-only                         # or ./run_all.sh, once the Java framework is installed:
+cd ../..                                           # (cd frameworks/restassured_api && ./mvnw -q install -DskipTests)
 ```
+
+`run_all.sh` starts the reference API itself, and switches on one seeded bug at a time for the
+bug-detection rate; if a reference API is already running, it skips that step and says so.
 
 The [example's README](../examples/bookings-team/README.md) walks through every step: the API, the
 team's existing cases in four formats, what `check` finds, the review sheet, the generated tests in
@@ -46,6 +54,7 @@ both frameworks, the trace, promotion to regression, the bug-detection rate and 
 ```bash
 cd examples/from-a-requirement
 ./run_all.sh                                       # a ticket -> criteria -> cases -> three reviews and a redo -> tests
+cd ../..
 ```
 
 The [example's README](../examples/from-a-requirement/README.md) shows each step's output and what
@@ -67,7 +76,7 @@ From there, the [guide](guide.md) has every command.
 
 ```bash
 cd your-team-project
-docker run --rm -v "$PWD:/project" ghcr.io/rahulsharma-qe/qa-agent:0.4.0 check
+docker run --rm -v "$PWD:/project" ghcr.io/rahulsharma-qe/qa-agent:0.5.0 check
 ```
 
 See [Docker](guide.md#docker) in the guide.

@@ -39,7 +39,9 @@ validation error, but `POST /pet` without a name answers 200 and stores the pet.
 exactly this; `qa-agent check` flagged the missing field as a possible negative test, and the
 reviewer kept TC106 out of the run with "changes needed" and the reason, until Petstore is fixed.
 That is the job the review step is for: the case is right, the API is not, and a person decides
-what the build should do about it.
+what the build should do about it. The cost, said plainly: while it is out of the run, TC106 isn't in
+the coverage count and the known bug doesn't show in CI. A status for a known defect (the test still
+runs, expected to fail, with a link to the bug) is on the later list.
 
 The trace also shows what isn't covered, plainly: 7 of 18 operations have an approved case. The user
 endpoints, finding pets by status or tag, the inventory and updating a pet with form data have none.

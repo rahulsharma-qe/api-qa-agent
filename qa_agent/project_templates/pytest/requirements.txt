@@ -1,2 +1,0 @@
-# The Python framework, from the platform repository (pin a tag or commit once one is published).
-api-test-framework @ git+https://github.com/rahulsharma-qe/api-qa-agent.git#subdirectory=frameworks/python_api

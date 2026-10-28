@@ -5,8 +5,9 @@ document says how each part is built. It grows phase by phase: this version cove
 (the demo API), **phase 1** (the Python framework and env_check), **phase 1b** (the Python
 framework for QA teams), **phase 2** (the REST Assured framework with TestNG), **phase 3a**
 (cases, importers, the review sheet, generated tests, trace and init) and **phase 3b** (drift check,
-promote, bug-detection rate, teams, Petstore, Docker); later phases get their sections when they are
-designed.
+promote, bug-detection rate, teams, Petstore, Docker) and **phase 6** as built (the AI layer: drafting
+criteria and cases, its guardrails, the audit log and the AI report); later phases get their sections
+when they are designed.
 
 ## 1. Repository layout after phase 2
 

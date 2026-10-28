@@ -72,6 +72,17 @@ def main(argv: Optional[list[str]] = None) -> int:
         return SETUP_PROBLEM
 
 
+def _project_after_the_command(parser: argparse.ArgumentParser) -> None:
+    """`qa-agent check --project teams/x` works as well as `qa-agent --project teams/x check`."""
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            for command in action.choices.values():
+                if not any(option.dest == "project" for option in command._actions):
+                    command.add_argument("--project", type=Path, default=argparse.SUPPRESS,
+                                         help="the team's project folder (default: here)")
+                _project_after_the_command(command)
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="qa-agent", description="Test cases as data: import, check, review, "
                                                                    "generate and trace, in the team's framework.")
@@ -195,6 +206,7 @@ def _parser() -> argparse.ArgumentParser:
     report.add_argument("--since", type=_day, default=None, metavar="DD-MM-YYYY",
                         help="only the calls on or after this day (UTC), and the drafts they made")
     report.set_defaults(run=run_ai_report)
+    _project_after_the_command(parser)
     return parser
 
 

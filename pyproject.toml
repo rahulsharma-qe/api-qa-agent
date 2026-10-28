@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "api-qa-agent"
-version = "0.4.0"
+version = "0.5.0"
 description = "AI drafts, humans approve: runnable API tests from your API description, acceptance criteria and existing test cases."
 readme = "README.md"
 license = "MIT"

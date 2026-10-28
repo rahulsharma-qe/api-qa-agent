@@ -8,10 +8,11 @@ on:
 
 jobs:
   api-tests:
-    uses: rahulsharma-qe/api-qa-agent/.github/workflows/qa-agent-team.yml@main
+    uses: rahulsharma-qe/api-qa-agent/.github/workflows/qa-agent-team.yml@{{ release }}
     with:
       framework: pytest
       environment: demo                 # an environment in config/environments.yaml
+      platform-ref: {{ release }}       # qa-agent and the framework at the same release as this workflow
       name: {{ artifact }}
       start-reference-api: true         # the reference API; remove it when you test your own environment
       # min-coverage: "80"              # a floor for criteria and operations coverage, if the team wants one

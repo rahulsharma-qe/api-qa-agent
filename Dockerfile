@@ -4,7 +4,8 @@
 #   cd your-team-project
 #   docker run --rm -v "$PWD:/project" qa-agent check
 #
-# The tool only (init, import, check, review, generate, trace, promote, suite, bug-detection, draft).
+# The tool only (init, import, check, review, generate, trace, promote, flaky, suite, draft, ai-report).
+# bug-detection runs your tests, so it runs where they run (pytest or Maven), not in this image.
 # The AI layer's model clients are in it: pass the key with -e, e.g. -e ANTHROPIC_API_KEY.
 # Your tests run where they always run (pytest or Maven): they call your API, and inside a container
 # "localhost" is the container, not your machine.
