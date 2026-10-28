@@ -210,11 +210,21 @@ def _case_findings(case: Case, case_file: CaseFile, project: TeamProject, api: O
 
 
 def _secret_in(step: Step) -> str:
-    """'token', 'key' or 'secret' when the request carries something that looks like one; '' otherwise."""
+    """'token', 'key' or 'secret' when the request carries something that looks like one; '' otherwise.
+    A password is left out: a test account's password ("wrong-pass" in a login test) is test data."""
     from qa_agent.ai.redaction import redact
-    text = json.dumps([step.request.headers, step.request.query, step.request.body], default=str)
+    text = json.dumps(_without_passwords([step.request.headers, step.request.query, step.request.body]), default=str)
     counts = redact(text).counts
     return next((kind for kind in ("key", "token", "secret") if counts.get(kind)), "")
+
+
+def _without_passwords(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _without_passwords(item) for key, item in value.items()
+                if not re.fullmatch(r"(?i)pass(word|wd)?|[\w-]*_password", str(key))}
+    if isinstance(value, (list, tuple)):
+        return [_without_passwords(item) for item in value]
+    return value
 
 
 def _has_tbd(value: Any) -> bool:

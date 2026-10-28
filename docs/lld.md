@@ -1136,7 +1136,7 @@ On the bookings example:
 | File | What |
 |---|---|
 | `models.py` | `complete(ModelRequest) -> ModelReply` (text, input and output tokens). `AnthropicModel`, `OpenAIModel` (temperature 0; the SDK is imported only when used: `pip install .[anthropic]` or `.[openai]`), `RecordedModel` (`<folder>/<request name>.txt`) |
-| `redaction.py` | Bearer, Basic and Token values, JWTs, `sk-`/`gh*_`/AWS keys, values of password and secret keys, of API-key and token keys when the value has a digit, card numbers (Luhn-checked), Indian mobile and +country-code phone numbers, emails. Placeholders (`{{row.x}}`) and field names stay. Rules catch the shapes they know, not every secret |
+| `redaction.py` | Bearer, Basic and Token values, JWTs, `sk-`/`gh*_`/AWS keys, values of password and secret keys, of API-key and token keys when the value has a digit, card numbers (Luhn-checked) after a card or pan key or written in groups, phone numbers after a phone or mobile key or written with a + country code (key names matched whole: `card_id` stays), emails. Placeholders (`{{row.x}}`), field names and bare ids, amounts and numbers in paths stay. Rules catch the shapes they know, not every secret |
 | `audit.py` | `reports/ai-audit-log.jsonl`, appended: time, name, provider, model, what was sent, what was redacted, reply, tokens, cost, duration, error |
 | `session.py` | `AiSession.ask(name, system, user)`: redact, call, log. The only way the AI layer calls a model |
 

@@ -144,12 +144,20 @@ def _request(name):
 
 def test_redaction_also_covers_api_key_headers_access_tokens_cards_and_phones():
     text = ('"X-Api-Key": "a1b2c3d4e5f6g7h8"\naccess_token: 9f8e7d6c5b4a3210\nAuthorization: Token abcdef1234567890xyz\n'
-            "card 4111 1111 1111 1111, order 1234567890123\nphone +91 98765 43210, 9876543210\n"
+            'card 4111 1111 1111 1111, "card_number": "5555555555554444"\n'
+            'phone +91 98765 43210, "mobile": "9876543210"\n'
             "epoch 1761638400, amount 4000\ncapture: {token: access_token}")
     redacted = redact(text)
-    for gone in ("a1b2c3d4e5f6g7h8", "9f8e7d6c5b4a3210", "abcdef1234567890xyz", "4111 1111 1111 1111", "98765 43210",
-                 "9876543210"):
+    for gone in ("a1b2c3d4e5f6g7h8", "9f8e7d6c5b4a3210", "abcdef1234567890xyz", "4111 1111 1111 1111",
+                 "5555555555554444", "98765 43210", "9876543210"):
         assert gone not in redacted.text
-    for kept in ("order 1234567890123", "epoch 1761638400", "amount 4000", "capture: {token: access_token}"):
-        assert kept in redacted.text                                          # not a card (Luhn), not a phone, a name
-    assert dict(redacted.counts) == {"card": 1, "token": 1, "secret": 2, "phone": 2}
+    assert dict(redacted.counts) == {"card": 2, "token": 1, "secret": 2, "phone": 2}
+
+
+def test_redaction_leaves_ids_amounts_and_paths_that_only_look_like_cards_or_phones():
+    text = ('{"booking_id": 9876543210, "amount": 7000000000, "id": 1234567812345670, "pnr": "4111111111111111"}\n'
+            "GET /bookings/9123456789\nepoch 1761638400\ncapture: {token: access_token}\nbooked 2026-10-28\n"
+            '{"contact_id": 1234567890, "phone_verified_at": 1729000000, "scorecard_id": 4111111111111111, '
+            '"card_count": 4111111111111111, "amount": "+100 200 3000"}')
+    redacted = redact(text)
+    assert redacted.text == text and not redacted.counts

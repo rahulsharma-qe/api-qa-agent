@@ -135,3 +135,18 @@ def test_a_missing_data_file_is_one_error_not_also_a_changed_approval(make_proje
     main(["--project", str(root), "check"])
     out = capsys.readouterr().out
     assert "no such data file" in out and "changed after it was approved" not in out
+
+
+def test_check_doesnt_warn_about_a_test_accounts_password(make_project, capsys):
+    root = make_project({"cases/a.yaml": """
+feature: Login
+cases:
+  - id: TC1
+    title: A wrong password is refused
+    criteria: []
+    steps:
+      - request: {method: POST, path: /login, body: {user: qa-user, password: wrong-pass, new_password: x1}}
+        expect: {status: 401}
+"""})
+    main(["--project", str(root), "check"])
+    assert "written into the case" not in capsys.readouterr().out
