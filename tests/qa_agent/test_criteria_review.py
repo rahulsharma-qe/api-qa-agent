@@ -103,3 +103,13 @@ def test_an_answer_with_a_date_that_isnt_one_is_refused(make_project, tmp_path):
     refused = "\n".join(import_review_sheet(project, sheet).refused)
     assert "Q-1: Date '20/10/2026' isn't a date (write it as 28-10-2026, or leave it empty for today)" in refused
     assert [q["id"] for q in CriteriaDrafts.load(project).open_questions()] == ["Q-1", "Q-2"]
+
+
+def test_export_wont_write_over_a_criterion_decision_or_an_answer_not_yet_applied(make_project, tmp_path, capsys):
+    project, sheet = sheet_with(make_project, tmp_path)
+    fill(sheet, "Criteria", {2: {"Decision": "Approve", "Reviewer": "asha", "Date": "28-10-2026"}})
+    fill(sheet, "Questions", {3: {"Answer": "Bookings stay pending", "Answered by": "product-owner"}})
+    assert main(["--project", str(project.root), "review", "export"]) == 2
+    assert "has 2 decisions or answers not yet applied (AC-2, Q-2)" in capsys.readouterr().err
+    assert main(["--project", str(project.root), "review", "apply"]) == 0
+    assert main(["--project", str(project.root), "review", "export"]) == 0      # applied: nothing to lose

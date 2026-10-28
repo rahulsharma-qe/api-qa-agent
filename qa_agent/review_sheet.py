@@ -23,6 +23,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 from qa_agent.cases import PRIORITIES, SUITES, Case, load_case_file, save_case_file
 from qa_agent.checks import ERROR, check_project, plural
 from qa_agent.criteria_review import add_criteria_sheets, apply_criteria_sheets
+from qa_agent.criteria_review import not_applied as not_applied_criteria
 from qa_agent.review_common import (DECIDE_FILL, DECISIONS, HEADER_FILL, LOCKED_FILL, open_workbook, review_date,
                                     row_problem, shown_date, text_value)
 from qa_agent.importers.common import split_list
@@ -70,7 +71,7 @@ def export_review_sheet(project: TeamProject, path: Path, every_case: bool = Fal
     if path.is_file() and not force:
         waiting = _not_applied(project, path)
         if waiting:
-            raise SetupError(f"{project.relative(path)} has {plural(len(waiting), 'decision')} not yet applied "
+            raise SetupError(f"{project.relative(path)} has {plural(len(waiting), 'decision or answer', 'decisions or answers')} not yet applied "
                              f"({', '.join(waiting[:5])}{', ...' if len(waiting) > 5 else ''}): run qa-agent review "
                              "apply first, or review export --force to start a new sheet and lose them")
     report = check_project(project)
@@ -225,14 +226,16 @@ def _format(sheet, count: int) -> None:
 
 
 def _not_applied(project: TeamProject, path: Path) -> list:
-    """The ids of rows with a decision that the case files don't show yet."""
+    """The ids of rows with a decision (a case, a criterion) or an answer (a question) that the project's files
+    don't show yet."""
     try:
         rows = _decided_rows(path, ReviewImportResult())
+        criteria_and_questions = not_applied_criteria(path, project)
     except SetupError:
         return []                                  # not a sheet we can read: nothing in it can be applied either
     cases = {case.id: case for case_file in map(load_case_file, project.case_files()) for case in case_file.cases}
-    return [row["ID"] for row in rows
-            if row["ID"] in cases and cases[row["ID"]].review.status != DECISIONS[row["Decision"].lower()]]
+    return [row["ID"] for row in rows if row["ID"] in cases
+            and cases[row["ID"]].review.status != DECISIONS[row["Decision"].lower()]] + criteria_and_questions
 
 
 def _decided_rows(path: Path, result: ReviewImportResult) -> list[dict]:

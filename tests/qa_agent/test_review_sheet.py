@@ -148,7 +148,7 @@ def test_export_keeps_a_sheet_whose_decisions_are_not_applied_yet(make_project, 
     project, sheet, _ = exported(make_project)
     decide(sheet, {"TC1": {"Decision": "Approve", "Reviewer": "qa-lead"}})
     assert main(["--project", str(project.root), "review", "export"]) == 2
-    assert "has 1 decision not yet applied (TC1): run qa-agent review apply first" in capsys.readouterr().err
+    assert "has 1 decision or answer not yet applied (TC1): run qa-agent review apply first" in capsys.readouterr().err
     assert main(["--project", str(project.root), "review", "apply"]) == 0
     assert main(["--project", str(project.root), "review", "export"]) == 0                 # applied: free to replace
     decide(sheet, {"TC3": {"Decision": "Reject", "Reviewer": "qa-lead", "Comment": "dup"}})

@@ -25,6 +25,7 @@ class GenerateResult:
     unchanged: list = field(default_factory=list)
     removed: list = field(default_factory=list)
     left_alone: list = field(default_factory=list)    # files in the output folder qa-agent didn't write
+    kept: list = field(default_factory=list)          # generated files kept as they were: a case in them failed
     tests: dict = field(default_factory=dict)         # framework -> number of tests
     not_generated: list = field(default_factory=list) # "TC005: changes needed"
     problems: list = field(default_factory=list)      # cases a framework can't express
@@ -44,6 +45,7 @@ class GenerateResult:
             return "\n".join(lines)
         lines = [f"wrote      {path}" for path in self.written] + [f"unchanged  {path}" for path in self.unchanged]
         lines += [f"removed    {path}" for path in self.removed]
+        lines += [f"kept {path} as it was: a case in it couldn't be written" for path in self.kept]
         lines += [f"left alone {path} (not written by qa-agent)" for path in self.left_alone]
         lines += [f"not generated: {item}" for item in self.not_generated]
         lines += [f"problem: {item}" for item in self.problems]
@@ -60,20 +62,22 @@ def generate(project: TeamProject, check: bool = False) -> GenerateResult:
     result.not_generated = [f"{case.id}: {_why_not(case)}" for case in left_out]
     for framework in project.frameworks:
         renderer = RENDERERS[framework]
-        expected, approved_everywhere, count, failed = {}, [], 0, False
+        expected, approved_everywhere, count, failed, kept = {}, [], 0, False, set()
         for case_file in case_files:
-            cases = []
+            cases, file_failed = [], False
             for case in (c for c in case_file.cases if c.is_approved):
                 try:
                     renderer.render_file(project.relative(case_file.path), case_file, [case])
                 except RenderError as error:
                     result.problems.append(f"{framework}: {error}")
-                    failed = True
+                    failed = file_failed = True
                     continue
                 cases.append(case)
             if cases:
                 generated = renderer.render_file(project.relative(case_file.path), case_file, cases)
                 expected[generated.path] = generated.text
+                if file_failed:                      # its test file keeps the failed case's test until it is fixed
+                    kept.add(generated.path)
                 approved_everywhere += cases
                 count += len(cases)
         if approved_everywhere:
@@ -82,16 +86,21 @@ def generate(project: TeamProject, check: bool = False) -> GenerateResult:
         if check:
             _compare(project, renderer, expected, result)
         else:
-            _write(project, renderer, expected, result, remove_left_over=not failed)
+            _write(project, renderer, expected, result, remove_left_over=not failed, kept=kept)
         result.tests[framework] = count
     return result
 
 
-def _write(project: TeamProject, renderer, expected: dict, result: GenerateResult, remove_left_over: bool = True) -> None:
-    """Writes what changed. A generated file no case needs any more is removed, unless a case couldn't be written
-    in this framework: then its old test stays until the case is fixed (exit 1 says so)."""
+def _write(project: TeamProject, renderer, expected: dict, result: GenerateResult, remove_left_over: bool = True,
+           kept: frozenset = frozenset()) -> None:
+    """Writes what changed. When a case couldn't be written in this framework, nothing that holds its old test is
+    removed or rewritten: neither a file no case needs any more nor the file it shares with other cases. Its old
+    test stays until the case is fixed (exit 1 says so)."""
     for relative, text in sorted(expected.items()):
         path = project.root / relative
+        if relative in kept and path.is_file():
+            result.kept.append(relative)
+            continue
         if path.is_file() and path.read_text(encoding="utf-8") == text:
             result.unchanged.append(relative)
             continue
@@ -107,7 +116,7 @@ def _write(project: TeamProject, renderer, expected: dict, result: GenerateResul
             continue
         if path.read_text(encoding="utf-8").startswith(renderer.header_mark):
             if not remove_left_over:
-                result.left_alone.append(f"{relative} (kept: a case couldn't be written)")
+                result.kept.append(relative)
                 continue
             path.unlink()
             result.removed.append(relative)

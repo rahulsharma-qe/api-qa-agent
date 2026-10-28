@@ -572,7 +572,8 @@ project can't be read. The findings also go into the review sheet.
 ### 9.6 The review sheet
 
 `qa-agent review export` writes `review/cases.xlsx`, one row per case not yet approved (or every
-case with `--all`):
+case with `--all`). It won't write over a sheet that holds a case or criterion decision, or an answer,
+that isn't applied yet: that is a reviewer's work (`--force` starts a new sheet anyway).
 
 | ID | Case file | Status | Title | Criteria | Priority | Suite | Tags | Steps | Expected | Check findings | **Decision** | **Reviewer** | **Date** | **Comment** |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|

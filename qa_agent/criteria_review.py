@@ -107,6 +107,21 @@ def apply_criteria_sheets(path, project: TeamProject, result) -> None:
         drafts.save()
 
 
+def not_applied(path, project: TeamProject) -> list:
+    """Criteria with a decision and questions with an answer that acceptance-criteria-drafts.yaml doesn't show
+    yet: what `review export` would lose by writing a new sheet."""
+    book = open_workbook(path)
+    drafts = CriteriaDrafts.load(project)
+    by_id = {str(entry.get("id")): entry for entry in drafts.criteria}
+    questions = {str(question.get("id")): question for question in drafts.questions}
+    waiting = [row["ID"] for row in _rows(book, CRITERIA_SHEET)                 # rows apply would refuse aren't work
+               if row.get("Decision") and not row_problem(row) and row["ID"] in by_id    # it can keep, as for cases
+               and by_id[row["ID"]].get("status", "draft") != DECISIONS[row["Decision"].lower()]]
+    waiting += [row["ID"] for row in _rows(book, QUESTIONS_SHEET) if row.get("Answer") and row.get("Answered by")
+                and row["ID"] in questions and questions[row["ID"]].get("status") != "answered"]
+    return waiting
+
+
 def _rows(book, name: str) -> list[dict]:
     if name not in book.sheetnames:
         return []

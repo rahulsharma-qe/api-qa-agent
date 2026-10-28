@@ -76,7 +76,27 @@ def test_the_command_exits_1_when_a_case_cant_be_written(make_project, capsys):
     out = capsys.readouterr().out
     assert "problem: restassured: TC1 step 1: a null value" in out and "pytest: 1 test · restassured: 0 tests" in out
     assert (project.root / "src/test/java/generated/BookingsTest.java").is_file()   # kept until the case is fixed
-    assert "kept: a case couldn't be written" in out
+    assert "kept src/test/java/generated/BookingsTest.java as it was: a case in it couldn't be written" in out
+
+
+def test_a_case_that_cant_be_written_keeps_the_test_file_it_shares_with_others(make_project, capsys):
+    project = approved_project(make_project)
+    case_file = load_case_file(project.root / "cases/bookings.yaml")
+    for case in case_file.cases:
+        case.review.status, case.review.by, case.review.fingerprint = "approved", "qa-lead", case.fingerprint()
+    save_case_file(case_file)
+    generate(project)
+    java = project.root / "src/test/java/generated/BookingsTest.java"
+    before = java.read_text()
+    case = case_file.cases[0]
+    case.steps[0].request.method, case.steps[0].request.body = "POST", {"email": None}
+    case.review.fingerprint = case.fingerprint()
+    save_case_file(case_file)
+    assert main(["--project", str(project.root), "generate"]) == 1
+    assert java.read_text() == before                                         # TC1's old test is still there
+    out = capsys.readouterr().out
+    assert "kept src/test/java/generated/BookingsTest.java as it was: a case in it couldn't be written" in out
+    assert "not written by qa-agent" not in out
 
 
 def test_the_drift_check_writes_nothing_and_names_what_is_out_of_date(make_project, capsys):
