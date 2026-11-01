@@ -15,11 +15,33 @@ def test_the_24_hour_boundary(client, auth, make_booking, cancelled_at, allowed,
     assert (result.json()["refund_allowed"], result.json()["refund_amount"]) == (allowed, amount)
 
 
+@pytest.mark.parametrize("cancelled_at, reason", [
+    ("2026-10-21T10:00:00Z", "cancelled within 24 hours of booking"),
+    ("2026-10-21T10:00:01Z", "cancelled more than 24 hours after booking"),
+])
+def test_the_cancel_response_gives_the_refund_reason(client, auth, make_booking, cancelled_at, reason):
+    pnr = make_booking()["pnr"]
+    result = client.post(f"/bookings/{pnr}/cancel", json={"cancelled_at": cancelled_at}, headers=auth)
+    assert result.json()["reason"] == reason
+
+
+def test_a_cancelled_booking_keeps_its_cancelled_at(client, auth, make_booking):
+    pnr = make_booking()["pnr"]
+    client.post(f"/bookings/{pnr}/cancel", json={"cancelled_at": "2026-10-20T12:00:00Z"}, headers=auth)
+    assert client.get(f"/bookings/{pnr}", headers=auth).json()["cancelled_at"] == "2026-10-20T12:00:00Z"
+
+
 def test_cancelling_before_booking_is_refused(client, auth, make_booking):
     pnr = make_booking()["pnr"]
     result = client.post(f"/bookings/{pnr}/cancel", json={"cancelled_at": "2026-10-20T09:00:00Z"}, headers=auth)
     assert result.status_code == 422
     assert client.get(f"/bookings/{pnr}", headers=auth).json()["status"] == "active"
+
+
+def test_cancelling_before_booking_has_the_invalid_request_code(client, auth, make_booking):
+    pnr = make_booking()["pnr"]
+    result = client.post(f"/bookings/{pnr}/cancel", json={"cancelled_at": "2026-10-20T09:00:00Z"}, headers=auth)
+    assert result.json()["error"]["code"] == "invalid_request"
 
 
 def test_a_second_cancel_is_a_conflict_and_changes_nothing(client, auth, make_booking):
@@ -46,3 +68,9 @@ def test_refund_status_through_the_booking_life(client, auth, make_booking):
         {"pnr": refunded, "refund_status": "refunded", "refund_amount": 250}
     assert client.get(f"/bookings/{not_refunded}/refund", headers=auth).json()["refund_status"] == "no_refund"
     assert client.get("/bookings/NOPE00/refund", headers=auth).status_code == 404
+
+
+def test_a_booking_not_cancelled_reports_a_refund_of_nothing(client, auth, make_booking):
+    pnr = make_booking()["pnr"]
+    assert client.get(f"/bookings/{pnr}/refund", headers=auth).json() == \
+        {"pnr": pnr, "refund_status": "not_cancelled", "refund_amount": 0.0}
