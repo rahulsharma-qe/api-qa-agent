@@ -557,6 +557,7 @@ The fixed Gherkin phrasing, the same one phase 3c generates (so a feature file c
 | Different ids, the same steps (requests, expectations, captures, data file) or the same manual steps (case and spacing aside); rejected cases and cases with no steps left out | Warning on each repeat, naming the case with the lowest id; one line per group on the console, and a count of groups. A reviewer decides which to keep. Exact matches only: "nearly the same" would warn about cases that differ on purpose. A hash per case, so 5,000 cases compare in well under a second |
 | A step has no expectation | Error |
 | Every step checks only a status and the case ends in success (2xx): a wrong answer passes | Warning: add `fields`, `exists` or `types` (a case that ends in a refusal or a 404 is not flagged: that status is its point) |
+| A step expects 400, 409 or 422 and checks nothing in the body (only the status, `max_response_ms` or `headers`): the API can refuse for the wrong reason and the test still passes | Warning: check the error code or message in the body (401, 403 and 404 are not flagged: their status is usually the point). It also flags TC009 in `examples/from-a-requirement` and TC106 in the Petstore example, left as they are; a status from a data file (`{{row.status}}`) isn't checked yet |
 | `{{name}}` used before it is captured; `{{row.x}}` with no data file, or no column `x` | Error |
 | The method and path are not in `api/api.yaml` | Error |
 | The expected status is not one the API documents for that operation | Warning |

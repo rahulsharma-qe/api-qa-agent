@@ -99,6 +99,7 @@ cases/bookings-smoke.yaml
   warning  TC042: linked to no criterion. Fix: add criteria: [AC-…] so it can be traced
 
 cases/bookings.yaml
+  warning  TC005 step 1: expects refusal status 400 and checks nothing else: the test still passes if the API refuses for the wrong reason, say a different missing field. Fix: check the error code or message in the body
   warning  TC005 step 1: status 400 is not documented for POST /bookings (documented: 201, 401, 422). Fix: check the expected status, or document it in the API
   warning  TC005 step 1: the body leaves out required email. Fine for a negative test; otherwise add them
 
@@ -110,11 +111,12 @@ cases/cancellation.yaml
 
 1 group of duplicate cases (1 case repeating another case's steps)
 
-0 errors · 5 warnings · 5 notes
+0 errors · 6 warnings · 5 notes
 ```
 
 - **TC005** expects 400 where the API returns 422: a mistake a person makes, caught before any
-  test runs. Leaving out `email` is the point of this negative test, so that warning stays.
+  test runs. It also checks only the status, so any 400 would pass, whatever the reason. Leaving
+  out `email` is the point of this negative test, so that warning stays.
 - **TC030 and TC042** came from Postman, which has no criteria: the reviewer links TC030 to AC-1
   and rejects TC042 (below).
 - **TC022** repeats TC020's steps under another title: a duplicate, caught by comparing the steps,

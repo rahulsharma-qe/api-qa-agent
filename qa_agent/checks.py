@@ -19,6 +19,7 @@ from qa_agent.project import TeamProject
 ERROR, WARNING, INFO = "error", "warning", "info"
 VALUE = re.compile(r"\{\{\s*([^{}]+?)\s*\}\}")
 METHODS_WITH_A_BODY = ("POST", "PUT", "PATCH")
+REFUSALS_WITH_A_REASON = (400, 409, 422)
 
 
 @dataclass(frozen=True)
@@ -194,6 +195,10 @@ def _case_findings(case: Case, case_file: CaseFile, project: TeamProject, api: O
         if _has_tbd([step.request.path, step.request.query, step.request.headers, step.request.body, step.expect]):
             found.append((ERROR, f"{where}: has TBD, a value still to confirm. Fix: replace TBD with the value "
                                  "the API should give (see the case's notes)"))
+        if _refused_for_any_reason(step):
+            found.append((WARNING, f"{where}: expects refusal status {step.expect['status']} and checks nothing else: "
+                                   "the test still passes if the API refuses for the wrong reason, say a different "
+                                   "missing field. Fix: check the error code or message in the body"))
         secret = _secret_in(step)
         if secret:
             found.append((WARNING, f"{where}: a {secret} is written into the case, and case files are committed. "
@@ -245,6 +250,12 @@ def _is_hollow(steps: list[Step]) -> bool:
         return False
     last = steps[-1].expect.get("status")
     return isinstance(last, int) and 200 <= last < 300
+
+
+def _refused_for_any_reason(step: Step) -> bool:
+    """Expects a 400, 409 or 422 and checks nothing in the body: any refusal passes. A time or a header doesn't
+    say why it refused. 401, 403 and 404 are left out: their status is usually the point of the test."""
+    return step.expect.get("status") in REFUSALS_WITH_A_REASON and not set(step.expect) - {"status", "max_response_ms", "headers"}
 
 
 def _criteria_findings(case: Case, criteria: dict) -> list[tuple[str, str]]:

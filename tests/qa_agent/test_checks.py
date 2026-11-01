@@ -1,5 +1,7 @@
 """qa-agent check: each rule, with the finding it gives."""
 
+import pytest
+
 from qa_agent.checks import ERROR, INFO, WARNING, check_project
 from qa_agent.project import TeamProject
 
@@ -165,6 +167,50 @@ def test_a_case_that_ends_in_a_refusal_or_checks_the_response_is_not_hollow(make
     assert _hollow_warnings(make_project, refused) == []
     checked = '[{request: {method: GET, path: /bookings/search}, expect: {status: 200, exists: [bookings]}}]'
     assert _hollow_warnings(make_project, checked) == []
+
+
+def _refusal_warnings(make_project, expect: str, review: str = "") -> list[str]:
+    report, _, _ = findings(make_project({"api/api.yaml": API, "acceptance-criteria.yaml": CRITERIA, "cases/b.yaml": f"""
+        feature: B
+        cases:
+          - id: TC1
+            title: t
+            criteria: [AC-1]
+            steps:
+              - request: {{method: POST, path: /bookings, body: {{passenger_name: x}}}}
+                expect: {expect}
+            {review}
+        """}))
+    return [f.message for f in report.findings if f.level == WARNING and "refusal status" in f.message]
+
+
+@pytest.mark.parametrize("status", [400, 409, 422])
+def test_a_refusal_that_checks_only_its_status_gets_a_warning(make_project, status):
+    warnings = _refusal_warnings(make_project, f"{{status: {status}}}")
+    assert len(warnings) == 1
+    assert warnings[0].startswith(f"TC1 step 1: expects refusal status {status} and checks nothing else")
+    assert warnings[0].endswith("Fix: check the error code or message in the body")
+
+
+@pytest.mark.parametrize("status", [401, 403, 404, 201, 500])
+def test_other_statuses_are_left_alone_by_the_refusal_rule(make_project, status):
+    assert _refusal_warnings(make_project, f"{{status: {status}}}") == []
+
+
+@pytest.mark.parametrize("check", ["fields: {error: email_required}", "exists: [error]", "types: {error: string}",
+                                   "contains: {message: email}", "list_length: {errors: 1}",
+                                   "list_contains: {errors: {field: email}}", "list_excludes: {errors: {field: name}}"])
+def test_a_refusal_that_checks_the_body_gets_no_warning(make_project, check):
+    assert _refusal_warnings(make_project, f"{{status: 422, {check}}}") == []
+
+
+@pytest.mark.parametrize("check", ["max_response_ms: 2000", "headers: {Content-Type: application/json}"])
+def test_a_time_or_a_header_does_not_say_why_the_api_refused(make_project, check):
+    assert len(_refusal_warnings(make_project, f"{{status: 422, {check}}}")) == 1
+
+
+def test_a_rejected_case_gets_no_refusal_warning(make_project):
+    assert _refusal_warnings(make_project, "{status: 422}", "review: {status: rejected}") == []
 
 
 def test_tbd_anywhere_in_a_step_is_an_error_so_the_case_cant_be_approved(make_project):

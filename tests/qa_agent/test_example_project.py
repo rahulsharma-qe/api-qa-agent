@@ -98,7 +98,8 @@ def test_check_on_the_example_finds_what_its_readme_shows(tmp_path):
     assert not report.has_errors
     assert sorted((f.level, f.case_id) for f in report.findings) == [
         ("info", "TC006"), ("info", "TC020"), ("info", "TC021"), ("info", "TC022"), ("info", "TC041"),
-        ("warning", "TC005"), ("warning", "TC005"), ("warning", "TC022"), ("warning", "TC030"), ("warning", "TC042")]
+        ("warning", "TC005"), ("warning", "TC005"), ("warning", "TC005"), ("warning", "TC022"), ("warning", "TC030"),
+        ("warning", "TC042")]
     assert [f.message for f in report.for_case("TC022") if f.same_as] == [
         "TC022: same steps as TC020 (cases/refunds.yaml). Fix: reject one in the review sheet, or remove it"]
 
