@@ -22,3 +22,8 @@ target/
 
 # python build output
 build/
+
+# mutmut working copy
+mutants/
+.coverage
+mutmut-results.txt

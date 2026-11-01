@@ -1,5 +1,7 @@
 """Bookings in memory. Safe for the few threads a test server uses; `reset()` empties it."""
 
+from __future__ import annotations
+
 import secrets
 import string
 import threading
