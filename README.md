@@ -63,6 +63,34 @@ in both frameworks, a new project of your own, and the Docker image.
 Everything that needs no AI comes first, so a team can use it end to end with its existing cases
 before any AI is switched on.
 
+## How strong are the tests?
+
+| Measure | The question it answers | Result | Tool |
+|---|---|---|---|
+| Line coverage | Did the code run? | 96% | coverage.py |
+| Mutation score | Would the unit tests notice a small mistake? | 350 of 488 (340 before the new tests) | mutmut |
+| Seeded bugs | Would the QA suite catch a real bug? | 5 of 7 | `qa-agent bug-detection` |
+
+```bash
+pip install -e ".[dev]" -e frameworks/python_api
+
+# Line coverage of demo_api
+coverage run --source=demo_api -m pytest -q tests/demo_api
+coverage report
+
+# Mutation score. Delete mutants/ first: mutmut keeps cached results when only tests change
+rm -rf mutants/
+mutmut run
+mutmut results
+
+# Seeded bugs, with the reference API stopped
+cd examples/bookings-team && qa-agent bug-detection --framework pytest
+```
+
+What the mutation run's survivors showed: 10 in cancel and refund were real gaps, and now have
+tests. Most of the rest are startup code, settings defaults and message wording. Still open: saving
+a changed email, the default time zone, and settings defaults.
+
 ## Docs
 
 | | |
